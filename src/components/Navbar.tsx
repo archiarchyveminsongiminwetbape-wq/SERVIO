@@ -1,11 +1,13 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase } from 'lucide-react';
+import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useDarkMode } from '@/context/DarkModeContext';
 import NotificationBell from '@/components/NotificationBell';
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth();
+  const { darkMode, toggleDarkMode } = useDarkMode();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -27,29 +29,33 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-neutral-200/80 bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <nav className={`sticky top-0 z-50 ${darkMode ? 'glass-nav-dark' : 'glass-nav'}`}>
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white">
-              <Briefcase size={20} />
+          <Link to="/" className="flex items-center gap-3 text-2xl font-bold tracking-tight">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30">
+              <Briefcase size={24} />
             </span>
-            <span className="text-neutral-900">SERVIO</span>
+            <span className={darkMode ? 'text-white' : 'text-neutral-900'}>SERVIO</span>
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
             <Link
               to="/"
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive('/') ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                isActive('/') 
+                  ? 'bg-primary-50 text-primary-700' 
+                  : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
             >
               Accueil
             </Link>
             <Link
               to="/search"
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive('/search') ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                isActive('/search') 
+                  ? 'bg-primary-50 text-primary-700' 
+                  : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
             >
               Explorer
@@ -57,8 +63,10 @@ export default function Navbar() {
             {profile?.role === 'provider' && (
               <Link
                 to="/provider/dashboard"
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive('/provider/dashboard') ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+                className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                  isActive('/provider/dashboard') 
+                    ? 'bg-primary-50 text-primary-700' 
+                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                 }`}
               >
                 Mon espace
@@ -67,8 +75,10 @@ export default function Navbar() {
             {profile?.role === 'admin' && (
               <Link
                 to="/admin"
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive('/admin') ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
+                className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                  isActive('/admin') 
+                    ? 'bg-primary-50 text-primary-700' 
+                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                 }`}
               >
                 Administration
@@ -88,11 +98,18 @@ export default function Navbar() {
               </Link>
               <Link
                 to="/favorites"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
               >
                 <Heart size={20} />
               </Link>
               <NotificationBell />
+              
+              <button
+                onClick={toggleDarkMode}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+              >
+                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
 
               <div className="relative">
                 <button
@@ -138,6 +155,30 @@ export default function Navbar() {
                       >
                         <MessageSquare size={16} />
                         Messagerie
+                      </Link>
+                      <Link
+                        to="/notifications"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                      >
+                        <MessageSquare size={16} />
+                        Notifications
+                      </Link>
+                      <Link
+                        to="/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                      >
+                        <UserCircle size={16} />
+                        Mon profil
+                      </Link>
+                      <Link
+                        to="/settings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                      >
+                        <Settings size={16} />
+                        Paramètres
                       </Link>
                       <div className="my-1 border-t border-neutral-100" />
                       <button

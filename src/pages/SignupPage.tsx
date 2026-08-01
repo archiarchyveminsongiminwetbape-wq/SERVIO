@@ -32,7 +32,8 @@ export default function SignupPage() {
       setError(error);
       setLoading(false);
     } else {
-      navigate('/');
+      // Rediriger vers la page de confirmation
+      navigate('/signup/confirmation', { state: { email } });
     }
   };
 

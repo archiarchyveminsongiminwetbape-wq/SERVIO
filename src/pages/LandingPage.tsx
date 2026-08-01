@@ -1,32 +1,37 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, TrendingUp, Users, Award, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useDarkMode } from '@/context/DarkModeContext';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
 import CategoryIcon from '@/components/CategoryIcon';
+import { BentoGrid, BentoCard, BentoSection } from '@/components/BentoGrid';
+import { BentoStatCard, BentoFeatureCard, BentoActionCard } from '@/components/BentoCard';
+import { GlassCard, GlassInput } from '@/components/GlassCard';
+import { categoryTaxonomy } from '@/data/categories';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { darkMode } = useDarkMode();
   const [featured, setFeatured] = useState<ProviderProfile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
+  const displayedCategories = showAllCategories 
+    ? categoryTaxonomy 
+    : categoryTaxonomy.slice(0, 12);
+
   useEffect(() => {
     async function loadData() {
-      const [catRes, featRes] = await Promise.all([
-        supabase.from('categories').select('*').is('parent_id', null).order('sort_order'),
-        supabase
-          .from('provider_profiles')
-          .select('*, category:categories(*)')
-          .eq('validation_status', 'approved')
-          .order('is_featured', { ascending: false })
-          .order('rating_avg', { ascending: false })
-          .limit(6),
-      ]);
-      setCategories(catRes.data as Category[] ?? []);
+      const featRes = await supabase
+        .from('provider_profiles')
+        .select('*, category:categories(*)')
+        .eq('validation_status', 'approved')
+        .order('is_featured', { ascending: false })
+        .order('rating_avg', { ascending: false })
+        .limit(6);
       setFeatured(featRes.data as ProviderProfile[] ?? []);
       setLoading(false);
     }
@@ -41,199 +46,221 @@ export default function LandingPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800">
-        <div className="absolute inset-0 opacity-10">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary-800 via-primary-700 to-primary-900">
+        <div className="absolute inset-0 opacity-20">
           <img
             src="/images/background.jpg"
             alt=""
             className="h-full w-full object-cover"
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-primary-900/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-primary-900/30 to-transparent" />
+        
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary-500/20 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary-400/20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
-              <Sparkles size={16} />
+        <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-6 py-2 text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
+              <Sparkles size={18} className="text-primary-200" />
               La plateforme des prestataires de services
             </div>
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+            <h1 className="text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl animate-slide-up">
               Trouvez le bon professionnel,
-              <span className="block text-primary-200">au bon moment</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-primary-100">au bon moment</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-primary-100">
+            <p className="mx-auto mt-8 max-w-2xl text-xl leading-relaxed text-primary-100 animate-slide-up" style={{ animationDelay: '0.1s' }}>
               Des artisans, créatifs, consultants et prestataires de tous secteurs.
               Consultez leurs portfolios et contactez-les directement.
             </p>
 
-            <form onSubmit={handleSearch} className="mx-auto mt-10 flex max-w-2xl items-center gap-2 rounded-2xl bg-white p-2 shadow-xl">
-              <div className="relative flex-1">
-                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
+            <form onSubmit={handleSearch} className="mx-auto mt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <GlassCard variant={darkMode ? 'dark' : 'default'} className="flex max-w-2xl items-center gap-3 p-2">
+                <GlassInput
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Quel service recherchez-vous ?"
-                  className="w-full rounded-xl border-0 bg-transparent py-3 pl-10 pr-3 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-0"
+                  variant={darkMode ? 'dark' : 'default'}
+                  icon={<Search size={22} className="text-neutral-400" />}
                 />
-              </div>
-              <button type="submit" className="btn-primary rounded-xl px-6 py-3">
-                Rechercher
-                <ArrowRight size={18} />
-              </button>
+                <button type="submit" className="btn-primary rounded-2xl px-8 py-4">
+                  Rechercher
+                  <ArrowRight size={20} />
+                </button>
+              </GlassCard>
             </form>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-primary-100">
-              <span className="flex items-center gap-1.5"><ShieldCheck size={16} /> Profils vérifiés</span>
-              <span className="flex items-center gap-1.5"><MessageSquare size={16} /> Messagerie intégrée</span>
-              <span className="flex items-center gap-1.5"><Star size={16} /> Avis clients réels</span>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-base text-primary-100 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              <span className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm"><ShieldCheck size={18} /> Profils vérifiés</span>
+              <span className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm"><MessageSquare size={18} /> Messagerie intégrée</span>
+              <span className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm"><Star size={18} /> Avis clients réels</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Categories */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-neutral-900">Explorer par secteur</h2>
-            <p className="mt-1 text-sm text-neutral-600">{categories.length} secteurs d'activité disponibles</p>
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-neutral-900">Explorez par secteur</h2>
+            <p className="mt-3 text-lg text-neutral-600">Trouvez le professionnel adapté à votre besoin</p>
           </div>
-          <Link to="/search" className="hidden text-sm font-semibold text-primary-600 hover:text-primary-700 sm:block">
-            Tout voir →
-          </Link>
-        </div>
 
-        <div className={`mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 ${showAllCategories ? '' : 'max-h-[28rem] overflow-hidden'}`}>
-          {categories.map((cat) => (
-            <Link
-              key={cat.id}
-              to={`/search?category=${cat.slug}`}
-              className="group flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition-all hover:border-primary-300 hover:shadow-md"
-            >
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 transition-colors group-hover:bg-primary-100">
-                <CategoryIcon name={cat.icon ?? ''} size={22} />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-neutral-900">{cat.name}</p>
-                <p className="truncate text-xs text-neutral-500">{cat.description}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {categories.length > 8 && (
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setShowAllCategories(!showAllCategories)}
-              className="btn-secondary"
-            >
-              {showAllCategories ? (
-                <><ChevronUp size={18} /> Voir moins</>
-              ) : (
-                <><ChevronDown size={18} /> Voir tous les secteurs ({categories.length})</>
-              )}
-            </button>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {displayedCategories.map((cat) => (
+              <Link
+                key={cat.slug}
+                to={`/search?category=${cat.slug}`}
+                className="group flex flex-col items-center p-4 rounded-2xl border border-neutral-200 bg-white hover:border-primary-300 hover:shadow-lg transition-all"
+              >
+                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 transition-all group-hover:scale-110 group-hover:from-primary-100 group-hover:to-primary-200">
+                  <CategoryIcon name={cat.icon ?? ''} size={28} />
+                </div>
+                <div className="min-w-0 mt-3">
+                  <p className="truncate text-sm font-bold text-neutral-900 group-hover:text-primary-700">{cat.name}</p>
+                  <p className="truncate text-xs text-neutral-500 mt-1">{cat.subcategories.length} spécialités</p>
+                </div>
+              </Link>
+            ))}
           </div>
-        )}
+
+          {categoryTaxonomy.length > 12 && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setShowAllCategories(!showAllCategories)}
+                className="btn-secondary"
+              >
+                {showAllCategories ? 'Voir moins' : `Voir tous les ${categoryTaxonomy.length} secteurs`}
+              </button>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Featured Providers */}
-      <section className="bg-neutral-50 py-16">
+      <section className="bg-gradient-to-b from-neutral-50 to-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-neutral-900">Prestataires en vedette</h2>
-              <p className="mt-1 text-sm text-neutral-600">Des professionnels de qualité, prêts à vous accompagner</p>
-            </div>
-            <Link to="/search" className="hidden text-sm font-semibold text-primary-600 hover:text-primary-700 sm:block">
-              Voir tous les prestataires →
-            </Link>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-neutral-900">Prestataires en vedette</h2>
+            <p className="mt-3 text-lg text-neutral-600">Des professionnels de qualité, prêts à vous accompagner</p>
           </div>
 
           {loading ? (
-            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-in">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="card h-80 animate-pulse overflow-hidden">
-                  <div className="h-40 bg-neutral-200" />
-                  <div className="p-4">
-                    <div className="h-4 w-3/4 rounded bg-neutral-200" />
-                    <div className="mt-2 h-3 w-1/2 rounded bg-neutral-200" />
-                    <div className="mt-4 h-3 w-2/3 rounded bg-neutral-200" />
+                <div key={i} className="card h-96 animate-pulse overflow-hidden">
+                  <div className="h-48 bg-gradient-to-br from-neutral-200 to-neutral-300" />
+                  <div className="p-6">
+                    <div className="h-5 w-3/4 rounded bg-neutral-200" />
+                    <div className="mt-3 h-4 w-1/2 rounded bg-neutral-200" />
+                    <div className="mt-4 h-4 w-2/3 rounded bg-neutral-200" />
+                    <div className="mt-4 h-4 w-1/2 rounded bg-neutral-200" />
                   </div>
                 </div>
               ))}
             </div>
           ) : featured.length > 0 ? (
-            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-in">
               {featured.map((p) => (
                 <ProviderCard key={p.id} provider={p} />
               ))}
             </div>
           ) : (
-            <p className="mt-8 text-center text-neutral-500">Aucun prestataire disponible pour le moment.</p>
+            <div className="text-center py-12">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+                <Search size={32} className="text-neutral-400" />
+              </div>
+              <p className="text-lg text-neutral-600">Aucun prestataire disponible pour le moment.</p>
+            </div>
           )}
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-neutral-900">Comment ça marche</h2>
-          <p className="mt-1 text-sm text-neutral-600">Simple, rapide et efficace</p>
-        </div>
+      {/* Stats - Bento Grid */}
+      <BentoSection className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+        <BentoGrid>
+          <BentoStatCard 
+            icon={Users} 
+            value="10K+" 
+            label="Prestataires" 
+            trend="+15%" 
+            variant="dark"
+          />
+          <BentoStatCard 
+            icon={Award} 
+            value="50K+" 
+            label="Projets réalisés" 
+            trend="+23%" 
+            variant="dark"
+          />
+          <BentoStatCard 
+            icon={Star} 
+            value="4.8" 
+            label="Note moyenne" 
+            variant="dark"
+          />
+          <BentoStatCard 
+            icon={Clock} 
+            value="24h" 
+            label="Temps de réponse" 
+            variant="dark"
+          />
+        </BentoGrid>
+      </BentoSection>
 
-        <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-3">
-          <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-              <Search size={26} />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-neutral-900">1. Recherchez</h3>
-            <p className="mt-2 text-sm text-neutral-600">
-              Explorez les profils par secteur, localisation ou mot-clé.
-              Comparez les portfolios et les avis.
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-              <MessageSquare size={26} />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-neutral-900">2. Contactez</h3>
-            <p className="mt-2 text-sm text-neutral-600">
-              Envoyz un message directement via la messagerie intégrée.
-              Pas besoin d'outils externes.
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-              <TrendingUp size={26} />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-neutral-900">3. Collaborez</h3>
-            <p className="mt-2 text-sm text-neutral-600">
-              Échangez, convenez d'un devis, et laissez votre avis
-              après la prestation.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* How it works - Bento Grid */}
+      <BentoSection title="Comment ça marche" description="Simple, rapide et efficace">
+        <BentoGrid>
+          <BentoFeatureCard 
+            icon={Search}
+            title="1. Recherchez"
+            description="Explorez les profils par secteur, localisation ou mot-clé. Comparez les portfolios et les avis."
+            variant="default"
+          />
+          <BentoFeatureCard 
+            icon={MessageSquare}
+            title="2. Contactez"
+            description="Envoyez un message directement via la messagerie intégrée. Pas besoin d'outils externes."
+            variant="primary"
+          />
+          <BentoFeatureCard 
+            icon={TrendingUp}
+            title="3. Collaborez"
+            description="Échangez, convenez d'un devis, et laissez votre avis après la prestation."
+            variant="default"
+          />
+        </BentoGrid>
+      </BentoSection>
 
-      {/* CTA */}
-      <section className="bg-primary-600 py-16">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-white">Vous êtes prestataire de services ?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-primary-100">
-            Créez votre portfolio professionnel gratuitement et faites-vous contacter
-            par des clients qui ont besoin de vos services.
-          </p>
-          <Link
-            to="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-primary-700 shadow-lg transition-all hover:bg-primary-50 hover:shadow-xl"
-          >
-            Créer mon portfolio
-            <ArrowRight size={20} />
-          </Link>
-        </div>
-      </section>
+      {/* CTA - Bento Grid */}
+      <BentoSection className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800">
+        <BentoGrid>
+          <BentoCard colSpan={2} variant="gradient" className="flex flex-col justify-center text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm mb-6 mx-auto w-fit">
+              <Sparkles size={16} />
+              Rejoignez notre communauté
+            </div>
+            <h2 className="text-4xl font-bold text-white sm:text-5xl">Vous êtes prestataire de services ?</h2>
+            <p className="mx-auto mt-6 max-w-2xl text-xl text-primary-100">
+              Créez votre portfolio professionnel gratuitement et faites-vous contacter
+              par des clients qui ont besoin de vos services.
+            </p>
+          </BentoCard>
+          <BentoActionCard 
+            icon={ArrowRight}
+            title="Commencer maintenant"
+            description="Inscription gratuite en 2 minutes"
+            action="Créer mon compte"
+            onClick={() => navigate('/signup')}
+            variant="gradient"
+          />
+        </BentoGrid>
+      </BentoSection>
     </div>
   );
 }

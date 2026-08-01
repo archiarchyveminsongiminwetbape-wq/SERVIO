@@ -66,13 +66,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, metadata: { full_name: string; role: string }) {
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: metadata,
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
+    
+    // En mode développement, désactiver la confirmation email
+    if (!error && !data.session) {
+      // Si pas de session, l'email de confirmation est requis
+      // En mode dev, on peut auto-confirmer
+      console.log('Email confirmation required. In development mode, you may need to disable email confirmation in Supabase settings.');
+    }
+    
     return { error: error?.message ?? null };
   }
 
