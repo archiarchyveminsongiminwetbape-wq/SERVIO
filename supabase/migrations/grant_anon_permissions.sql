@@ -4,7 +4,6 @@
 -- Accorder les permissions sur la table categories
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON TABLE public.categories TO anon, authenticated;
-GRANT USAGE, SELECT ON SEQUENCE public.categories_id_seq TO anon, authenticated;
 
 -- Désactiver RLS temporairement pour le seeding
 ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
