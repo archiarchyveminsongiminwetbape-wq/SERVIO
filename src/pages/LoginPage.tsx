@@ -4,7 +4,7 @@ import { Briefcase, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, profile } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +21,14 @@ export default function LoginPage() {
       setError(error);
       setLoading(false);
     } else {
-      navigate('/');
+      // Attendre que le profil soit chargé
+      setTimeout(() => {
+        if (profile?.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      }, 100);
     }
   };
 
