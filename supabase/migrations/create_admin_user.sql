@@ -49,6 +49,7 @@ END $$;
 -- Créer le profil dans profiles
 INSERT INTO profiles (
   id,
+  email,
   full_name,
   role,
   created_at,
@@ -56,6 +57,7 @@ INSERT INTO profiles (
 )
 SELECT 
   id,
+  email,
   'Administrateur',
   'admin',
   now(),
