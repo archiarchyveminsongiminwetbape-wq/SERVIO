@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
-  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin, CalendarPlus
+  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin, CalendarPlus, CalendarCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import type { ProviderProfile, PortfolioItem, Category, Review, AvailabilitySlot } from '@/types';
+import type { ProviderProfile, PortfolioItem, Category, Review, AvailabilitySlot, Booking } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
@@ -16,7 +16,7 @@ import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 import ImageUpload from '@/components/ImageUpload';
 
-type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability';
+type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability' | 'bookings';
 
 export default function ProviderDashboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -27,6 +27,7 @@ export default function ProviderDashboardPage() {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -96,14 +97,16 @@ export default function ProviderDashboardPage() {
       setSkillsInput(prov.skills.join(', '));
       setLanguagesInput(prov.languages.join(', '));
 
-      const [portRes, revRes, slotsRes] = await Promise.all([
+      const [portRes, revRes, slotsRes, bookingsRes] = await Promise.all([
         supabase.from('portfolio_items').select('*').eq('provider_id', prov.id).order('sort_order'),
         supabase.from('reviews').select('*').eq('provider_id', prov.id).order('created_at', { ascending: false }),
         supabase.from('availability_slots').select('*').eq('provider_id', prov.id).order('date', { ascending: true }),
+        supabase.from('bookings').select('*, client:profiles(*)').eq('provider_id', prov.id).order('scheduled_at', { ascending: false }),
       ]);
       setPortfolio(portRes.data as PortfolioItem[] ?? []);
       setReviews(revRes.data as Review[] ?? []);
       setAvailabilitySlots(slotsRes.data as AvailabilitySlot[] ?? []);
+      setBookings(bookingsRes.data as Booking[] ?? []);
     }
     setLoading(false);
   }
@@ -279,12 +282,12 @@ export default function ProviderDashboardPage() {
     setSaving(false);
   }
 
-  async function toggleAvailabilitySlot(id: string, isAvailable: boolean) {
+  async function updateBookingStatus(bookingId: string, status: string) {
     if (!provider) return;
     setSaving(true);
-    const { error } = await supabase.from('availability_slots').update({ is_available: isAvailable }).eq('id', id);
+    const { error } = await supabase.from('bookings').update({ status }).eq('id', bookingId);
     if (!error) {
-      setAvailabilitySlots(availabilitySlots.map((s) => s.id === id ? { ...s, is_available: isAvailable } : s));
+      setBookings(bookings.map(b => b.id === bookingId ? { ...b, status } : b));
     }
     setSaving(false);
   }
@@ -363,6 +366,7 @@ export default function ProviderDashboardPage() {
     { id: 'profile', label: 'Mon profil', icon: Settings },
     { id: 'reviews', label: 'Avis', icon: Star },
     { id: 'availability', label: 'Disponibilités', icon: CalendarPlus },
+    { id: 'bookings', label: 'Rendez-vous', icon: CalendarCheck },
   ];
 
   return (
@@ -1046,6 +1050,128 @@ export default function ProviderDashboardPage() {
               <CalendarPlus size={48} className="text-neutral-300" />
               <p className="mt-3 text-sm text-neutral-500">Aucun créneau de disponibilité</p>
               <p className="text-xs text-neutral-400 mt-1">Ajoutez vos créneaux pour permettre aux clients de réserver</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bookings */}
+      {tab === 'bookings' && (
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Rendez-vous ({bookings.length})</h3>
+          </div>
+
+          {bookings.length > 0 ? (
+            <div className="space-y-4">
+              {bookings.map((booking) => {
+                const client = (booking as any).client;
+                const statusInfo: Record<string, { label: string; color: string }> = {
+                  pending: { label: 'En attente', color: 'bg-warning-100 text-warning-700' },
+                  confirmed: { label: 'Confirmé', color: 'bg-success-100 text-success-700' },
+                  completed: { label: 'Terminé', color: 'bg-neutral-100 text-neutral-700' },
+                  cancelled: { label: 'Annulé', color: 'bg-error-100 text-error-700' },
+                  no_show: { label: 'Absent', color: 'bg-error-100 text-error-700' },
+                };
+                const status = statusInfo[booking.status] || statusInfo.pending;
+
+                return (
+                  <div key={booking.id} className="card p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-xl font-bold text-primary-700">
+                          {client?.full_name?.[0] || '?'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-neutral-900">{client?.full_name || 'Client'}</h3>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>
+                              {status.label}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-sm text-neutral-600">
+                            <div className="flex items-center gap-2">
+                              <Calendar size={14} />
+                              {formatDate(booking.scheduled_at)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock size={14} />
+                              {new Date(booking.scheduled_at).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {booking.location_type === 'remote' ? (
+                                <>
+                                  <Video size={14} />
+                                  Visioconférence
+                                </>
+                              ) : (
+                                <>
+                                  <MapPin size={14} />
+                                  {booking.location_address || 'Adresse non spécifiée'}
+                                </>
+                              )}
+                            </div>
+                            {booking.price && (
+                              <div className="flex items-center gap-2">
+                                <CreditCard size={14} />
+                                {booking.price} {booking.currency}
+                              </div>
+                            )}
+                          </div>
+                          {booking.notes && (
+                            <p className="mt-2 text-sm text-neutral-500 italic">"{booking.notes}"</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {booking.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                              className="btn-ghost text-success-600"
+                              title="Accepter"
+                            >
+                              <Check size={18} />
+                            </button>
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                              className="btn-ghost text-error-600"
+                              title="Refuser"
+                            >
+                              <X size={18} />
+                            </button>
+                          </>
+                        )}
+                        {booking.status === 'confirmed' && (
+                          <button
+                            onClick={() => updateBookingStatus(booking.id, 'completed')}
+                            className="btn-ghost text-primary-600"
+                            title="Marquer terminé"
+                          >
+                            <CheckCircle2 size={18} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => navigate(`/messages`)}
+                          className="btn-secondary"
+                          title="Contacter"
+                        >
+                          <MessageSquare size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <CalendarCheck size={48} className="text-neutral-300" />
+              <p className="mt-3 text-sm text-neutral-500">Aucun rendez-vous</p>
+              <p className="text-xs text-neutral-400 mt-1">Vous recevrez les demandes de rendez-vous ici</p>
             </div>
           )}
         </div>
