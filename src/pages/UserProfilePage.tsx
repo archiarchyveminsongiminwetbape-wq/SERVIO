@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function UserProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -135,14 +136,30 @@ export default function UserProfilePage() {
           <div className="card overflow-hidden">
             <div className="relative h-32 bg-gradient-to-br from-primary-600 to-primary-800">
               {editing && (
-                <button className="absolute right-2 top-2 rounded bg-white/20 p-2 text-white hover:bg-white/30">
-                  <Camera size={16} />
-                </button>
+                <div className="absolute right-2 top-2">
+                  <ImageUpload
+                    currentUrl={null}
+                    userId={user.id}
+                    type="banner"
+                    aspectRatio="wide"
+                    onUrlChange={() => {}}
+                    label=""
+                  />
+                </div>
               )}
             </div>
             <div className="px-6 pb-6">
               <div className="-mt-12 mb-4 flex justify-center">
-                <div className="relative">
+                {editing ? (
+                  <ImageUpload
+                    currentUrl={formData.avatar_url}
+                    userId={user.id}
+                    type="avatar"
+                    aspectRatio="square"
+                    onUrlChange={(url) => setFormData({ ...formData, avatar_url: url || '' })}
+                    label=""
+                  />
+                ) : (
                   <div className="h-24 w-24 rounded-full border-4 border-white bg-neutral-200 flex items-center justify-center overflow-hidden">
                     {profile.avatar_url ? (
                       <img src={profile.avatar_url} alt={profile.full_name || 'Avatar'} className="h-full w-full object-cover" />
@@ -150,12 +167,7 @@ export default function UserProfilePage() {
                       <User size={48} className="text-neutral-400" />
                     )}
                   </div>
-                  {editing && (
-                    <button className="absolute bottom-0 right-0 rounded-full bg-primary-600 p-2 text-white hover:bg-primary-700">
-                      <Camera size={14} />
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
               <div className="text-center">
                 <h2 className="text-xl font-semibold text-neutral-900">{profile.full_name || 'Utilisateur'}</h2>

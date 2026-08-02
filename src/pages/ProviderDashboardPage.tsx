@@ -14,6 +14,7 @@ import { BentoGrid, BentoCard } from '@/components/BentoGrid';
 import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
+import ImageUpload from '@/components/ImageUpload';
 
 type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability';
 
@@ -858,27 +859,23 @@ export default function ProviderDashboardPage() {
 
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-neutral-900">Images</h3>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="label">URL de l'avatar</label>
-                <input
-                  type="url"
-                  value={form.avatar_url as string ?? ''}
-                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
-                  className="input-field"
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <label className="label">URL de la bannière</label>
-                <input
-                  type="url"
-                  value={form.banner_url as string ?? ''}
-                  onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
-                  className="input-field"
-                  placeholder="https://..."
-                />
-              </div>
+            <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <ImageUpload
+                currentUrl={form.avatar_url as string || null}
+                userId={user?.id || ''}
+                type="avatar"
+                aspectRatio="square"
+                onUrlChange={(url) => setForm({ ...form, avatar_url: url || '' })}
+                label="Avatar"
+              />
+              <ImageUpload
+                currentUrl={form.banner_url as string || null}
+                userId={user?.id || ''}
+                type="banner"
+                aspectRatio="wide"
+                onUrlChange={(url) => setForm({ ...form, banner_url: url || '' })}
+                label="Bannière"
+              />
             </div>
           </div>
 
