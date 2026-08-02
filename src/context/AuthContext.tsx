@@ -75,14 +75,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     
-    // En mode développement, désactiver la confirmation email
-    if (!error && !data.session) {
-      // Si pas de session, l'email de confirmation est requis
-      // En mode dev, on peut auto-confirmer
-      console.log('Email confirmation required. In development mode, you may need to disable email confirmation in Supabase settings.');
+    if (error) {
+      console.error('Signup error:', error);
+      return { error: error.message ?? null };
     }
     
-    return { error: error?.message ?? null };
+    // Si l'inscription réussit mais pas de session (email confirmation activée)
+    if (!data.session) {
+      console.log('Email confirmation required or signup pending');
+      return { error: null };
+    }
+    
+    // Créer manuellement le profil si le trigger ne fonctionne pas
+    if (data.user) {
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: metadata.full_name,
+            role: metadata.role,
+          });
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Le trigger a peut-être déjà créé le profil, ignorer l'erreur
+        }
+      } catch (e) {
+        console.error('Profile creation failed:', e);
+      }
+    }
+    
+    return { error: null };
   }
 
   async function signIn(email: string, password: string) {
