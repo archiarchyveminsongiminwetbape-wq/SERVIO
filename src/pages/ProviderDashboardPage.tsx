@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
-  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin
+  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin, CalendarPlus
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
+import type { ProviderProfile, PortfolioItem, Category, Review, AvailabilitySlot } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
@@ -15,7 +15,7 @@ import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 
-type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews';
+type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability';
 
 export default function ProviderDashboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -25,6 +25,7 @@ export default function ProviderDashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -38,6 +39,10 @@ export default function ProviderDashboardPage() {
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [showItemForm, setShowItemForm] = useState(false);
   const [itemForm, setItemForm] = useState({ title: '', description: '', photos: [''], tags: '' });
+
+  // Availability form state
+  const [showSlotForm, setShowSlotForm] = useState(false);
+  const [slotForm, setSlotForm] = useState({ date: '', start_time: '', end_time: '', notes: '' });
 
   useEffect(() => {
     if (!authLoading) {
@@ -90,12 +95,14 @@ export default function ProviderDashboardPage() {
       setSkillsInput(prov.skills.join(', '));
       setLanguagesInput(prov.languages.join(', '));
 
-      const [portRes, revRes] = await Promise.all([
+      const [portRes, revRes, slotsRes] = await Promise.all([
         supabase.from('portfolio_items').select('*').eq('provider_id', prov.id).order('sort_order'),
         supabase.from('reviews').select('*').eq('provider_id', prov.id).order('created_at', { ascending: false }),
+        supabase.from('availability_slots').select('*').eq('provider_id', prov.id).order('date', { ascending: true }),
       ]);
       setPortfolio(portRes.data as PortfolioItem[] ?? []);
       setReviews(revRes.data as Review[] ?? []);
+      setAvailabilitySlots(slotsRes.data as AvailabilitySlot[] ?? []);
     }
     setLoading(false);
   }
@@ -231,9 +238,54 @@ export default function ProviderDashboardPage() {
   }
 
   async function deletePortfolioItem(id: string) {
-    if (!confirm('Supprimer cette réalisation ?')) return;
-    await supabase.from('portfolio_items').delete().eq('id', id);
-    await loadData();
+    if (!provider) return;
+    setSaving(true);
+    const { error } = await supabase.from('portfolio_items').delete().eq('id', id);
+    if (!error) {
+      setPortfolio(portfolio.filter((p) => p.id !== id));
+    }
+    setSaving(false);
+  }
+
+  async function saveAvailabilitySlot() {
+    if (!provider) return;
+    setSaving(true);
+
+    const { error } = await supabase.from('availability_slots').insert({
+      provider_id: provider.id,
+      date: slotForm.date,
+      start_time: slotForm.start_time,
+      end_time: slotForm.end_time,
+      notes: slotForm.notes || null,
+      is_available: true,
+    });
+
+    if (!error) {
+      await loadData();
+      setSlotForm({ date: '', start_time: '', end_time: '', notes: '' });
+      setShowSlotForm(false);
+    }
+    setSaving(false);
+  }
+
+  async function deleteAvailabilitySlot(id: string) {
+    if (!provider) return;
+    setSaving(true);
+    const { error } = await supabase.from('availability_slots').delete().eq('id', id);
+    if (!error) {
+      setAvailabilitySlots(availabilitySlots.filter((s) => s.id !== id));
+    }
+    setSaving(false);
+  }
+
+  async function toggleAvailabilitySlot(id: string, isAvailable: boolean) {
+    if (!provider) return;
+    setSaving(true);
+    const { error } = await supabase.from('availability_slots').update({ is_available: isAvailable }).eq('id', id);
+    if (!error) {
+      setAvailabilitySlots(availabilitySlots.map((s) => s.id === id ? { ...s, is_available: isAvailable } : s));
+    }
+    setSaving(false);
   }
 
   async function respondToReview(reviewId: string) {
@@ -309,6 +361,7 @@ export default function ProviderDashboardPage() {
     { id: 'portfolio', label: 'Réalisations', icon: FolderOpen },
     { id: 'profile', label: 'Mon profil', icon: Settings },
     { id: 'reviews', label: 'Avis', icon: Star },
+    { id: 'availability', label: 'Disponibilités', icon: CalendarPlus },
   ];
 
   return (
@@ -874,6 +927,128 @@ export default function ProviderDashboardPage() {
             <div className="card flex flex-col items-center justify-center py-16 text-center">
               <Star size={48} className="text-neutral-300" />
               <p className="mt-3 text-sm text-neutral-500">Aucun avis pour le moment</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Availability */}
+      {tab === 'availability' && (
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-6 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-neutral-900">Créneaux de disponibilité ({availabilitySlots.length})</h3>
+            <button
+              onClick={() => setShowSlotForm(true)}
+              className="btn-primary"
+            >
+              <CalendarPlus size={18} />
+              Ajouter un créneau
+            </button>
+          </div>
+
+          {showSlotForm && (
+            <div className="card mb-6 p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h4 className="font-semibold text-neutral-900">Nouveau créneau</h4>
+                <button onClick={() => setShowSlotForm(false)} className="text-neutral-400 hover:text-neutral-600">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label">Date</label>
+                  <input
+                    type="date"
+                    value={slotForm.date}
+                    onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Heure de début</label>
+                  <input
+                    type="time"
+                    value={slotForm.start_time}
+                    onChange={(e) => setSlotForm({ ...slotForm, start_time: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Heure de fin</label>
+                  <input
+                    type="time"
+                    value={slotForm.end_time}
+                    onChange={(e) => setSlotForm({ ...slotForm, end_time: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Notes (optionnel)</label>
+                  <input
+                    type="text"
+                    value={slotForm.notes}
+                    onChange={(e) => setSlotForm({ ...slotForm, notes: e.target.value })}
+                    className="input-field"
+                    placeholder="Ex: Préférence matin"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button onClick={() => setShowSlotForm(false)} className="btn-secondary">Annuler</button>
+                <button onClick={saveAvailabilitySlot} disabled={saving} className="btn-primary">
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  Enregistrer
+                </button>
+              </div>
+            </div>
+          )}
+
+          {availabilitySlots.length > 0 ? (
+            <div className="space-y-3">
+              {availabilitySlots.map((slot) => (
+                <div key={slot.id} className={`card p-4 ${!slot.is_available ? 'opacity-60' : ''}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                        <Calendar size={24} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-neutral-900">
+                          {new Date(slot.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </p>
+                        <p className="text-sm text-neutral-600">
+                          {slot.start_time} - {slot.end_time}
+                        </p>
+                        {slot.notes && (
+                          <p className="text-xs text-neutral-500 mt-1">{slot.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleAvailabilitySlot(slot.id, !slot.is_available)}
+                        className={`btn-ghost ${slot.is_available ? 'text-success-600' : 'text-neutral-400'}`}
+                        title={slot.is_available ? 'Marquer indisponible' : 'Marquer disponible'}
+                      >
+                        {slot.is_available ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+                      </button>
+                      <button
+                        onClick={() => deleteAvailabilitySlot(slot.id)}
+                        className="btn-ghost text-error-600"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <CalendarPlus size={48} className="text-neutral-300" />
+              <p className="mt-3 text-sm text-neutral-500">Aucun créneau de disponibilité</p>
+              <p className="text-xs text-neutral-400 mt-1">Ajoutez vos créneaux pour permettre aux clients de réserver</p>
             </div>
           )}
         </div>
