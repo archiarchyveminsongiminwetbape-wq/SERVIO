@@ -1,17 +1,20 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun } from 'lucide-react';
+import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun, Globe, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { useI18n } from '@/context/I18nContext';
 import NotificationBell from '@/components/NotificationBell';
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth();
   const { darkMode, toggleDarkMode } = useDarkMode();
+  const { language, setLanguage, supportedLanguages } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -113,6 +116,39 @@ export default function Navbar() {
 
               <div className="relative">
                 <button
+                  onClick={() => setLangMenuOpen(!langMenuOpen)}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-neutral-100"
+                >
+                  <Globe size={16} />
+                  <span className="text-sm font-medium text-neutral-700">
+                    {supportedLanguages.find(l => l.code === language)?.flag}
+                  </span>
+                  <ChevronDown size={14} className="text-neutral-400" />
+                </button>
+
+                {langMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setLangMenuOpen(false)} />
+                    <div className="absolute right-0 top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg">
+                      {supportedLanguages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => { setLanguage(lang.code); setLangMenuOpen(false); }}
+                          className={`flex w-full items-center gap-3 px-4 py-2 text-sm hover:bg-neutral-50 ${
+                            language === lang.code ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'
+                          }`}
+                        >
+                          <span>{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-colors hover:bg-neutral-100"
                 >
@@ -195,6 +231,38 @@ export default function Navbar() {
             </>
           ) : (
             <>
+              <div className="relative">
+                <button
+                  onClick={() => setLangMenuOpen(!langMenuOpen)}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-neutral-100"
+                >
+                  <Globe size={16} />
+                  <span className="text-sm font-medium text-neutral-700">
+                    {supportedLanguages.find(l => l.code === language)?.flag}
+                  </span>
+                  <ChevronDown size={14} className="text-neutral-400" />
+                </button>
+
+                {langMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setLangMenuOpen(false)} />
+                    <div className="absolute right-0 top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg">
+                      {supportedLanguages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => { setLanguage(lang.code); setLangMenuOpen(false); }}
+                          className={`flex w-full items-center gap-3 px-4 py-2 text-sm hover:bg-neutral-50 ${
+                            language === lang.code ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'
+                          }`}
+                        >
+                          <span>{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               <Link to="/login" className="btn-ghost">
                 <User size={18} />
                 Connexion
