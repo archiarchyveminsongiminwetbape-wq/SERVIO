@@ -51,12 +51,8 @@ USING (validation_status = 'approved');
 CREATE POLICY "Providers can manage their own profile"
 ON provider_profiles FOR ALL
 TO authenticated
-USING (profile_id IN (
-  SELECT id FROM profiles WHERE id = auth.uid()
-))
-WITH CHECK (profile_id IN (
-  SELECT id FROM profiles WHERE id = auth.uid()
-));
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Admins can manage all provider profiles"
 ON provider_profiles FOR ALL
