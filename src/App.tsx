@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { DarkModeProvider } from '@/context/DarkModeContext';
+import { I18nProvider } from '@/context/I18nContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LandingPage from '@/pages/LandingPage';
@@ -33,41 +34,43 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <DarkModeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/signup/confirmation" element={<SignupConfirmationPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/admin/seed-categories" element={<CategorySeeder />} />
-            <Route
-              path="*"
-              element={
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/search" element={<SearchPage />} />
-                    <Route path="/provider/:slug" element={<ProviderProfilePage />} />
-                    <Route path="/messages" element={<MessagesPage />} />
-                    <Route path="/favorites" element={<FavoritesPage />} />
-                    <Route path="/profile" element={<UserProfilePage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/faq" element={<FaqPage />} />
-                    <Route path="/notifications" element={<NotificationsPage />} />
-                    <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
-                    <Route path="/provider/edit" element={<ProviderProfileEditPage />} />
-                    <Route path="/admin" element={<AdminDashboardPage />} />
-                    <Route path="*" element={<LandingPage />} />
-                  </Routes>
-                </Layout>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </DarkModeProvider>
+    <I18nProvider>
+      <DarkModeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/signup/confirmation" element={<SignupConfirmationPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/admin/seed-categories" element={<CategorySeeder />} />
+              <Route
+                path="*"
+                element={
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/search" element={<SearchPage />} />
+                      <Route path="/provider/:slug" element={<ProviderProfilePage />} />
+                      <Route path="/messages" element={<MessagesPage />} />
+                      <Route path="/favorites" element={<FavoritesPage />} />
+                      <Route path="/profile" element={<UserProfilePage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/faq" element={<FaqPage />} />
+                      <Route path="/notifications" element={<NotificationsPage />} />
+                      <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
+                      <Route path="/provider/edit" element={<ProviderProfileEditPage />} />
+                      <Route path="/admin" element={<AdminDashboardPage />} />
+                      <Route path="*" element={<LandingPage />} />
+                    </Routes>
+                  </Layout>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </DarkModeProvider>
+    </I18nProvider>
   );
 }
 
