@@ -4,9 +4,10 @@
 DROP TABLE IF EXISTS public.admin_actions CASCADE;
 
 -- Recréer la table admin_actions avec la bonne structure
+-- admin_id référence profiles au lieu de auth.users pour faciliter les jointures
 CREATE TABLE public.admin_actions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  admin_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   action_type text NOT NULL,
   target_type text,
   target_id uuid,
