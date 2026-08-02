@@ -16,20 +16,19 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error, profileRole } = await signIn(email, password);
     if (error) {
       setError(error);
       setLoading(false);
-    } else {
-      // Attendre que le profil soit chargé
-      setTimeout(() => {
-        if (profile?.role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/');
-        }
-      }, 100);
+      return;
     }
+
+    if (profileRole === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/');
+    }
+    setLoading(false);
   };
 
   return (
