@@ -2,6 +2,8 @@ export type UserRole = 'visitor' | 'provider' | 'admin';
 export type UserStatus = 'active' | 'suspended' | 'banned';
 export type ValidationStatus = 'pending' | 'approved' | 'rejected' | 'changes_requested';
 export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
+export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type LocationType = 'in_person' | 'remote' | 'hybrid';
 
 export interface Profile {
   id: string;
@@ -150,4 +152,38 @@ export interface Notification {
   link: string | null;
   is_read: boolean;
   created_at: string;
+}
+
+export interface Booking {
+  id: string;
+  client_id: string;
+  provider_id: string;
+  service_type: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  location_type: LocationType;
+  location_address: string | null;
+  notes: string | null;
+  status: BookingStatus;
+  price: number | null;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  client?: Profile | null;
+  provider?: ProviderProfile | null;
+}
+
+export interface AvailabilitySlot {
+  id: string;
+  provider_id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
