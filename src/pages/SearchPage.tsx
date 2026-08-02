@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
 import CategoryIcon from '@/components/CategoryIcon';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
 import { categoryTaxonomy } from '@/data/categories';
+import { countries } from '@/data/countries';
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,6 +20,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [categorySlug, setCategorySlug] = useState(searchParams.get('category') ?? '');
   const [city, setCity] = useState(searchParams.get('city') ?? '');
+  const [country, setCountry] = useState(searchParams.get('country') ?? '');
   const [minRating, setMinRating] = useState(searchParams.get('rating') ?? '');
   const [availability, setAvailability] = useState(searchParams.get('availability') ?? '');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') ?? 'featured');
@@ -70,6 +72,9 @@ export default function SearchPage() {
     if (city.trim()) {
       q = q.ilike('city', `%${city}%`);
     }
+    if (country.trim()) {
+      q = q.eq('country', country);
+    }
     if (minRating) {
       q = q.gte('rating_avg', parseFloat(minRating));
     }
@@ -119,13 +124,14 @@ export default function SearchPage() {
       setSearchParams(params);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, categoryTaxonomy, subCategories, doSearch, setSearchParams]);
+  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, categoryTaxonomy, subCategories, doSearch, setSearchParams]);
 
   const clearFilters = () => {
     setQuery('');
     setCategorySlug('');
     setSelectedSubCat('');
     setCity('');
+    setCountry('');
     setMinRating('');
     setAvailability('');
     setPriceRange('');
@@ -135,7 +141,7 @@ export default function SearchPage() {
     setSortBy('featured');
   };
 
-  const hasFilters = query || categorySlug || selectedSubCat || city || minRating || availability || priceRange || minExperience || remoteOnly || language;
+  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -219,6 +225,25 @@ export default function SearchPage() {
                       className="input-field pl-9"
                       placeholder="Ex: Paris"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Pays</label>
+                  <div className="relative">
+                    <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                    <select
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      className="input-field pl-9"
+                    >
+                      <option value="">Tous les pays</option>
+                      {countries.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.flag} {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
