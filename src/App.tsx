@@ -21,6 +21,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import FaqPage from '@/pages/FaqPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import CategorySeeder from '@/components/CategorySeeder';
+import BookingPage from '@/pages/BookingPage';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -52,6 +53,7 @@ function App() {
                       <Route path="/" element={<LandingPage />} />
                       <Route path="/search" element={<SearchPage />} />
                       <Route path="/provider/:slug" element={<ProviderProfilePage />} />
+                      <Route path="/provider/:slug/book" element={<BookingPage />} />
                       <Route path="/messages" element={<MessagesPage />} />
                       <Route path="/favorites" element={<FavoritesPage />} />
                       <Route path="/profile" element={<UserProfilePage />} />
