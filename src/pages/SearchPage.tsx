@@ -119,7 +119,7 @@ export default function SearchPage() {
       setSearchParams(params);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, categories, subCategories, doSearch, setSearchParams]);
+  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, categoryTaxonomy, subCategories, doSearch, setSearchParams]);
 
   const clearFilters = () => {
     setQuery('');
