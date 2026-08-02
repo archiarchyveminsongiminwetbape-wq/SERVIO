@@ -52,20 +52,13 @@ export default function UserProfilePage() {
   const handleSave = async () => {
     setLoading(true);
     
-    // Construire l'objet de mise à jour avec seulement les champs valides
+    // Construire l'objet de mise à jour avec seulement les champs de base
     const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
       phone: formData.phone,
       avatar_url: formData.avatar_url,
       updated_at: new Date().toISOString(),
     };
-
-    // Ajouter les champs optionnels seulement s'ils sont définis
-    if (formData.country) updateData.country = formData.country;
-    if (formData.currency) updateData.currency = formData.currency;
-    if (formData.language) updateData.language = formData.language;
-    if (formData.email_notifications !== undefined) updateData.email_notifications = formData.email_notifications;
-    if (formData.push_notifications !== undefined) updateData.push_notifications = formData.push_notifications;
 
     const { error } = await supabase
       .from('profiles')
