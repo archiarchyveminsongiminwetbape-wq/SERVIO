@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, LogOut, Save, X, Camera } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, LogOut, Save, X, Camera, Globe, CreditCard, Bell, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
+import { countries } from '@/data/countries';
+import { currencies } from '@/data/currencies';
 
 export default function UserProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -14,6 +16,11 @@ export default function UserProfilePage() {
     full_name: '',
     phone: '',
     avatar_url: '',
+    country: '',
+    currency: '',
+    language: 'fr',
+    email_notifications: true,
+    push_notifications: false,
   });
 
   useEffect(() => {
@@ -22,6 +29,11 @@ export default function UserProfilePage() {
         full_name: profile.full_name || '',
         phone: profile.phone || '',
         avatar_url: profile.avatar_url || '',
+        country: (profile as any).country || 'FR',
+        currency: (profile as any).currency || 'EUR',
+        language: (profile as any).language || 'fr',
+        email_notifications: (profile as any).email_notifications !== false,
+        push_notifications: (profile as any).push_notifications || false,
       });
     }
   }, [profile]);
@@ -44,6 +56,11 @@ export default function UserProfilePage() {
         full_name: formData.full_name,
         phone: formData.phone,
         avatar_url: formData.avatar_url,
+        country: formData.country,
+        currency: formData.currency,
+        language: formData.language,
+        email_notifications: formData.email_notifications,
+        push_notifications: formData.push_notifications,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
@@ -63,6 +80,11 @@ export default function UserProfilePage() {
       full_name: profile.full_name || '',
       phone: profile.phone || '',
       avatar_url: profile.avatar_url || '',
+      country: (profile as any).country || 'FR',
+      currency: (profile as any).currency || 'EUR',
+      language: (profile as any).language || 'fr',
+      email_notifications: (profile as any).email_notifications !== false,
+      push_notifications: (profile as any).push_notifications || false,
     });
     setEditing(false);
   };
@@ -243,6 +265,92 @@ export default function UserProfilePage() {
               </div>
 
               <div className="flex items-start gap-3">
+                <Globe size={20} className="mt-0.5 text-neutral-400" />
+                <div className="flex-1">
+                  <p className="text-sm text-neutral-500">Pays</p>
+                  {editing ? (
+                    <select
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    >
+                      {countries.map((country) => (
+                        <option key={country.code} value={country.code}>
+                          {country.flag} {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-neutral-900">
+                      {countries.find(c => c.code === formData.country)?.name || 'Non renseigné'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <CreditCard size={20} className="mt-0.5 text-neutral-400" />
+                <div className="flex-1">
+                  <p className="text-sm text-neutral-500">Devise préférée</p>
+                  {editing ? (
+                    <select
+                      value={formData.currency}
+                      onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    >
+                      {currencies.map((currency) => (
+                        <option key={currency.code} value={currency.code}>
+                          {currency.symbol} {currency.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-neutral-900">
+                      {currencies.find(c => c.code === formData.currency)?.symbol} {currencies.find(c => c.code === formData.currency)?.name || 'Non renseigné'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Globe size={20} className="mt-0.5 text-neutral-400" />
+                <div className="flex-1">
+                  <p className="text-sm text-neutral-500">Langue</p>
+                  {editing ? (
+                    <select
+                      value={formData.language}
+                      onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    >
+                      <option value="fr">Français</option>
+                      <option value="en">English</option>
+                      <option value="es">Español</option>
+                      <option value="de">Deutsch</option>
+                      <option value="it">Italiano</option>
+                      <option value="pt">Português</option>
+                      <option value="ar">العربية</option>
+                      <option value="zh">中文</option>
+                      <option value="ja">日本語</option>
+                      <option value="ko">한국어</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-neutral-900">
+                      {formData.language === 'fr' ? 'Français' : 
+                       formData.language === 'en' ? 'English' :
+                       formData.language === 'es' ? 'Español' :
+                       formData.language === 'de' ? 'Deutsch' :
+                       formData.language === 'it' ? 'Italiano' :
+                       formData.language === 'pt' ? 'Português' :
+                       formData.language === 'ar' ? 'العربية' :
+                       formData.language === 'zh' ? '中文' :
+                       formData.language === 'ja' ? '日本語' :
+                       formData.language === 'ko' ? '한국어' : 'Français'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
                 <Calendar size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
                   <p className="text-sm text-neutral-500">Membre depuis</p>
@@ -279,15 +387,59 @@ export default function UserProfilePage() {
             <h3 className="mb-4 font-semibold text-neutral-900">Paramètres du compte</h3>
             <div className="space-y-3">
               <button className="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50">
-                <span>Changer mon mot de passe</span>
+                <div className="flex items-center gap-3">
+                  <Lock size={16} />
+                  <span>Changer mon mot de passe</span>
+                </div>
                 <span className="text-neutral-400">→</span>
               </button>
-              <button className="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50">
-                <span>Notifications par email</span>
-                <span className="text-neutral-400">→</span>
-              </button>
+              
+              {editing && (
+                <>
+                  <div className="flex items-center justify-between rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Bell size={16} />
+                      <span className="text-sm text-neutral-700">Notifications par email</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.email_notifications}
+                        onChange={(e) => setFormData({ ...formData, email_notifications: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center justify-between rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Bell size={16} />
+                      <span className="text-sm text-neutral-700">Notifications push</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.push_notifications}
+                        onChange={(e) => setFormData({ ...formData, push_notifications: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                  </div>
+                </>
+              )}
+              
               <button className="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50">
                 <span>Confidentialité des données</span>
+                <span className="text-neutral-400">→</span>
+              </button>
+              <button className="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50">
+                <span>Conditions d'utilisation</span>
+                <span className="text-neutral-400">→</span>
+              </button>
+              <button className="w-full flex items-center justify-between rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50">
+                <span>Politique de confidentialité</span>
                 <span className="text-neutral-400">→</span>
               </button>
             </div>
