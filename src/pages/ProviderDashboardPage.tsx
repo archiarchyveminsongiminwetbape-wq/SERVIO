@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
-  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle
+  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -12,6 +12,8 @@ import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
 import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
+import { countries } from '@/data/countries';
+import { currencies } from '@/data/currencies';
 
 type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews';
 
@@ -72,11 +74,13 @@ export default function ProviderDashboardPage() {
         description: prov.description ?? '',
         category_id: prov.category_id ?? '',
         city: prov.city ?? '',
+        country: (prov as any).country ?? 'FR',
         service_area: prov.service_area ?? '',
         remote_service: prov.remote_service,
         phone: prov.phone ?? '',
         website: prov.website ?? '',
         price_range: prov.price_range ?? '',
+        currency: (prov as any).currency ?? 'EUR',
         availability: prov.availability,
         experience_years: prov.experience_years ?? '',
         certifications: prov.certifications ?? '',
@@ -112,11 +116,13 @@ export default function ProviderDashboardPage() {
         description: form.description,
         category_id: form.category_id || null,
         city: form.city || null,
+        country: form.country || null,
         service_area: form.service_area || null,
         remote_service: form.remote_service,
         phone: form.phone || null,
         website: form.website || null,
         price_range: form.price_range || null,
+        currency: form.currency || null,
         availability: form.availability,
         experience_years: form.experience_years ? parseInt(form.experience_years as string) : null,
         certifications: form.certifications || null,
@@ -694,44 +700,93 @@ export default function ProviderDashboardPage() {
                 />
               </div>
               <div>
+                <label className="label">Pays</label>
+                <select
+                  value={form.country as string ?? 'FR'}
+                  onChange={(e) => setForm({ ...form, country: e.target.value })}
+                  className="input-field"
+                >
+                  {countries.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.flag} {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Téléphone</label>
+                <input
+                  type="tel"
+                  value={form.phone as string ?? ''}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="input-field"
+                  placeholder="+33 6 12 34 56 78"
+                />
+              </div>
+              <div>
+                <label className="label">Site web</label>
+                <input
+                  type="url"
+                  value={form.website as string ?? ''}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  className="input-field"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
                 <label className="label">Zone d'intervention</label>
                 <input
                   type="text"
                   value={form.service_area as string ?? ''}
                   onChange={(e) => setForm({ ...form, service_area: e.target.value })}
                   className="input-field"
-                  placeholder="Île-de-France (50km)"
+                  placeholder="Île-de-France"
                 />
               </div>
               <div>
-                <label className="label">Téléphone</label>
-                <input
-                  type="text"
-                  value={form.phone as string ?? ''}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="input-field"
-                  placeholder="+33 6..."
-                />
+                <label className="label">Service à distance</label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.remote_service as boolean ?? false}
+                    onChange={(e) => setForm({ ...form, remote_service: e.target.checked })}
+                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-neutral-700">Proposer des services à distance</span>
+                </label>
               </div>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Tarifs & Disponibilité</h3>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="label">Site web</label>
-                <input
-                  type="text"
-                  value={form.website as string ?? ''}
-                  onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  className="input-field"
-                  placeholder="www.monsite.fr"
-                />
-              </div>
-              <div>
-                <label className="label">Fourchette de prix</label>
-                <input
-                  type="text"
+                <label className="label">Gamme de prix</label>
+                <select
                   value={form.price_range as string ?? ''}
                   onChange={(e) => setForm({ ...form, price_range: e.target.value })}
                   className="input-field"
-                  placeholder="50€ — 200€"
-                />
+                >
+                  <option value="">Sélectionner...</option>
+                  <option value="€">€ (Économique)</option>
+                  <option value="€€">€€ (Standard)</option>
+                  <option value="€€€">€€€ (Premium)</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Devise</label>
+                <select
+                  value={form.currency as string ?? 'EUR'}
+                  onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                  className="input-field"
+                >
+                  {currencies.map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="label">Disponibilité</label>
@@ -745,24 +800,40 @@ export default function ProviderDashboardPage() {
                   <option value="unavailable">Indisponible</option>
                 </select>
               </div>
-              <div className="sm:col-span-2">
-                <label className="flex items-center gap-2 text-sm text-neutral-700">
-                  <input
-                    type="checkbox"
-                    checked={form.remote_service as boolean ?? false}
-                    onChange={(e) => setForm({ ...form, remote_service: e.target.checked })}
-                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  Service à distance disponible
-                </label>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Images</h3>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label">URL de l'avatar</label>
+                <input
+                  type="url"
+                  value={form.avatar_url as string ?? ''}
+                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+                  className="input-field"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="label">URL de la bannière</label>
+                <input
+                  type="url"
+                  value={form.banner_url as string ?? ''}
+                  onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
+                  className="input-field"
+                  placeholder="https://..."
+                />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setTab('overview')} className="btn-secondary">Annuler</button>
             <button onClick={saveProfile} disabled={saving} className="btn-primary">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              Enregistrer les modifications
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              Enregistrer
             </button>
           </div>
         </div>
