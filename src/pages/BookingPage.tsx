@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Video, User, Check, X, Loader2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Video, User, Check, X, Loader2, CreditCard } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import type { ProviderProfile, Booking, AvailabilitySlot } from '@/types';
 import { formatCurrency } from '@/data/currencies';
+import { getStripe } from '@/lib/stripe';
+import { createPaymentIntent, createPaymentRecord, updatePaymentStatus } from '@/services/paymentService';
 
 export default function BookingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -14,11 +16,14 @@ export default function BookingPage() {
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
-  const [step, setStep] = useState<'select' | 'confirm' | 'success'>('select');
+  const [step, setStep] = useState<'select' | 'confirm' | 'payment' | 'success'>('select');
   const [notes, setNotes] = useState('');
   const [locationType, setLocationType] = useState<'in_person' | 'remote'>('in_person');
   const [address, setAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [price] = useState(50); // Default price, should come from provider
 
   useEffect(() => {
     if (!slug) return;
@@ -65,7 +70,7 @@ export default function BookingPage() {
     const [hours, minutes] = selectedSlot.start_time.split(':');
     bookingDate.setHours(parseInt(hours), parseInt(minutes));
 
-    const { error } = await supabase.from('bookings').insert({
+    const { data: booking, error } = await supabase.from('bookings').insert({
       client_id: user.id,
       provider_id: provider.id,
       service_type: 'Consultation',
@@ -75,17 +80,81 @@ export default function BookingPage() {
       location_address: locationType === 'in_person' ? address : null,
       notes: notes || null,
       status: 'pending',
-      price: null,
+      price: price,
       currency: 'EUR',
-    });
+    }).select().single();
 
     if (error) {
       console.error('Error creating booking:', error);
       alert('Erreur lors de la création du rendez-vous');
       setSubmitting(false);
-    } else {
-      setStep('success');
-      setSubmitting(false);
+      return;
+    }
+
+    setBookingId(booking.id);
+    setStep('payment');
+    setSubmitting(false);
+  }
+
+  async function handlePayment() {
+    if (!bookingId || !user) return;
+    setProcessingPayment(true);
+
+    try {
+      // Create payment intent
+      const paymentIntent = await createPaymentIntent({
+        booking_id: bookingId,
+        amount: price,
+        currency: 'EUR',
+        payment_method: 'card',
+      });
+
+      if (!paymentIntent) {
+        alert('Erreur lors de la création du paiement');
+        setProcessingPayment(false);
+        return;
+      }
+
+      // Create payment record
+      await createPaymentRecord({
+        booking_id: bookingId,
+        user_id: user.id,
+        amount: price,
+        currency: 'EUR',
+        payment_method: 'card',
+        provider_payment_id: paymentIntent.id,
+      });
+
+      // Confirm payment with Stripe
+      const stripe = await getStripe();
+      if (!stripe) {
+        alert('Erreur lors du chargement de Stripe');
+        setProcessingPayment(false);
+        return;
+      }
+
+      const { error: stripeError } = await stripe.confirmCardPayment(paymentIntent.client_secret, {
+        payment_method: {
+          card: {
+            // In a real app, you would collect card details with Stripe Elements
+            // For now, we'll use a test card
+          },
+        },
+      });
+
+      if (stripeError) {
+        console.error('Stripe error:', stripeError);
+        await updatePaymentStatus(paymentIntent.id, 'failed');
+        alert('Erreur lors du paiement: ' + stripeError.message);
+        setProcessingPayment(false);
+      } else {
+        await updatePaymentStatus(paymentIntent.id, 'completed');
+        setStep('success');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Erreur lors du paiement');
+      setProcessingPayment(false);
     }
   }
 
@@ -306,7 +375,90 @@ export default function BookingPage() {
                   disabled={submitting || (locationType === 'in_person' && !address)}
                   className="btn-primary"
                 >
-                  {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirmer le rendez-vous'}
+                  {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Continuer vers le paiement'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 'payment' && (
+            <div className="card p-6">
+              <button onClick={() => setStep('confirm')} className="text-sm text-neutral-600 hover:text-neutral-900 mb-4">
+                ← Retour aux détails
+              </button>
+
+              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Paiement</h3>
+
+              <div className="space-y-4">
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-neutral-900">Montant à payer</div>
+                      <div className="text-sm text-neutral-600">Consultation avec {provider?.business_name}</div>
+                    </div>
+                    <div className="text-2xl font-bold text-primary-600">
+                      {formatCurrency(price, 'EUR')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-neutral-200 p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <CreditCard size={24} className="text-neutral-600" />
+                    <div>
+                      <div className="font-medium text-neutral-900">Carte bancaire</div>
+                      <div className="text-sm text-neutral-600">Paiement sécurisé via Stripe</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="label">Numéro de carte</label>
+                      <input
+                        type="text"
+                        placeholder="4242 4242 4242 4242"
+                        className="input-field"
+                        disabled={processingPayment}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label">Date d'expiration</label>
+                        <input
+                          type="text"
+                          placeholder="MM/AA"
+                          className="input-field"
+                          disabled={processingPayment}
+                        />
+                      </div>
+                      <div>
+                        <label className="label">CVC</label>
+                        <input
+                          type="text"
+                          placeholder="123"
+                          className="input-field"
+                          disabled={processingPayment}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-xs text-neutral-500">
+                  <p>🔒 Paiement sécurisé. Vos informations de carte sont cryptées et ne sont jamais stockées sur nos serveurs.</p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button onClick={() => setStep('confirm')} className="btn-secondary" disabled={processingPayment}>
+                  Annuler
+                </button>
+                <button
+                  onClick={handlePayment}
+                  disabled={processingPayment}
+                  className="btn-primary"
+                >
+                  {processingPayment ? <Loader2 size={18} className="animate-spin" /> : <><CreditCard size={18} /> Payer {formatCurrency(price, 'EUR')}</>}
                 </button>
               </div>
             </div>
