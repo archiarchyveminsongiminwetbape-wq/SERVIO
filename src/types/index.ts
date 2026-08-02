@@ -4,6 +4,9 @@ export type ValidationStatus = 'pending' | 'approved' | 'rejected' | 'changes_re
 export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type LocationType = 'in_person' | 'remote' | 'hybrid';
+export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+export type PaymentMethod = 'card' | 'bank_transfer' | 'paypal' | 'cash';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
 export interface Profile {
   id: string;
@@ -186,4 +189,44 @@ export interface AvailabilitySlot {
   notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Payment {
+  id: string;
+  booking_id: string | null;
+  user_id: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  payment_method: PaymentMethod;
+  payment_provider: string | null;
+  provider_payment_id: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  failed_at: string | null;
+  refunded_at: string | null;
+  refund_reason: string | null;
+  booking?: Booking | null;
+}
+
+export interface Invoice {
+  id: string;
+  payment_id: string | null;
+  booking_id: string | null;
+  invoice_number: string;
+  issued_at: string;
+  due_at: string;
+  paid_at: string | null;
+  status: InvoiceStatus;
+  subtotal: number;
+  tax: number;
+  total: number;
+  currency: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  payment?: Payment | null;
+  booking?: Booking | null;
 }
