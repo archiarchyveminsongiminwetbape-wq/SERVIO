@@ -55,17 +55,18 @@ export default function UserProfilePage() {
     // Construire l'objet de mise à jour avec tous les champs
     const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
+      phone: formData.phone,
+      country: formData.country,
+      currency: formData.currency,
+      language: formData.language,
+      email_notifications: formData.email_notifications,
+      push_notifications: formData.push_notifications,
       updated_at: new Date().toISOString(),
     };
 
     // Ajouter avatar_url s'il est défini
     if (formData.avatar_url !== undefined) {
       updateData.avatar_url = formData.avatar_url;
-    }
-
-    // Ajouter phone s'il est défini
-    if (formData.phone !== undefined) {
-      updateData.phone = formData.phone;
     }
 
     console.log('Updating profile with data:', updateData);
