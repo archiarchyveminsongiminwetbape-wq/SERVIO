@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getStripe, formatPrice } from '@/lib/stripe';
 import { createPaymentIntent, createPaymentRecord, updatePaymentStatus } from '@/services/paymentService';
 import { createNotification } from '@/services/notificationService';
+import { sendBookingConfirmationEmail, sendNewBookingEmail } from '@/services/emailService';
 
 export default function BookingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -161,7 +162,7 @@ export default function BookingPage() {
         // Create notification for the provider
         const { data: providerProfile } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, email')
           .eq('id', provider.user_id)
           .single();
         
@@ -172,6 +173,26 @@ export default function BookingPage() {
             'Nouvelle réservation',
             `Vous avez une nouvelle réservation de ${profile?.full_name || 'un client'}.`,
             { booking_id: bookingId, user_id: user.id }
+          );
+          
+          // Send email notifications
+          const bookingDate = selectedSlot ? new Date(selectedSlot.date).toLocaleDateString('fr-FR') : '';
+          const bookingTime = selectedSlot ? selectedSlot.time : '';
+          
+          await sendBookingConfirmationEmail(
+            user.email!,
+            profile?.full_name || 'Client',
+            provider.business_name,
+            bookingDate,
+            bookingTime
+          );
+          
+          await sendNewBookingEmail(
+            providerProfile.email,
+            provider.business_name,
+            profile?.full_name || 'Client',
+            bookingDate,
+            bookingTime
           );
         }
         
