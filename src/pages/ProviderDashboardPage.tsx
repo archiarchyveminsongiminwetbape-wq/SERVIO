@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import type { ProviderProfile, PortfolioItem, Category, Review, AvailabilitySlot, Booking } from '@/types';
+import type { ProviderProfile, Category, Review, AvailabilitySlot, Booking } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
@@ -15,6 +15,7 @@ import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 import ImageUpload from '@/components/ImageUpload';
+import PortfolioManager from '@/components/PortfolioManager';
 
 type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability' | 'bookings';
 
@@ -24,7 +25,6 @@ export default function ProviderDashboardPage() {
   const [tab, setTab] = useState<Tab>('overview');
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -36,11 +36,6 @@ export default function ProviderDashboardPage() {
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [skillsInput, setSkillsInput] = useState('');
   const [languagesInput, setLanguagesInput] = useState('');
-
-  // Portfolio form state
-  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
-  const [showItemForm, setShowItemForm] = useState(false);
-  const [itemForm, setItemForm] = useState({ title: '', description: '', photos: [''], tags: '' });
 
   // Availability form state
   const [showSlotForm, setShowSlotForm] = useState(false);
@@ -97,13 +92,11 @@ export default function ProviderDashboardPage() {
       setSkillsInput(prov.skills.join(', '));
       setLanguagesInput(prov.languages.join(', '));
 
-      const [portRes, revRes, slotsRes, bookingsRes] = await Promise.all([
-        supabase.from('portfolio_items').select('*').eq('provider_id', prov.id).order('sort_order'),
+      const [revRes, slotsRes, bookingsRes] = await Promise.all([
         supabase.from('reviews').select('*').eq('provider_id', prov.id).order('created_at', { ascending: false }),
         supabase.from('availability_slots').select('*').eq('provider_id', prov.id).order('date', { ascending: true }),
         supabase.from('bookings').select('*, client:profiles(*)').eq('provider_id', prov.id).order('scheduled_at', { ascending: false }),
       ]);
-      setPortfolio(portRes.data as PortfolioItem[] ?? []);
       setReviews(revRes.data as Review[] ?? []);
       setAvailabilitySlots(slotsRes.data as AvailabilitySlot[] ?? []);
       setBookings(bookingsRes.data as Booking[] ?? []);
@@ -197,56 +190,6 @@ export default function ProviderDashboardPage() {
       setSkillsInput('');
       setLanguagesInput('Français');
       setTab('profile');
-    }
-    setSaving(false);
-  }
-
-  async function savePortfolioItem() {
-    if (!provider) return;
-    setSaving(true);
-    const photos = itemForm.photos.filter((p) => p.trim());
-    const tags = itemForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
-
-    if (editingItem) {
-      const { error } = await supabase
-        .from('portfolio_items')
-        .update({
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          tags,
-        })
-        .eq('id', editingItem.id);
-      if (error) setSaveMsg({ type: 'error', text: error.message });
-    } else {
-      const { error } = await supabase
-        .from('portfolio_items')
-        .insert({
-          provider_id: provider.id,
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          tags,
-          sort_order: portfolio.length,
-        });
-      if (error) setSaveMsg({ type: 'error', text: error.message });
-    }
-
-    if (!saveMsg) {
-      setShowItemForm(false);
-      setEditingItem(null);
-      setItemForm({ title: '', description: '', photos: [''], tags: '' });
-      await loadData();
-    }
-    setSaving(false);
-  }
-
-  async function deletePortfolioItem(id: string) {
-    if (!provider) return;
-    setSaving(true);
-    const { error } = await supabase.from('portfolio_items').delete().eq('id', id);
-    if (!error) {
-      setPortfolio(portfolio.filter((p) => p.id !== id));
     }
     setSaving(false);
   }
@@ -501,156 +444,7 @@ export default function ProviderDashboardPage() {
 
       {/* Portfolio */}
       {tab === 'portfolio' && (
-        <div>
-          <div className="mb-4 flex justify-between">
-            <h3 className="text-lg font-semibold text-neutral-900">Réalisations ({portfolio.length})</h3>
-            <button
-              onClick={() => {
-                setEditingItem(null);
-                setItemForm({ title: '', description: '', photos: [''], tags: '' });
-                setShowItemForm(true);
-              }}
-              className="btn-primary"
-            >
-              <Plus size={18} />
-              Ajouter
-            </button>
-          </div>
-
-          {showItemForm && (
-            <div className="card mb-6 p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h4 className="font-semibold text-neutral-900">
-                  {editingItem ? 'Modifier' : 'Nouvelle'} réalisation
-                </h4>
-                <button onClick={() => setShowItemForm(false)} className="text-neutral-400 hover:text-neutral-600">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="label">Titre</label>
-                  <input
-                    type="text"
-                    value={itemForm.title}
-                    onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
-                    className="input-field"
-                    placeholder="Ex: Séance portrait en studio"
-                  />
-                </div>
-                <div>
-                  <label className="label">Description</label>
-                  <textarea
-                    value={itemForm.description}
-                    onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                    className="input-field resize-none"
-                    rows={3}
-                    placeholder="Décrivez cette réalisation..."
-                  />
-                </div>
-                <div>
-                  <label className="label">URLs des photos (une par ligne)</label>
-                  {itemForm.photos.map((photo, i) => (
-                    <div key={i} className="mb-2 flex gap-2">
-                      <input
-                        type="url"
-                        value={photo}
-                        onChange={(e) => {
-                          const photos = [...itemForm.photos];
-                          photos[i] = e.target.value;
-                          setItemForm({ ...itemForm, photos });
-                        }}
-                        className="input-field"
-                        placeholder="https://..."
-                      />
-                      {itemForm.photos.length > 1 && (
-                        <button
-                          onClick={() => setItemForm({ ...itemForm, photos: itemForm.photos.filter((_, j) => j !== i) })}
-                          className="btn-secondary px-3"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => setItemForm({ ...itemForm, photos: [...itemForm.photos, ''] })}
-                    className="btn-ghost text-sm"
-                  >
-                    <Plus size={14} />
-                    Ajouter une photo
-                  </button>
-                </div>
-                <div>
-                  <label className="label">Tags (séparés par des virgules)</label>
-                  <input
-                    type="text"
-                    value={itemForm.tags}
-                    onChange={(e) => setItemForm({ ...itemForm, tags: e.target.value })}
-                    className="input-field"
-                    placeholder="portrait, studio, éclairage"
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setShowItemForm(false)} className="btn-secondary">Annuler</button>
-                  <button onClick={savePortfolioItem} disabled={saving || !itemForm.title} className="btn-primary">
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    Enregistrer
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {portfolio.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {portfolio.map((item) => (
-                <div key={item.id} className="card group overflow-hidden">
-                  {item.photos[0] && (
-                    <div className="relative h-48 overflow-hidden bg-neutral-100">
-                      <img src={item.photos[0]} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <h4 className="font-semibold text-neutral-900">{item.title}</h4>
-                    {item.description && <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>}
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingItem(item);
-                          setItemForm({
-                            title: item.title,
-                            description: item.description ?? '',
-                            photos: item.photos.length ? item.photos : [''],
-                            tags: item.tags.join(', '),
-                          });
-                          setShowItemForm(true);
-                        }}
-                        className="btn-ghost text-sm"
-                      >
-                        <Edit3 size={14} />
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => deletePortfolioItem(item.id)}
-                        className="btn-ghost text-sm text-error-600 hover:bg-error-50"
-                      >
-                        <Trash2 size={14} />
-                        Supprimer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="card flex flex-col items-center justify-center py-16 text-center">
-              <FolderOpen size={48} className="text-neutral-300" />
-              <p className="mt-3 text-sm text-neutral-500">Aucune réalisation publiée</p>
-              <p className="text-xs text-neutral-400">Ajoutez vos meilleurs projets pour mettre en valeur votre savoir-faire</p>
-            </div>
-          )}
-        </div>
+        <PortfolioManager />
       )}
 
       {/* Profile editing */}
