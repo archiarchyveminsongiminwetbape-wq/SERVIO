@@ -52,11 +52,23 @@ export default function UserProfilePage() {
   const handleSave = async () => {
     setLoading(true);
     
-    // Construire l'objet de mise à jour avec seulement les champs qui existent
+    // Construire l'objet de mise à jour avec tous les champs
     const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
       updated_at: new Date().toISOString(),
     };
+
+    // Ajouter avatar_url s'il est défini
+    if (formData.avatar_url !== undefined) {
+      updateData.avatar_url = formData.avatar_url;
+    }
+
+    // Ajouter phone s'il est défini
+    if (formData.phone !== undefined) {
+      updateData.phone = formData.phone;
+    }
+
+    console.log('Updating profile with data:', updateData);
 
     const { error } = await supabase
       .from('profiles')
@@ -67,35 +79,20 @@ export default function UserProfilePage() {
       console.error('Error updating profile:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Erreur lors de la mise à jour du profil: ' + error.message);
-    } else {
-      // Si ça marche, essayer de mettre à jour l'avatar séparément
-      if (formData.avatar_url && formData.avatar_url !== profile.avatar_url) {
-        const { error: avatarError } = await supabase
-          .from('profiles')
-          .update({ avatar_url: formData.avatar_url })
-          .eq('id', user.id);
-        
-        if (avatarError) {
-          console.error('Error updating avatar:', avatarError);
-        }
-      }
-      
-      // Si ça marche, essayer de mettre à jour le téléphone séparément
-      if (formData.phone && formData.phone !== profile.phone) {
-        const { error: phoneError } = await supabase
-          .from('profiles')
-          .update({ phone: formData.phone })
-          .eq('id', user.id);
-        
-        if (phoneError) {
-          console.error('Error updating phone:', phoneError);
-        }
-      }
-      
-      await refreshProfile();
-      setEditing(false);
+      setLoading(false);
+      return;
     }
+
+    console.log('Profile updated successfully, refreshing...');
+    
+    // Attendre un peu pour que la base de données se mette à jour
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await refreshProfile();
+    setEditing(false);
     setLoading(false);
+    
+    console.log('Profile save completed');
   };
 
   const handleCancel = () => {
