@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
-import { MapPin, BadgeCheck, Zap, Clock } from 'lucide-react';
+import { MapPin, BadgeCheck, Zap, Clock, Heart } from 'lucide-react';
 import type { ProviderProfile } from '@/types';
 import StarRating from './StarRating';
+import { useAuth } from '@/context/AuthContext';
+import { isFavorite, toggleFavorite } from '@/services/favoritesService';
+import { useState, useEffect } from 'react';
 
 const badgeLabels: Record<string, { label: string; icon: typeof BadgeCheck; color: string }> = {
   'profil-verifie': { label: 'Vérifié', icon: BadgeCheck, color: 'text-success-600 bg-success-50' },
@@ -16,7 +19,30 @@ const availabilityLabels: Record<string, { label: string; color: string }> = {
 };
 
 export default function ProviderCard({ provider }: { provider: ProviderProfile }) {
+  const { user } = useAuth();
+  const [isFav, setIsFav] = useState(false);
+  const [loadingFav, setLoadingFav] = useState(false);
   const avail = availabilityLabels[provider.availability] ?? availabilityLabels.available;
+
+  useEffect(() => {
+    if (user) {
+      isFavorite(user.id, provider.user_id).then(setIsFav);
+    }
+  }, [user, provider.user_id]);
+
+  async function handleToggleFavorite(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!user || loadingFav) return;
+
+    setLoadingFav(true);
+    const result = await toggleFavorite(user.id, provider.user_id);
+    
+    if (result) {
+      setIsFav(!isFav);
+    }
+    
+    setLoadingFav(false);
+  }
 
   return (
     <Link
@@ -50,9 +76,23 @@ export default function ProviderCard({ provider }: { provider: ProviderProfile }
           })}
         </div>
         
-        <div className="absolute top-4 right-4 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-neutral-700 backdrop-blur-md shadow-sm">
-          <span className={`h-2 w-2 rounded-full ${avail.color} animate-pulse`} />
-          {avail.label}
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-neutral-700 backdrop-blur-md shadow-sm">
+            <span className={`h-2 w-2 rounded-full ${avail.color} animate-pulse`} />
+            {avail.label}
+          </div>
+          {user && (
+            <button
+              onClick={handleToggleFavorite}
+              className="p-2 rounded-full bg-white/95 backdrop-blur-md shadow-sm hover:bg-white transition-colors"
+              disabled={loadingFav}
+            >
+              <Heart
+                size={18}
+                className={isFav ? 'fill-error-500 text-error-500' : 'text-neutral-400'}
+              />
+            </button>
+          )}
         </div>
       </div>
 
