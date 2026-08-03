@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
@@ -28,6 +28,10 @@ export default function SearchPage() {
   const [minExperience, setMinExperience] = useState(searchParams.get('experience') ?? '');
   const [remoteOnly, setRemoteOnly] = useState(searchParams.get('remote') === 'true');
   const [language, setLanguage] = useState(searchParams.get('language') ?? '');
+  const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get('verified') === 'true');
+  const [withReviewsOnly, setWithReviewsOnly] = useState(searchParams.get('reviews') === 'true');
+  const [page, setPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
 
   // Load subcategories when a category is selected
   useEffect(() => {
@@ -93,19 +97,36 @@ export default function SearchPage() {
     if (language) {
       q = q.contains('languages', [language]);
     }
+    if (verifiedOnly) {
+      q = q.eq('is_verified', true);
+    }
+    if (withReviewsOnly) {
+      q = q.gte('review_count', 1);
+    }
 
     if (sortBy === 'rating') {
       q = q.order('rating_avg', { ascending: false });
     } else if (sortBy === 'recent') {
       q = q.order('created_at', { ascending: false });
+    } else if (sortBy === 'price_low') {
+      q = q.order('price_min', { ascending: true });
+    } else if (sortBy === 'price_high') {
+      q = q.order('price_min', { ascending: false });
     } else {
       q = q.order('is_featured', { ascending: false }).order('rating_avg', { ascending: false });
     }
 
-    const { data } = await q.limit(24);
+    // Get total count
+    const { count } = await q;
+    setTotalResults(count || 0);
+
+    // Get paginated results
+    const from = (page - 1) * 24;
+    const to = from + 23;
+    const { data } = await q.range(from, to);
     setProviders(data as ProviderProfile[] ?? []);
     setLoading(false);
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language]);
+  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, withReviewsOnly, page]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -120,7 +141,10 @@ export default function SearchPage() {
       if (minExperience) params.experience = minExperience;
       if (remoteOnly) params.remote = 'true';
       if (language) params.language = language;
+      if (verifiedOnly) params.verified = 'true';
+      if (withReviewsOnly) params.reviews = 'true';
       if (sortBy !== 'featured') params.sort = sortBy;
+      if (page > 1) params.page = page.toString();
       setSearchParams(params);
     }, 300);
     return () => clearTimeout(timer);
@@ -138,17 +162,20 @@ export default function SearchPage() {
     setMinExperience('');
     setRemoteOnly(false);
     setLanguage('');
+    setVerifiedOnly(false);
+    setWithReviewsOnly(false);
     setSortBy('featured');
+    setPage(1);
   };
 
-  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language;
+  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || withReviewsOnly;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
         <p className="mt-1 text-sm text-neutral-600">
-          {loading ? 'Recherche en cours...' : `${providers.length} prestataire${providers.length > 1 ? 's' : ''} trouvé${providers.length > 1 ? 's' : ''}`}
+          {loading ? 'Recherche en cours...' : `${totalResults} résultat${totalResults > 1 ? 's' : ''} (${providers.length} affiché${providers.length > 1 ? 's' : ''})`}
         </p>
       </div>
 
@@ -328,6 +355,30 @@ export default function SearchPage() {
                     <span className="text-sm text-neutral-700">Service à distance uniquement</span>
                   </label>
                 </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={verifiedOnly}
+                      onChange={(e) => setVerifiedOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">Prestataires vérifiés uniquement</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={withReviewsOnly}
+                      onChange={(e) => setWithReviewsOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">Avec avis uniquement</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -356,6 +407,8 @@ export default function SearchPage() {
                   <option value="featured">En vedette</option>
                   <option value="rating">Meilleures notes</option>
                   <option value="recent">Plus récents</option>
+                  <option value="price_low">Prix croissant</option>
+                  <option value="price_high">Prix décroissant</option>
                 </select>
               </div>
             </BentoCard>
@@ -386,6 +439,31 @@ export default function SearchPage() {
               </BentoCard>
             )}
           </BentoGrid>
+
+          {/* Pagination */}
+          {!loading && totalResults > 24 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="btn-secondary"
+              >
+                <ChevronLeft size={18} />
+                Précédent
+              </button>
+              <span className="text-sm text-neutral-600">
+                Page {page} sur {Math.ceil(totalResults / 24)}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(Math.ceil(totalResults / 24), p + 1))}
+                disabled={page >= Math.ceil(totalResults / 24)}
+                className="btn-secondary"
+              >
+                Suivant
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
