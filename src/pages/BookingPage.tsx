@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Video, User, Check, X, Loader2, CreditCard } from 'lucide-react';
+import { Calendar, Clock, MapPin, CreditCard, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import type { ProviderProfile, Booking, AvailabilitySlot } from '@/types';
-import { formatCurrency } from '@/data/currencies';
-import { getStripe } from '@/lib/stripe';
+import { getStripe, formatPrice } from '@/lib/stripe';
 import { createPaymentIntent, createPaymentRecord, updatePaymentStatus } from '@/services/paymentService';
+import { createNotification } from '@/services/notificationService';
 
 export default function BookingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -149,6 +148,33 @@ export default function BookingPage() {
         setProcessingPayment(false);
       } else {
         await updatePaymentStatus(paymentIntent.id, 'completed');
+        
+        // Create notification for the user
+        await createNotification(
+          user.id,
+          'booking_confirmed',
+          'Réservation confirmée',
+          `Votre réservation avec ${provider.business_name} a été confirmée avec succès.`,
+          { booking_id: bookingId, provider_id: provider.id }
+        );
+        
+        // Create notification for the provider
+        const { data: providerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', provider.user_id)
+          .single();
+        
+        if (providerProfile) {
+          await createNotification(
+            providerProfile.id,
+            'new_booking',
+            'Nouvelle réservation',
+            `Vous avez une nouvelle réservation de ${profile?.full_name || 'un client'}.`,
+            { booking_id: bookingId, user_id: user.id }
+          );
+        }
+        
         setStep('success');
       }
     } catch (error) {

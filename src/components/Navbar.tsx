@@ -4,7 +4,7 @@ import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, B
 import { useAuth } from '@/context/AuthContext';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useI18n } from '@/context/I18nContext';
-import NotificationBell from '@/components/NotificationBell';
+import NotificationsPanel from '@/components/NotificationsPanel';
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth();
@@ -105,7 +105,7 @@ export default function Navbar() {
               >
                 <Heart size={20} />
               </Link>
-              <NotificationBell />
+              <NotificationsPanel />
               
               <button
                 onClick={toggleDarkMode}
