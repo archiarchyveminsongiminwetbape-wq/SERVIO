@@ -36,23 +36,28 @@ export default function SettingsPage() {
     if (!user) return;
 
     setLoading(true);
-    const { data } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    try {
+      const { data } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    if (data) {
-      setSettings({
-        emailNotifications: data.email_notifications ?? true,
-        pushNotifications: data.push_notifications ?? false,
-        emailMessages: data.email_messages ?? true,
-        emailReviews: data.email_reviews ?? true,
-        emailUpdates: data.email_updates ?? false,
-        language: data.language ?? 'fr',
-        currency: data.currency ?? 'EUR',
-        timezone: data.timezone ?? 'Europe/Paris',
-      });
+      if (data) {
+        setSettings({
+          emailNotifications: data.email_notifications ?? true,
+          pushNotifications: data.push_notifications ?? false,
+          emailMessages: data.email_messages ?? true,
+          emailReviews: data.email_reviews ?? true,
+          emailUpdates: data.email_updates ?? false,
+          language: data.language ?? 'fr',
+          currency: data.currency ?? 'EUR',
+          timezone: data.timezone ?? 'Europe/Paris',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      // Use default settings if table doesn't exist yet
     }
     setLoading(false);
   }
@@ -61,22 +66,29 @@ export default function SettingsPage() {
     if (!user) return;
 
     setSaving(true);
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert({
-        user_id: user.id,
-        email_notifications: settings.emailNotifications,
-        push_notifications: settings.pushNotifications,
-        email_messages: settings.emailMessages,
-        email_reviews: settings.emailReviews,
-        email_updates: settings.emailUpdates,
-        language: settings.language,
-        currency: settings.currency,
-        timezone: settings.timezone,
-        updated_at: new Date().toISOString(),
-      });
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          email_notifications: settings.emailNotifications,
+          push_notifications: settings.pushNotifications,
+          email_messages: settings.emailMessages,
+          email_reviews: settings.emailReviews,
+          email_updates: settings.emailUpdates,
+          language: settings.language,
+          currency: settings.currency,
+          timezone: settings.timezone,
+          updated_at: new Date().toISOString(),
+        });
 
-    if (error) {
+      if (error) {
+        console.error('Error saving settings:', error);
+        alert('Erreur lors de la sauvegarde des paramètres: ' + error.message);
+      } else {
+        alert('Paramètres sauvegardés avec succès');
+      }
+    } catch (error) {
       console.error('Error saving settings:', error);
       alert('Erreur lors de la sauvegarde des paramètres');
     }
