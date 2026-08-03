@@ -52,21 +52,11 @@ export default function UserProfilePage() {
   const handleSave = async () => {
     setLoading(true);
     
-    // Construire l'objet de mise à jour avec seulement les champs essentiels
+    // Construire l'objet de mise à jour avec seulement les champs qui existent
     const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
       updated_at: new Date().toISOString(),
     };
-
-    // Ajouter avatar_url seulement s'il a changé
-    if (formData.avatar_url) {
-      updateData.avatar_url = formData.avatar_url;
-    }
-
-    // Ajouter phone seulement s'il a changé
-    if (formData.phone) {
-      updateData.phone = formData.phone;
-    }
 
     const { error } = await supabase
       .from('profiles')
@@ -78,6 +68,30 @@ export default function UserProfilePage() {
       console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Erreur lors de la mise à jour du profil: ' + error.message);
     } else {
+      // Si ça marche, essayer de mettre à jour l'avatar séparément
+      if (formData.avatar_url && formData.avatar_url !== profile.avatar_url) {
+        const { error: avatarError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: formData.avatar_url })
+          .eq('id', user.id);
+        
+        if (avatarError) {
+          console.error('Error updating avatar:', avatarError);
+        }
+      }
+      
+      // Si ça marche, essayer de mettre à jour le téléphone séparément
+      if (formData.phone && formData.phone !== profile.phone) {
+        const { error: phoneError } = await supabase
+          .from('profiles')
+          .update({ phone: formData.phone })
+          .eq('id', user.id);
+        
+        if (phoneError) {
+          console.error('Error updating phone:', phoneError);
+        }
+      }
+      
       await refreshProfile();
       setEditing(false);
     }
