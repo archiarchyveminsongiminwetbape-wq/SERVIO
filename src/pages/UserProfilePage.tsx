@@ -52,13 +52,21 @@ export default function UserProfilePage() {
   const handleSave = async () => {
     setLoading(true);
     
-    // Construire l'objet de mise à jour avec seulement les champs de base
+    // Construire l'objet de mise à jour avec seulement les champs essentiels
     const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
-      phone: formData.phone,
-      avatar_url: formData.avatar_url,
       updated_at: new Date().toISOString(),
     };
+
+    // Ajouter avatar_url seulement s'il a changé
+    if (formData.avatar_url) {
+      updateData.avatar_url = formData.avatar_url;
+    }
+
+    // Ajouter phone seulement s'il a changé
+    if (formData.phone) {
+      updateData.phone = formData.phone;
+    }
 
     const { error } = await supabase
       .from('profiles')
@@ -67,6 +75,7 @@ export default function UserProfilePage() {
 
     if (error) {
       console.error('Error updating profile:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Erreur lors de la mise à jour du profil: ' + error.message);
     } else {
       await refreshProfile();
