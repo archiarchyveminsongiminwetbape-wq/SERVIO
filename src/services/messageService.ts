@@ -30,8 +30,6 @@ export async function getConversations(userId: string) {
     .from('conversations')
     .select(`
       *,
-      user:profiles!conversations_user_id_fkey (id, full_name, avatar_url),
-      provider:profiles!conversations_provider_id_fkey (id, full_name, avatar_url),
       messages (
         id,
         content,
@@ -50,10 +48,26 @@ export async function getConversations(userId: string) {
 
   const conversations = data as any[];
   
+  // Get profile IDs for all conversations
+  const userIds = new Set<string>();
+  conversations.forEach(conv => {
+    userIds.add(conv.user_id);
+    userIds.add(conv.provider_id);
+  });
+
+  // Fetch profiles for all users
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url')
+    .in('id', Array.from(userIds));
+
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+  
   // Transform data to include other user info and last message
   return conversations.map(conv => {
     const isUserProvider = conv.provider_id === userId;
-    const otherUser = isUserProvider ? conv.user : conv.provider;
+    const otherUserId = isUserProvider ? conv.user_id : conv.provider_id;
+    const otherUser = profileMap.get(otherUserId) || { id: otherUserId, full_name: 'Utilisateur', avatar_url: null };
     const messages = conv.messages || [];
     const lastMessage = messages[0];
     const unreadCount = messages.filter((m: Message) => !m.read && m.sender_id !== userId).length;
