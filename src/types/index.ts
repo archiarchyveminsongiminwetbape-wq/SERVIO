@@ -102,14 +102,15 @@ export interface Review {
 
 export interface Conversation {
   id: string;
-  participant_a: string;
-  participant_b: string;
-  last_message_preview: string | null;
-  last_message_at: string | null;
-  status: 'open' | 'closed';
+  user_id: string;
+  provider_id: string;
+  booking_id?: string;
   created_at: string;
+  updated_at: string;
   other_user?: Profile | null;
   other_provider?: ProviderProfile | null;
+  last_message?: Message;
+  unread_count?: number;
 }
 
 export interface Message {
@@ -117,8 +118,7 @@ export interface Message {
   conversation_id: string;
   sender_id: string;
   content: string;
-  attachment_url: string | null;
-  read_at: string | null;
+  read: boolean;
   created_at: string;
 }
 

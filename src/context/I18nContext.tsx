@@ -4,6 +4,7 @@ import { Language, Translations, getTranslations, defaultLanguage, supportedLang
 interface I18nContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+  syncLanguageFromProfile: (lang: Language | null | undefined) => void;
   t: Translations;
   supportedLanguages: typeof supportedLanguages;
 }
@@ -31,6 +32,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang;
   };
 
+  const syncLanguageFromProfile = (lang: Language | null | undefined) => {
+    if (lang && supportedLanguages.find(l => l.code === lang)) {
+      setLanguageState(lang);
+      localStorage.setItem('language', lang);
+      document.documentElement.lang = lang;
+    }
+  };
+
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
@@ -38,7 +47,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const t = getTranslations(language);
 
   return (
-    <I18nContext.Provider value={{ language, setLanguage, t, supportedLanguages }}>
+    <I18nContext.Provider value={{ language, setLanguage, syncLanguageFromProfile, t, supportedLanguages }}>
       {children}
     </I18nContext.Provider>
   );

@@ -23,6 +23,7 @@ import SignupPage from '@/pages/SignupPage';
 import SignupConfirmationPage from '@/pages/SignupConfirmationPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import CategorySeeder from '@/components/CategorySeeder';
+import LanguageSync from '@/components/LanguageSync';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -39,6 +40,7 @@ function App() {
     <I18nProvider>
       <DarkModeProvider>
         <AuthProvider>
+          <LanguageSync />
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />

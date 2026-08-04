@@ -4,13 +4,29 @@ export interface PortfolioItem {
   id: string;
   provider_id: string;
   title: string;
-  description?: string;
-  image_url: string;
-  category?: string;
-  project_date?: string;
+  description: string | null;
+  photos: string[];
+  video_url: string | null;
+  category_id: string | null;
+  tags: string[];
   sort_order: number;
   created_at: string;
   updated_at: string;
+}
+
+export async function getProviderProfileIdByUser(userId: string) {
+  const { data, error } = await supabase
+    .from('provider_profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching provider profile id:', error);
+    return null;
+  }
+
+  return data?.id ?? null;
 }
 
 export async function getPortfolioItems(providerId: string) {
@@ -25,22 +41,33 @@ export async function getPortfolioItems(providerId: string) {
     return [];
   }
 
-  return data as PortfolioItem[];
+  return (data || []) as PortfolioItem[];
+}
+
+export async function getPortfolioItemsForUser(userId: string) {
+  const providerId = await getProviderProfileIdByUser(userId);
+  if (!providerId) return [];
+  return getPortfolioItems(providerId);
 }
 
 export async function createPortfolioItem(item: {
   provider_id: string;
   title: string;
-  description?: string;
-  image_url: string;
-  category?: string;
-  project_date?: string;
+  description?: string | null;
+  photos?: string[];
+  video_url?: string | null;
+  category_id?: string | null;
+  tags?: string[];
   sort_order?: number;
 }) {
   const { data, error } = await supabase
     .from('portfolio_items')
     .insert({
       ...item,
+      photos: item.photos ?? [],
+      tags: item.tags ?? [],
+      video_url: item.video_url ?? null,
+      category_id: item.category_id ?? null,
       sort_order: item.sort_order ?? 0,
     })
     .select()
@@ -58,10 +85,11 @@ export async function updatePortfolioItem(
   itemId: string,
   updates: {
     title?: string;
-    description?: string;
-    image_url?: string;
-    category?: string;
-    project_date?: string;
+    description?: string | null;
+    photos?: string[];
+    video_url?: string | null;
+    category_id?: string | null;
+    tags?: string[];
     sort_order?: number;
   }
 ) {
@@ -109,7 +137,7 @@ export async function reorderPortfolioItems(
   );
 
   const results = await Promise.all(updates);
-  
+
   if (results.some(r => r.error)) {
     console.error('Error reordering portfolio items');
     return false;

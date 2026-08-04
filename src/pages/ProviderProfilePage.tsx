@@ -129,7 +129,7 @@ export default function ProviderProfilePage() {
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
-      .or(`and(participant_a.eq.${user.id},participant_b.eq.${otherUserId}),and(participant_a.eq.${otherUserId},participant_b.eq.${user.id})`)
+      .or(`and(user_id.eq.${user.id},provider_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},provider_id.eq.${user.id})`)
       .maybeSingle();
 
     let convId = existing?.id;
@@ -137,7 +137,7 @@ export default function ProviderProfilePage() {
     if (!convId) {
       const { data: newConv } = await supabase
         .from('conversations')
-        .insert({ participant_a: user.id, participant_b: otherUserId })
+        .insert({ user_id: user.id, provider_id: otherUserId })
         .select('id')
         .single();
       convId = newConv?.id;
@@ -342,24 +342,53 @@ export default function ProviderProfilePage() {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {portfolio.map((item) => (
                     <div key={item.id} className="card group overflow-hidden">
-                      {item.photos[0] && (
-                        <div
-                          className="relative h-56 cursor-pointer overflow-hidden bg-neutral-100"
-                          onClick={() => setLightbox({ photos: item.photos, index: 0 })}
-                        >
-                          <img
-                            src={item.photos[0]}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
+                      <div className="relative h-56 overflow-hidden bg-neutral-100">
+                        {item.video_url ? (
+                          <video
+                            src={item.video_url}
+                            controls
+                            muted
+                            autoPlay
+                            playsInline
+                            loop
+                            preload="metadata"
+                            poster={item.photos[0] || undefined}
+                            className="h-full w-full object-cover"
                           />
-                          {item.photos.length > 1 && (
-                            <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-                              {item.photos.length} photos
-                            </div>
-                          )}
+                        ) : (
+                          <div
+                            className="h-full w-full cursor-pointer"
+                            onClick={() => setLightbox({ photos: item.photos, index: 0 })}
+                          >
+                            {item.photos[0] ? (
+                              <img
+                                src={item.photos[0]}
+                                alt={item.title}
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-sm text-neutral-400">
+                                Aperçu non disponible
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-800 opacity-0 shadow-sm transition-all duration-300 group-hover:opacity-100">
+                          Mini lecteur
                         </div>
-                      )}
+                        {item.photos.length > 1 && (
+                          <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+                            {item.photos.length} photos
+                          </div>
+                        )}
+                        {item.video_url && (
+                          <div className="absolute left-2 top-2 rounded-full bg-accent-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                            Vidéo courte de démonstration · 10s max
+                          </div>
+                        )}
+                      </div>
                       <div className="p-4">
                         <h3 className="font-semibold text-neutral-900">{item.title}</h3>
                         {item.description && (
@@ -369,6 +398,25 @@ export default function ProviderProfilePage() {
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {item.tags.map((tag) => (
                               <span key={tag} className="badge bg-neutral-100 text-neutral-600">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                        {item.video_url && (
+                          <div className="mt-3 rounded-lg border border-accent-200 bg-accent-50 px-3 py-2 text-xs font-medium text-accent-700">
+                            Vidéo courte de démonstration
+                          </div>
+                        )}
+                        {item.photos.length > 1 && (
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            {item.photos.slice(0, 3).map((photo, idx) => (
+                              <button
+                                key={`${item.id}-${photo}-${idx}`}
+                                type="button"
+                                onClick={() => setLightbox({ photos: item.photos, index: idx })}
+                                className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50"
+                              >
+                                <img src={photo} alt={`${item.title} ${idx + 1}`} className="h-16 w-full object-cover" />
+                              </button>
                             ))}
                           </div>
                         )}

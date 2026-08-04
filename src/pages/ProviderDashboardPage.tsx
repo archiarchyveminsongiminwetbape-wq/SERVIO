@@ -61,16 +61,19 @@ export default function ProviderDashboardPage() {
   async function loadData() {
     if (!user) return;
     setLoading(true);
-    const [provRes, catRes, portfolioRes] = await Promise.all([
+    const [provRes, catRes] = await Promise.all([
       supabase.from('provider_profiles').select('*, category:categories(*)').eq('user_id', user.id).maybeSingle(),
       supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('portfolio_items').select('id').eq('provider_id', user.id).maybeSingle(),
     ]);
 
     const prov = provRes.data as ProviderProfile | null;
     setProvider(prov);
     setCategories(catRes.data as Category[] ?? []);
-    setPortfolioCount(portfolioRes.data ? 1 : 0);
+
+    const providerPortfolioCount = prov
+      ? await supabase.from('portfolio_items').select('id', { count: 'exact', head: true }).eq('provider_id', prov.id)
+      : null;
+    setPortfolioCount(providerPortfolioCount?.count ?? 0);
 
     if (prov) {
       setForm({
@@ -121,6 +124,8 @@ export default function ProviderDashboardPage() {
         business_name: form.business_name,
         headline: form.headline,
         description: form.description,
+        avatar_url: form.avatar_url || null,
+        banner_url: form.banner_url || null,
         category_id: form.category_id || null,
         city: form.city || null,
         country: form.country || null,
@@ -163,6 +168,8 @@ export default function ProviderDashboardPage() {
         slug,
         headline: 'Nouveau prestataire',
         description: '',
+        avatar_url: form.avatar_url || null,
+        banner_url: form.banner_url || null,
         skills: [],
         languages: ['Français'],
       })
