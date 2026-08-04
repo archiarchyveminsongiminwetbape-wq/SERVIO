@@ -46,7 +46,7 @@ export default function LandingPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-800 via-primary-700 to-primary-900">
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.28),_transparent_32%),linear-gradient(135deg,_#0f172a_0%,_#1d4ed8_45%,_#1e3a8a_100%)]">
         <div className="absolute inset-0 opacity-20">
           <img
             src="/images/background.jpg"
@@ -54,31 +54,31 @@ export default function LandingPage() {
             className="h-full w-full object-cover"
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-primary-900/30 to-transparent" />
-        
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-900/20 to-transparent" />
+
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary-500/20 blur-3xl animate-pulse" />
-          <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary-400/20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary-500/25 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 lg:py-40">
           <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-6 py-2 text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-2 text-sm font-medium text-white backdrop-blur-md animate-fade-in">
               <Sparkles size={18} className="text-primary-200" />
               La plateforme des prestataires de services
             </div>
             <h1 className="text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl animate-slide-up">
               Trouvez le bon professionnel,
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-primary-100">au bon moment</span>
+              <span className="block bg-gradient-to-r from-sky-200 via-white to-primary-100 bg-clip-text text-transparent">au bon moment</span>
             </h1>
-            <p className="mx-auto mt-8 max-w-2xl text-xl leading-relaxed text-primary-100 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <p className="mx-auto mt-8 max-w-2xl text-xl leading-relaxed text-primary-50 animate-slide-up" style={{ animationDelay: '0.1s' }}>
               Des artisans, créatifs, consultants et prestataires de tous secteurs.
               Consultez leurs portfolios et contactez-les directement.
             </p>
 
             <form onSubmit={handleSearch} className="mx-auto mt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <GlassCard variant={darkMode ? 'dark' : 'default'} className="flex max-w-2xl items-center gap-3 p-2">
+              <GlassCard variant={darkMode ? 'dark' : 'default'} className="flex max-w-2xl items-center gap-3 rounded-[28px] border border-white/30 bg-white/90 p-2 shadow-[0_20px_60px_rgba(15,23,42,0.22)] backdrop-blur-xl">
                 <GlassInput
                   type="text"
                   value={searchQuery}
@@ -87,7 +87,7 @@ export default function LandingPage() {
                   variant={darkMode ? 'dark' : 'default'}
                   icon={<Search size={22} className="text-neutral-400" />}
                 />
-                <button type="submit" className="btn-primary rounded-2xl px-8 py-4">
+                <button type="submit" className="btn-primary rounded-2xl px-8 py-4 shadow-[0_14px_32px_rgba(37,99,235,0.45)]">
                   Rechercher
                   <ArrowRight size={20} />
                 </button>
@@ -116,14 +116,14 @@ export default function LandingPage() {
               <Link
                 key={cat.slug}
                 to={`/search?category=${cat.slug}`}
-                className="group flex flex-col items-center p-4 rounded-2xl border border-neutral-200 bg-white hover:border-primary-300 hover:shadow-lg transition-all"
+                className="group flex flex-col items-center rounded-2xl border border-neutral-200 bg-white p-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary-300 hover:shadow-[0_12px_30px_rgba(37,99,235,0.12)]"
               >
-                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 transition-all group-hover:scale-110 group-hover:from-primary-100 group-hover:to-primary-200">
+                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 transition-all duration-200 group-hover:scale-110 group-hover:from-primary-100 group-hover:to-primary-200">
                   <CategoryIcon name={cat.icon ?? ''} size={28} />
                 </div>
-                <div className="min-w-0 mt-3">
+                <div className="mt-3 min-w-0 text-center">
                   <p className="truncate text-sm font-bold text-neutral-900 group-hover:text-primary-700">{cat.name}</p>
-                  <p className="truncate text-xs text-neutral-500 mt-1">{cat.subcategories.length} spécialités</p>
+                  <p className="mt-1 truncate text-xs text-neutral-500">{cat.subcategories.length} spécialités</p>
                 </div>
               </Link>
             ))}

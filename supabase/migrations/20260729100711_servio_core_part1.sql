@@ -33,6 +33,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   role text NOT NULL DEFAULT 'visitor' CHECK (role IN ('visitor','provider','admin')),
   status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended','banned')),
   phone text,
+  country text NOT NULL DEFAULT 'FR',
+  currency text NOT NULL DEFAULT 'EUR',
+  language text NOT NULL DEFAULT 'fr',
+  email_notifications boolean NOT NULL DEFAULT true,
+  push_notifications boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -91,6 +96,8 @@ CREATE TABLE IF NOT EXISTS public.provider_profiles (
   languages text[] NOT NULL DEFAULT '{}',
   certifications text,
   city text,
+  country text NOT NULL DEFAULT 'FR',
+  currency text NOT NULL DEFAULT 'EUR',
   service_area text,
   remote_service boolean NOT NULL DEFAULT false,
   phone text,

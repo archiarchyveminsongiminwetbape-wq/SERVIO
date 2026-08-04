@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, LogOut, Save, X, Camera, Globe, CreditCard, Bell, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 import ImageUpload from '@/components/ImageUpload';
+import type { Language } from '@/i18n/translations';
 
 export default function UserProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { setLanguage } = useI18n();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,6 +59,11 @@ export default function UserProfilePage() {
     const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
       phone: formData.phone,
+      country: formData.country || 'FR',
+      currency: formData.currency || 'EUR',
+      language: formData.language || 'fr',
+      email_notifications: formData.email_notifications,
+      push_notifications: formData.push_notifications,
       updated_at: new Date().toISOString(),
     };
 
@@ -85,9 +93,10 @@ export default function UserProfilePage() {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     await refreshProfile();
+    setLanguage(formData.language as Language);
     setEditing(false);
     setLoading(false);
-    
+
     console.log('Profile save completed');
   };
 

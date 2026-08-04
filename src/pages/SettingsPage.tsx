@@ -5,10 +5,13 @@ import {
   Lock, Mail, Phone, MapPin, CreditCard, AlertCircle 
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
+import type { Language } from '@/i18n/translations';
 
 export default function SettingsPage() {
   const { user, profile, signOut } = useAuth();
+  const { setLanguage } = useI18n();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -86,6 +89,7 @@ export default function SettingsPage() {
         console.error('Error saving settings:', error);
         alert('Erreur lors de la sauvegarde des paramètres: ' + error.message);
       } else {
+        setLanguage(settings.language as Language);
         alert('Paramètres sauvegardés avec succès');
       }
     } catch (error) {

@@ -32,11 +32,11 @@ export default function Navbar() {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 ${darkMode ? 'glass-nav-dark' : 'glass-nav'}`}>
+    <nav className={`sticky top-0 z-50 border-b transition-all duration-300 ${darkMode ? 'border-white/10 bg-slate-950/80 backdrop-blur-xl' : 'border-white/60 bg-white/80 backdrop-blur-xl'}`}>
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-3 text-2xl font-bold tracking-tight">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-4 ring-primary-500/10">
               <Briefcase size={24} />
             </span>
             <span className={darkMode ? 'text-white' : 'text-neutral-900'}>SERVIO</span>
@@ -47,7 +47,7 @@ export default function Navbar() {
               to="/"
               className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
                 isActive('/') 
-                  ? 'bg-primary-50 text-primary-700' 
+                  ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
             >
@@ -57,7 +57,7 @@ export default function Navbar() {
               to="/search"
               className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
                 isActive('/search') 
-                  ? 'bg-primary-50 text-primary-700' 
+                  ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
             >
@@ -95,13 +95,13 @@ export default function Navbar() {
             <>
               <Link
                 to="/messages"
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-all hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm"
               >
                 <MessageSquare size={20} />
               </Link>
               <Link
                 to="/favorites"
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm'}`}
               >
                 <Heart size={20} />
               </Link>
@@ -150,7 +150,7 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-colors hover:bg-neutral-100"
+                  className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white/80 p-1 pr-2 transition-all hover:border-primary-200 hover:bg-primary-50/60"
                 >
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
@@ -275,7 +275,7 @@ export default function Navbar() {
         </div>
 
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 md:hidden"
+          className={`flex h-9 w-9 items-center justify-center rounded-lg md:hidden ${darkMode ? 'text-white hover:bg-white/10' : 'text-neutral-600 hover:bg-neutral-100'}`}
           onClick={() => setMobileOpen(!mobileOpen)}
         >
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
@@ -283,22 +283,53 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-neutral-200 bg-white px-4 py-3 md:hidden">
-          <Link to="/" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Accueil</Link>
-          <Link to="/search" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Explorer</Link>
+        <div className={`border-t px-4 py-4 md:hidden ${darkMode ? 'border-white/10 bg-slate-950' : 'border-neutral-200 bg-white'}`}>
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <Link to="/" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>Accueil</Link>
+            <Link to="/search" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>Explorer</Link>
+          </div>
+
           {user ? (
-            <>
-              <Link to="/messages" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Messagerie</Link>
-              <Link to="/favorites" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Favoris</Link>
-              <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Tableau de bord</Link>
-              <button onClick={handleSignOut} className="block w-full py-2 text-left text-sm font-medium text-error-600">Déconnexion</button>
-            </>
+            <div className="space-y-1.5">
+              <Link to="/messages" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><MessageSquare size={16} /> Messagerie</Link>
+              <Link to="/favorites" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><Heart size={16} /> Favoris</Link>
+              <Link to="/notifications" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><MessageSquare size={16} /> Notifications</Link>
+              <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}>{profile?.role === 'admin' ? <Shield size={16} /> : <LayoutDashboard size={16} />} Tableau de bord</Link>
+              <Link to="/profile" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><UserCircle size={16} /> Mon profil</Link>
+              <Link to="/settings" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><Settings size={16} /> Paramètres</Link>
+              <button onClick={handleSignOut} className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-error-600 hover:bg-error-50"> <LogOut size={16} /> Déconnexion</button>
+            </div>
           ) : (
-            <>
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600">Connexion</Link>
-              <Link to="/signup" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600">S'inscrire</Link>
-            </>
+            <div className="space-y-1.5">
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"> <User size={16} /> Connexion</Link>
+              <Link to="/signup" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"> <Briefcase size={16} /> S'inscrire</Link>
+            </div>
           )}
+
+          <div className={`mt-4 rounded-2xl border px-3 py-2 ${darkMode ? 'border-white/10 bg-white/5' : 'border-neutral-200 bg-neutral-50'}`}>
+            <button
+              onClick={() => setLangMenuOpen(!langMenuOpen)}
+              className={`flex w-full items-center justify-between rounded-xl px-2 py-2 text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-700'}`}
+            >
+              <span className="flex items-center gap-2"><Globe size={16} /> Langue</span>
+              <span>{supportedLanguages.find(l => l.code === language)?.flag}</span>
+            </button>
+
+            {langMenuOpen && (
+              <div className="mt-2 space-y-1">
+                {supportedLanguages.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => { setLanguage(lang.code); setLangMenuOpen(false); setMobileOpen(false); }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-2 py-2 text-sm ${language === lang.code ? 'bg-primary-50 text-primary-700' : darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-100'}`}
+                  >
+                    <span>{lang.flag}</span>
+                    <span>{lang.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>
