@@ -50,7 +50,7 @@ export default function ProviderProfilePage() {
 
       const { data: provData } = await supabase
         .from('provider_profiles')
-        .select('*, category:categories(*), profile:profiles(id, full_name, avatar_url)')
+        .select('*, category:categories(*)')
         .eq('slug', slug)
         .maybeSingle();
 
@@ -240,9 +240,9 @@ export default function ProviderProfilePage() {
         {/* Profile header */}
         <div className="relative -mt-20 flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="flex-shrink-0">
-            {provider.avatar_url || provider.profile?.avatar_url ? (
+            {provider.avatar_url ? (
               <img
-                src={provider.avatar_url || provider.profile?.avatar_url}
+                src={provider.avatar_url}
                 alt={provider.business_name}
                 className="h-32 w-32 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-36 sm:w-36"
               />
