@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
-  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin, CalendarPlus, CalendarCheck
+  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin, CalendarPlus, CalendarCheck, Video, Check
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import type { ProviderProfile, Category, Review, AvailabilitySlot, Booking } from '@/types';
+import type { ProviderProfile, Category, Review, AvailabilitySlot, Booking, BookingStatus } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
@@ -28,6 +28,7 @@ export default function ProviderDashboardPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [portfolioCount, setPortfolioCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -60,14 +61,16 @@ export default function ProviderDashboardPage() {
   async function loadData() {
     if (!user) return;
     setLoading(true);
-    const [provRes, catRes] = await Promise.all([
+    const [provRes, catRes, portfolioRes] = await Promise.all([
       supabase.from('provider_profiles').select('*, category:categories(*)').eq('user_id', user.id).maybeSingle(),
       supabase.from('categories').select('*').order('sort_order'),
+      supabase.from('portfolio_items').select('id').eq('provider_id', user.id).maybeSingle(),
     ]);
 
     const prov = provRes.data as ProviderProfile | null;
     setProvider(prov);
     setCategories(catRes.data as Category[] ?? []);
+    setPortfolioCount(portfolioRes.data ? 1 : 0);
 
     if (prov) {
       setForm({
@@ -225,12 +228,22 @@ export default function ProviderDashboardPage() {
     setSaving(false);
   }
 
-  async function updateBookingStatus(bookingId: string, status: string) {
+  async function toggleAvailabilitySlot(id: string, isAvailable: boolean) {
+    if (!provider) return;
+    setSaving(true);
+    const { error } = await supabase.from('availability_slots').update({ is_available: isAvailable }).eq('id', id);
+    if (!error) {
+      setAvailabilitySlots(availabilitySlots.map((slot) => slot.id === id ? { ...slot, is_available: isAvailable } : slot));
+    }
+    setSaving(false);
+  }
+
+  async function updateBookingStatus(bookingId: string, status: BookingStatus) {
     if (!provider) return;
     setSaving(true);
     const { error } = await supabase.from('bookings').update({ status }).eq('id', bookingId);
     if (!error) {
-      setBookings(bookings.map(b => b.id === bookingId ? { ...b, status } : b));
+      setBookings(bookings.map((b) => b.id === bookingId ? { ...b, status } : b));
     }
     setSaving(false);
   }
@@ -370,7 +383,7 @@ export default function ProviderDashboardPage() {
           />
           <BentoStatCard 
             icon={FolderOpen} 
-            value={portfolio.length} 
+            value={portfolioCount} 
             label="Réalisations" 
             variant="default"
           />

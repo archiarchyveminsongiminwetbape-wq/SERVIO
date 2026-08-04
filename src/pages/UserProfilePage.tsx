@@ -52,15 +52,10 @@ export default function UserProfilePage() {
   const handleSave = async () => {
     setLoading(true);
     
-    // Construire l'objet de mise à jour avec tous les champs
+    // Mise à jour sécurisée: seules les colonnes réellement présentes dans la table profiles sont envoyées.
     const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
       phone: formData.phone,
-      country: formData.country,
-      currency: formData.currency,
-      language: formData.language,
-      email_notifications: formData.email_notifications,
-      push_notifications: formData.push_notifications,
       updated_at: new Date().toISOString(),
     };
 

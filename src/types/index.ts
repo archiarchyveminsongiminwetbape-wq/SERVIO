@@ -16,6 +16,11 @@ export interface Profile {
   role: UserRole;
   status: UserStatus;
   phone: string | null;
+  country?: string | null;
+  currency?: string | null;
+  language?: string | null;
+  email_notifications?: boolean | null;
+  push_notifications?: boolean | null;
   created_at: string;
   updated_at: string;
 }
