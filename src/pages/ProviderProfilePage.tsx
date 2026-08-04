@@ -50,7 +50,7 @@ export default function ProviderProfilePage() {
 
       const { data: provData } = await supabase
         .from('provider_profiles')
-        .select('*, category:categories(*)')
+        .select('*, category:categories(*), profile:profiles(id, full_name, avatar_url)')
         .eq('slug', slug)
         .maybeSingle();
 
@@ -64,7 +64,7 @@ export default function ProviderProfilePage() {
       await supabase.rpc('increment_profile_views', { profile_id: provData.id }).then(() => {});
 
       const [portRes, revRes] = await Promise.all([
-        supabase.from('portfolio_items').select('*').eq('provider_id', provData.id).order('sort_order'),
+        supabase.from('portfolio_items').select('*').eq('provider_id', provData.user_id).eq('is_published', true).order('sort_order'),
         supabase
           .from('reviews')
           .select('*, author:profiles!reviews_author_id_fkey(id, full_name, avatar_url)')
@@ -240,9 +240,9 @@ export default function ProviderProfilePage() {
         {/* Profile header */}
         <div className="relative -mt-20 flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="flex-shrink-0">
-            {provider.avatar_url ? (
+            {provider.avatar_url || provider.profile?.avatar_url ? (
               <img
-                src={provider.avatar_url}
+                src={provider.avatar_url || provider.profile?.avatar_url}
                 alt={provider.business_name}
                 className="h-32 w-32 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-36 sm:w-36"
               />

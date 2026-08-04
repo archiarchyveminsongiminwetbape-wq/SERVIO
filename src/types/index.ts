@@ -51,7 +51,7 @@ export interface ProviderProfile {
   languages: string[];
   certifications: string | null;
   city: string | null;
-  country?: string | null;
+  country: string | null;
   currency?: string | null;
   service_area: string | null;
   remote_service: boolean;
@@ -72,20 +72,68 @@ export interface ProviderProfile {
   created_at: string;
   updated_at: string;
   category?: Category | null;
+  profile?: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
 }
 
 export interface PortfolioItem {
   id: string;
   provider_id: string;
+  
+  // Basic Information
   title: string;
+  slug: string | null;
   description: string | null;
-  photos: string[];
+  short_description: string | null;
+  
+  // Media
+  image_url: string;
+  gallery_urls: string[];
   video_url: string | null;
-  category_id: string | null;
+  video_embed_url: string | null;
+  
+  // Categorization
+  category: string | null;
+  subcategory: string | null;
   tags: string[];
+  technologies: string[];
+  
+  // Project Details
+  project_date: string | null;
+  project_duration: string | null;
+  project_budget: string | null;
+  client_name: string | null;
+  client_logo_url: string | null;
+  team_size: number | null;
+  
+  // Links
+  project_url: string | null;
+  github_url: string | null;
+  behance_url: string | null;
+  dribbble_url: string | null;
+  figma_url: string | null;
+  instagram_url: string | null;
+  other_links: Record<string, string>;
+  
+  // Status & Visibility
+  is_featured: boolean;
+  is_published: boolean;
+  status: 'planning' | 'in_progress' | 'completed' | 'on_hold';
+  
+  // Metrics
+  view_count: number;
+  like_count: number;
+  
+  // Display Settings
   sort_order: number;
+  
+  // Timestamps
   created_at: string;
   updated_at: string;
+  published_at: string | null;
 }
 
 export interface Review {

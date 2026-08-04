@@ -3,15 +3,58 @@ import { supabase } from '@/lib/supabase';
 export interface PortfolioItem {
   id: string;
   provider_id: string;
+  
+  // Basic Information
   title: string;
+  slug: string | null;
   description: string | null;
-  photos: string[];
+  short_description: string | null;
+  
+  // Media
+  image_url: string;
+  gallery_urls: string[];
   video_url: string | null;
-  category_id: string | null;
+  video_embed_url: string | null;
+  
+  // Categorization
+  category: string | null;
+  subcategory: string | null;
   tags: string[];
+  technologies: string[];
+  
+  // Project Details
+  project_date: string | null;
+  project_duration: string | null;
+  project_budget: string | null;
+  client_name: string | null;
+  client_logo_url: string | null;
+  team_size: number | null;
+  
+  // Links
+  project_url: string | null;
+  github_url: string | null;
+  behance_url: string | null;
+  dribbble_url: string | null;
+  figma_url: string | null;
+  instagram_url: string | null;
+  other_links: Record<string, string>;
+  
+  // Status & Visibility
+  is_featured: boolean;
+  is_published: boolean;
+  status: 'planning' | 'in_progress' | 'completed' | 'on_hold';
+  
+  // Metrics
+  view_count: number;
+  like_count: number;
+  
+  // Display Settings
   sort_order: number;
+  
+  // Timestamps
   created_at: string;
   updated_at: string;
+  published_at: string | null;
 }
 
 export async function getProviderProfileIdByUser(userId: string) {
@@ -44,31 +87,72 @@ export async function getPortfolioItems(providerId: string) {
   return (data || []) as PortfolioItem[];
 }
 
+export async function getPublishedPortfolioItems(providerId: string) {
+  const { data, error } = await supabase
+    .from('portfolio_items')
+    .select('*')
+    .eq('provider_id', providerId)
+    .eq('is_published', true)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching published portfolio items:', error);
+    return [];
+  }
+
+  return (data || []) as PortfolioItem[];
+}
+
 export async function getPortfolioItemsForUser(userId: string) {
-  const providerId = await getProviderProfileIdByUser(userId);
-  if (!providerId) return [];
-  return getPortfolioItems(providerId);
+  // Use userId directly since portfolio_items.provider_id references auth.users(id)
+  return getPortfolioItems(userId);
 }
 
 export async function createPortfolioItem(item: {
   provider_id: string;
   title: string;
+  slug?: string | null;
   description?: string | null;
-  photos?: string[];
+  short_description?: string | null;
+  image_url: string;
+  gallery_urls?: string[];
   video_url?: string | null;
-  category_id?: string | null;
+  video_embed_url?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
   tags?: string[];
+  technologies?: string[];
+  project_date?: string | null;
+  project_duration?: string | null;
+  project_budget?: string | null;
+  client_name?: string | null;
+  client_logo_url?: string | null;
+  team_size?: number | null;
+  project_url?: string | null;
+  github_url?: string | null;
+  behance_url?: string | null;
+  dribbble_url?: string | null;
+  figma_url?: string | null;
+  instagram_url?: string | null;
+  other_links?: Record<string, string>;
+  is_featured?: boolean;
+  is_published?: boolean;
+  status?: 'planning' | 'in_progress' | 'completed' | 'on_hold';
   sort_order?: number;
 }) {
   const { data, error } = await supabase
     .from('portfolio_items')
     .insert({
       ...item,
-      photos: item.photos ?? [],
+      gallery_urls: item.gallery_urls ?? [],
       tags: item.tags ?? [],
-      video_url: item.video_url ?? null,
-      category_id: item.category_id ?? null,
+      technologies: item.technologies ?? [],
+      other_links: item.other_links ?? {},
+      is_featured: item.is_featured ?? false,
+      is_published: item.is_published ?? true,
+      status: item.status ?? 'completed',
       sort_order: item.sort_order ?? 0,
+      published_at: item.is_published !== false ? new Date().toISOString() : null,
     })
     .select()
     .single();
@@ -85,20 +169,49 @@ export async function updatePortfolioItem(
   itemId: string,
   updates: {
     title?: string;
+    slug?: string | null;
     description?: string | null;
-    photos?: string[];
+    short_description?: string | null;
+    image_url?: string;
+    gallery_urls?: string[];
     video_url?: string | null;
-    category_id?: string | null;
+    video_embed_url?: string | null;
+    category?: string | null;
+    subcategory?: string | null;
     tags?: string[];
+    technologies?: string[];
+    project_date?: string | null;
+    project_duration?: string | null;
+    project_budget?: string | null;
+    client_name?: string | null;
+    client_logo_url?: string | null;
+    team_size?: number | null;
+    project_url?: string | null;
+    github_url?: string | null;
+    behance_url?: string | null;
+    dribbble_url?: string | null;
+    figma_url?: string | null;
+    instagram_url?: string | null;
+    other_links?: Record<string, string>;
+    is_featured?: boolean;
+    is_published?: boolean;
+    status?: 'planning' | 'in_progress' | 'completed' | 'on_hold';
     sort_order?: number;
   }
 ) {
+  const updateData: any = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Set published_at when publishing for the first time
+  if (updates.is_published === true) {
+    updateData.published_at = new Date().toISOString();
+  }
+
   const { data, error } = await supabase
     .from('portfolio_items')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('id', itemId)
     .select()
     .single();
@@ -143,5 +256,16 @@ export async function reorderPortfolioItems(
     return false;
   }
 
+  return true;
+}
+
+export async function incrementViewCount(itemId: string) {
+  const { error } = await supabase.rpc('increment_portfolio_view_count', { item_id: itemId });
+  
+  if (error) {
+    console.error('Error incrementing view count:', error);
+    return false;
+  }
+  
   return true;
 }

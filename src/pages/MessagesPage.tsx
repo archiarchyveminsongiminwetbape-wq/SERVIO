@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Loader2, ArrowLeft, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getConversations, type Conversation } from '@/services/messageService';
+import { getConversations, subscribeToConversations, subscribeToUserMessages, type Conversation, type Message } from '@/services/messageService';
 import { formatRelativeTime } from '@/lib/utils';
 import MessageThread from '@/components/MessageThread';
 
@@ -22,6 +22,22 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     loadConversations();
+
+    // Subscribe to conversation updates
+    const unsubscribeConv = subscribeToConversations(user.id, () => {
+      loadConversations();
+    });
+
+    // Subscribe to new messages
+    const unsubscribeMsg = subscribeToUserMessages(user.id, (message: Message) => {
+      // Reload conversations when a new message arrives
+      loadConversations();
+    });
+
+    return () => {
+      unsubscribeConv();
+      unsubscribeMsg();
+    };
   }, [user]);
 
   async function loadConversations() {

@@ -186,17 +186,62 @@ export function subscribeToConversations(
   callback: (conversation: Conversation) => void
 ) {
   const channel = supabase
-    .channel('conversations')
+    .channel(`conversations:${userId}`)
     .on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
         table: 'conversations',
-        filter: `user_id=eq.${userId},provider_id=eq.${userId}`,
+        filter: `user_id=eq.${userId}`,
       },
       (payload) => {
         callback(payload.new as Conversation);
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+        filter: `provider_id=eq.${userId}`,
+      },
+      (payload) => {
+        callback(payload.new as Conversation);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function subscribeToUserMessages(
+  userId: string,
+  callback: (message: Message) => void
+) {
+  const channel = supabase
+    .channel(`user_messages:${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+      },
+      async (payload) => {
+        // Check if this message is in a conversation the user is part of
+        const { data: conversation } = await supabase
+          .from('conversations')
+          .select('user_id, provider_id')
+          .eq('id', payload.new.conversation_id)
+          .single();
+
+        if (conversation && (conversation.user_id === userId || conversation.provider_id === userId)) {
+          callback(payload.new as Message);
+        }
       }
     )
     .subscribe();
