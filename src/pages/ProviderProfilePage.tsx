@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, Phone, Globe, Mail, BadgeCheck, Zap, Clock, Star,
   MessageSquare, Heart, Share2, Flag, ChevronLeft, ChevronRight,
-  Briefcase, Award, Languages, Loader2, X, Send, Plus
+  Briefcase, Award, Languages, Loader2, X, Send, Plus, ExternalLink, Github
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -391,14 +391,59 @@ export default function ProviderProfilePage() {
                       </div>
                       <div className="p-4">
                         <h3 className="font-semibold text-neutral-900">{item.title}</h3>
+                        {item.short_description && (
+                          <p className="mt-1 text-sm text-neutral-600">{item.short_description}</p>
+                        )}
                         {item.description && (
                           <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>
+                        )}
+                        {item.category && (
+                          <div className="mt-2 text-xs text-neutral-500">
+                            <span className="font-medium">Catégorie:</span> {item.category}
+                            {item.subcategory && ` > ${item.subcategory}`}
+                          </div>
+                        )}
+                        {item.project_date && (
+                          <div className="mt-1 text-xs text-neutral-500">
+                            <span className="font-medium">Date:</span> {new Date(item.project_date).toLocaleDateString('fr-FR')}
+                          </div>
+                        )}
+                        {item.client_name && (
+                          <div className="mt-1 text-xs text-neutral-500">
+                            <span className="font-medium">Client:</span> {item.client_name}
+                          </div>
                         )}
                         {item.tags.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {item.tags.map((tag) => (
                               <span key={tag} className="badge bg-neutral-100 text-neutral-600">{tag}</span>
                             ))}
+                          </div>
+                        )}
+                        {item.technologies.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {item.technologies.map((tech) => (
+                              <span key={tech} className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded">{tech}</span>
+                            ))}
+                          </div>
+                        )}
+                        {(item.project_url || item.github_url || item.behance_url) && (
+                          <div className="mt-3 flex gap-2">
+                            {item.project_url && (
+                              <a href={item.project_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1">
+                                <ExternalLink size={12} /> Projet
+                              </a>
+                            )}
+                            {item.github_url && (
+                              <a href={item.github_url} target="_blank" rel="noopener noreferrer" className="text-xs text-neutral-600 hover:text-neutral-700 flex items-center gap-1">
+                                <Github size={12} /> GitHub
+                              </a>
+                            )}
+                            {item.behance_url && (
+                              <a href={item.behance_url} target="_blank" rel="noopener noreferrer" className="text-xs text-neutral-600 hover:text-neutral-700 flex items-center gap-1">
+                                <ExternalLink size={12} /> Behance
+                              </a>
+                            )}
                           </div>
                         )}
                         {item.video_url && (
