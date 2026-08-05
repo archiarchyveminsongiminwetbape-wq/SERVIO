@@ -88,8 +88,9 @@ export default function PortfolioManager() {
     e.preventDefault();
     if (!user || !providerProfileId) return;
 
-    if (!formData.image_url.trim()) {
-      setUploadError('Veuillez ajouter une image pour ce projet.');
+    // Make image optional temporarily until storage RLS is fixed
+    if (!formData.title.trim()) {
+      setUploadError('Veuillez ajouter un titre pour ce projet.');
       return;
     }
 
@@ -124,19 +125,25 @@ export default function PortfolioManager() {
       sort_order: items.length,
     };
 
-    if (editingItem) {
-      await updatePortfolioItem(editingItem.id, payload);
-    } else {
-      await createPortfolioItem({
-        provider_id: providerProfileId,
-        ...payload,
-      });
-    }
+    try {
+      if (editingItem) {
+        await updatePortfolioItem(editingItem.id, payload);
+      } else {
+        await createPortfolioItem({
+          provider_id: providerProfileId,
+          ...payload,
+        });
+      }
 
-    setShowForm(false);
-    setEditingItem(null);
-    resetForm();
-    await loadPortfolio();
+      setShowForm(false);
+      setEditingItem(null);
+      resetForm();
+      setUploadError(null);
+      await loadPortfolio();
+    } catch (error) {
+      console.error('Error saving portfolio item:', error);
+      setUploadError('Erreur lors de la sauvegarde. Veuillez réessayer.');
+    }
   }
 
   async function handleDelete(id: string) {
