@@ -67,7 +67,7 @@ ALTER TABLE portfolio_items ENABLE ROW LEVEL SECURITY;
 -- Create policies
 CREATE POLICY "Public can view portfolio items"
 ON portfolio_items FOR SELECT
-TO public
+TO anon, authenticated
 USING (is_published = true);
 
 CREATE POLICY "Providers can manage own portfolio"
@@ -88,4 +88,13 @@ CREATE INDEX IF NOT EXISTS portfolio_items_created_at_idx ON portfolio_items(cre
 CREATE INDEX IF NOT EXISTS portfolio_items_tags_idx ON portfolio_items USING GIN(tags);
 
 -- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE portfolio_items;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND tablename = 'portfolio_items'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE portfolio_items;
+  END IF;
+END $$;
