@@ -67,7 +67,7 @@ export default function ProviderProfilePage() {
         supabase.from('portfolio_items').select('*').eq('provider_id', provData.user_id).eq('is_published', true).order('sort_order'),
         supabase
           .from('reviews')
-          .select('*, author:profiles!reviews_author_id_fkey(id, full_name, avatar_url)')
+          .select('*')
           .eq('provider_id', provData.id)
           .order('created_at', { ascending: false }),
       ]);
@@ -352,17 +352,17 @@ export default function ProviderProfilePage() {
                             playsInline
                             loop
                             preload="metadata"
-                            poster={item.photos[0] || undefined}
+                            poster={item.image_url || undefined}
                             className="h-full w-full object-cover"
                           />
                         ) : (
                           <div
                             className="h-full w-full cursor-pointer"
-                            onClick={() => setLightbox({ photos: item.photos, index: 0 })}
+                            onClick={() => setLightbox({ photos: [item.image_url], index: 0 })}
                           >
-                            {item.photos[0] ? (
+                            {item.image_url ? (
                               <img
-                                src={item.photos[0]}
+                                src={item.image_url}
                                 alt={item.title}
                                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 loading="lazy"
@@ -378,9 +378,9 @@ export default function ProviderProfilePage() {
                         <div className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-800 opacity-0 shadow-sm transition-all duration-300 group-hover:opacity-100">
                           Mini lecteur
                         </div>
-                        {item.photos.length > 1 && (
+                        {item.gallery_urls && item.gallery_urls.length > 0 && (
                           <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-                            {item.photos.length} photos
+                            {item.gallery_urls.length + 1} photos
                           </div>
                         )}
                         {item.video_url && (
@@ -406,13 +406,13 @@ export default function ProviderProfilePage() {
                             Vidéo courte de démonstration
                           </div>
                         )}
-                        {item.photos.length > 1 && (
+                        {item.gallery_urls && item.gallery_urls.length > 0 && (
                           <div className="mt-3 grid grid-cols-3 gap-2">
-                            {item.photos.slice(0, 3).map((photo, idx) => (
+                            {[item.image_url, ...item.gallery_urls].slice(0, 3).map((photo, idx) => (
                               <button
                                 key={`${item.id}-${photo}-${idx}`}
                                 type="button"
-                                onClick={() => setLightbox({ photos: item.photos, index: idx })}
+                                onClick={() => setLightbox({ photos: [item.image_url, ...(item.gallery_urls || [])], index: idx })}
                                 className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50"
                               >
                                 <img src={photo} alt={`${item.title} ${idx + 1}`} className="h-16 w-full object-cover" />
@@ -653,7 +653,7 @@ export default function ProviderProfilePage() {
             <ChevronLeft size={36} />
           </button>
           <img
-            src={lightbox.photos[lightbox.index]}
+            src={lightbox.photos?.[lightbox.index] || ''}
             alt=""
             className="max-h-full max-w-full rounded-lg object-contain"
             onClick={(e) => e.stopPropagation()}
@@ -668,7 +668,7 @@ export default function ProviderProfilePage() {
             <ChevronRight size={36} />
           </button>
           <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-white/70">
-            {lightbox.index + 1} / {lightbox.photos.length}
+            {lightbox.index + 1} / {lightbox.photos?.length || 1}
           </span>
         </div>
       )}
