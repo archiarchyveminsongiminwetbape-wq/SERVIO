@@ -171,31 +171,31 @@ export default function SearchPage() {
   const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || withReviewsOnly;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
-        <p className="mt-1 text-sm text-neutral-600">
+    <div className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
+        <p className="mt-1 text-xs sm:text-sm text-neutral-600">
           {loading ? 'Recherche en cours...' : `${totalResults} résultat${totalResults > 1 ? 's' : ''} (${providers.length} affiché${providers.length > 1 ? 's' : ''})`}
         </p>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row">
         {/* Filters sidebar */}
         <aside className="lg:w-72 lg:flex-shrink-0">
           <div className="lg:sticky lg:top-20">
             <div className="flex items-center justify-between lg:hidden">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="btn-secondary w-full"
+                className="btn-secondary w-full text-sm"
               >
-                <SlidersHorizontal size={18} />
+                <SlidersHorizontal size={16} />
                 Filtres
               </button>
             </div>
 
-            <div className={`card p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+            <div className={`card p-4 sm:p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-neutral-900">Filtres</h3>
+                <h3 className="text-xs sm:text-sm font-semibold text-neutral-900">Filtres</h3>
                 {hasFilters && (
                   <button onClick={clearFilters} className="text-xs font-medium text-primary-600 hover:text-primary-700">
                     Effacer
@@ -203,9 +203,9 @@ export default function SearchPage() {
                 )}
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 <div>
-                  <label className="label">Secteur</label>
+                  <label className="label text-xs sm:text-sm">Secteur</label>
                   <select
                     value={categorySlug}
                     onChange={(e) => { setCategorySlug(e.target.value); setSelectedSubCat(''); }}
@@ -387,22 +387,22 @@ export default function SearchPage() {
         {/* Results - Bento Grid */}
         <div className="flex-1">
           <BentoGrid>
-            <BentoCard colSpan={3} className="p-4">
+            <BentoCard colSpan={3} className="p-3 sm:p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative flex-1 sm:max-w-md">
-                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <Search size={16} className="sm:size-18 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="input-field pl-10"
+                    className="input-field pl-10 text-sm"
                     placeholder="Rechercher par nom, métier, compétence..."
                   />
                 </div>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="input-field sm:w-48"
+                  className="input-field w-full sm:w-48 text-sm"
                 >
                   <option value="featured">En vedette</option>
                   <option value="rating">Meilleures notes</option>
@@ -414,8 +414,8 @@ export default function SearchPage() {
             </BentoCard>
 
             {loading ? (
-              <BentoCard colSpan={3} className="flex items-center justify-center py-20">
-                <Loader2 size={32} className="animate-spin text-primary-500" />
+              <BentoCard colSpan={3} className="flex items-center justify-center py-16 sm:py-20">
+                <Loader2 size={28} className="sm:size-32 animate-spin text-primary-500" />
               </BentoCard>
             ) : providers.length > 0 ? (
               providers.map((p) => (
@@ -424,8 +424,8 @@ export default function SearchPage() {
                 </BentoCard>
               ))
             ) : (
-              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-20 text-center">
-                <Frown size={48} className="text-neutral-300" />
+              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
+                <Frown size={40} className="sm:size-48 text-neutral-300" />
                 <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun résultat</h3>
                 <p className="mt-1 text-sm text-neutral-500">
                   Essayez de modifier vos critères de recherche.
@@ -442,25 +442,25 @@ export default function SearchPage() {
 
           {/* Pagination */}
           {!loading && totalResults > 24 && (
-            <div className="mt-8 flex items-center justify-center gap-2">
+            <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="btn-secondary"
+                className="btn-secondary text-xs sm:text-sm"
               >
-                <ChevronLeft size={18} />
-                Précédent
+                <ChevronLeft size={14} className="sm:size-18" />
+                <span className="hidden sm:inline">Précédent</span>
               </button>
-              <span className="text-sm text-neutral-600">
+              <span className="text-xs sm:text-sm text-neutral-600">
                 Page {page} sur {Math.ceil(totalResults / 24)}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(Math.ceil(totalResults / 24), p + 1))}
                 disabled={page >= Math.ceil(totalResults / 24)}
-                className="btn-secondary"
+                className="btn-secondary text-xs sm:text-sm"
               >
-                Suivant
-                <ChevronRight size={18} />
+                <span className="hidden sm:inline">Suivant</span>
+                <ChevronRight size={14} className="sm:size-18" />
               </button>
             </div>
           )}

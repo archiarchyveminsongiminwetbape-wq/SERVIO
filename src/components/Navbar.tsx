@@ -33,13 +33,13 @@ export default function Navbar() {
 
   return (
     <nav className={`sticky top-0 z-50 border-b transition-all duration-300 ${darkMode ? 'border-white/10 bg-slate-950/80 backdrop-blur-xl' : 'border-white/60 bg-white/80 backdrop-blur-xl'}`}>
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-3 text-2xl font-bold tracking-tight">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-4 ring-primary-500/10">
-              <Briefcase size={24} />
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-4 lg:px-8">
+        <div className="flex items-center gap-4 sm:gap-8">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight">
+            <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-4 ring-primary-500/10">
+              <Briefcase size={18} className="sm:size-24" />
             </span>
-            <span className={darkMode ? 'text-white' : 'text-neutral-900'}>SERVIO</span>
+            <span className={`hidden sm:block ${darkMode ? 'text-white' : 'text-neutral-900'}`}>SERVIO</span>
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
@@ -90,28 +90,28 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 sm:gap-3 md:flex">
           {user ? (
             <>
               <Link
                 to="/messages"
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-all hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm"
+                className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-neutral-600 transition-all hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm"
               >
-                <MessageSquare size={20} />
+                <MessageSquare size={18} className="sm:size-20" />
               </Link>
               <Link
                 to="/favorites"
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm'}`}
+                className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-all ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm'}`}
               >
-                <Heart size={20} />
+                <Heart size={18} className="sm:size-20" />
               </Link>
               <NotificationsPanel />
               
               <button
                 onClick={toggleDarkMode}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
               >
-                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                {darkMode ? <Sun size={18} className="sm:size-20" /> : <Moon size={18} className="sm:size-20" />}
               </button>
 
               <div className="relative">
@@ -153,13 +153,13 @@ export default function Navbar() {
                   className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white/80 p-1 pr-2 transition-all hover:border-primary-200 hover:bg-primary-50/60"
                 >
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    <img src={profile.avatar_url} alt="" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary-100 text-xs sm:text-sm font-semibold text-primary-700">
                       {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
                     </div>
                   )}
-                  <span className="text-sm font-medium text-neutral-700">
+                  <span className="hidden sm:block text-sm font-medium text-neutral-700">
                     {profile?.full_name?.split(' ')[0] ?? 'Profil'}
                   </span>
                 </button>
@@ -275,15 +275,15 @@ export default function Navbar() {
         </div>
 
         <button
-          className={`flex h-9 w-9 items-center justify-center rounded-lg md:hidden ${darkMode ? 'text-white hover:bg-white/10' : 'text-neutral-600 hover:bg-neutral-100'}`}
+          className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg md:hidden ${darkMode ? 'text-white hover:bg-white/10' : 'text-neutral-600 hover:bg-neutral-100'}`}
           onClick={() => setMobileOpen(!mobileOpen)}
         >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       {mobileOpen && (
-        <div className={`border-t px-4 py-4 md:hidden ${darkMode ? 'border-white/10 bg-slate-950' : 'border-neutral-200 bg-white'}`}>
+        <div className={`border-t px-3 py-4 md:hidden ${darkMode ? 'border-white/10 bg-slate-950' : 'border-neutral-200 bg-white'}`}>
           <div className="mb-3 grid grid-cols-2 gap-2">
             <Link to="/" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>Accueil</Link>
             <Link to="/search" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>Explorer</Link>

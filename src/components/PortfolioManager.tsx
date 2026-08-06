@@ -358,7 +358,7 @@ export default function PortfolioManager() {
                 key={section.id}
                 type="button"
                 onClick={() => setActiveSection(section.id as any)}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
                   activeSection === section.id
                     ? 'border-b-2 border-primary-600 text-primary-600'
                     : 'text-neutral-600 hover:text-neutral-900'

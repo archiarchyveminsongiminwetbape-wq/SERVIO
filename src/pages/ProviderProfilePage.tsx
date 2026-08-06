@@ -229,25 +229,25 @@ export default function ProviderProfilePage() {
   return (
     <div className="animate-fade-in">
       {/* Banner */}
-      <div className="relative h-64 overflow-hidden bg-neutral-200 sm:h-80">
+      <div className="relative h-48 overflow-hidden bg-neutral-200 sm:h-64 lg:h-80">
         {provider.banner_url && (
           <img src={provider.banner_url} alt="" className="h-full w-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8">
         {/* Profile header */}
-        <div className="relative -mt-20 flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="relative -mt-16 flex flex-col gap-4 sm:flex-row sm:items-end sm:-mt-20">
           <div className="flex-shrink-0">
             {provider.avatar_url ? (
               <img
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-32 w-32 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-36 sm:w-36"
+                className="h-24 w-24 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-32 sm:w-32 lg:h-36 lg:w-36"
               />
             ) : (
-              <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-primary-100 text-4xl font-bold text-primary-700 ring-4 ring-white shadow-lg sm:h-36 sm:w-36">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-primary-100 text-3xl font-bold text-primary-700 ring-4 ring-white shadow-lg sm:h-32 sm:w-32 lg:h-36 lg:w-36">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
@@ -255,41 +255,42 @@ export default function ProviderProfilePage() {
 
           <div className="flex-1 pb-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-neutral-900">{provider.business_name}</h1>
-              <div className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{provider.business_name}</h1>
+              <div className="flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-medium text-neutral-700 shadow-sm">
                 <span className={`h-1.5 w-1.5 rounded-full ${avail.color}`} />
-                {avail.label}
+                <span className="hidden sm:inline">{avail.label}</span>
               </div>
             </div>
-            <p className="mt-1 text-neutral-600">{provider.headline}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
+            <p className="mt-1 text-sm sm:text-base text-neutral-600">{provider.headline}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-neutral-500">
               {provider.city && (
-                <span className="flex items-center gap-1"><MapPin size={14} /> {provider.city}</span>
+                <span className="flex items-center gap-1"><MapPin size={12} className="sm:size-14" /> {provider.city}</span>
               )}
               {provider.experience_years && (
-                <span className="flex items-center gap-1"><Briefcase size={14} /> {provider.experience_years} ans d'expérience</span>
+                <span className="flex items-center gap-1"><Briefcase size={12} className="sm:size-14" /> {provider.experience_years} ans d'expérience</span>
               )}
               <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
             </div>
           </div>
 
           {!isOwnProfile && (
-            <div className="flex flex-wrap gap-2 pb-2">
+            <div className="flex flex-wrap gap-2 pb-2 w-full sm:w-auto">
               <button
                 onClick={() => setShowMessageModal(true)}
-                className="btn-primary"
+                className="btn-primary flex-1 sm:flex-none text-sm sm:text-base"
               >
-                <MessageSquare size={18} />
-                Envoyer un message
+                <MessageSquare size={16} className="sm:size-18" />
+                <span className="hidden sm:inline">Envoyer un message</span>
+                <span className="sm:hidden">Message</span>
               </button>
               <button
                 onClick={toggleFavorite}
                 className={`btn-secondary ${isFavorited ? 'text-error-600' : ''}`}
               >
-                <Heart size={18} className={isFavorited ? 'fill-error-500' : ''} />
+                <Heart size={16} className="sm:size-18" />
               </button>
               <button onClick={shareProfile} className="btn-secondary">
-                <Share2 size={18} />
+                <Share2 size={16} className="sm:size-18" />
               </button>
             </div>
           )}
@@ -313,13 +314,13 @@ export default function ProviderProfilePage() {
         )}
 
         {/* Tabs */}
-        <div className="mt-8 border-b border-neutral-200">
-          <div className="flex gap-1">
+        <div className="mt-6 sm:mt-8 border-b border-neutral-200">
+          <div className="flex gap-1 overflow-x-auto">
             {(['portfolio', 'reviews', 'about'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-4 py-3 text-sm font-medium transition-colors ${
+                className={`relative whitespace-nowrap px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
                   activeTab === tab ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
@@ -335,14 +336,14 @@ export default function ProviderProfilePage() {
         </div>
 
         {/* Tab content */}
-        <div className="py-8">
+        <div className="py-6 sm:py-8">
           {activeTab === 'portfolio' && (
             <div>
               {portfolio.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {portfolio.map((item) => (
                     <div key={item.id} className="card group overflow-hidden">
-                      <div className="relative h-56 overflow-hidden bg-neutral-100">
+                      <div className="relative h-48 sm:h-56 overflow-hidden bg-neutral-100">
                         {item.video_url ? (
                           <video
                             src={item.video_url}
