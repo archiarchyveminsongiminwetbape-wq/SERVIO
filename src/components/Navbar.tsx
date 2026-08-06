@@ -9,7 +9,7 @@ import NotificationsPanel from '@/components/NotificationsPanel';
 export default function Navbar() {
   const { user, profile, signOut } = useAuth();
   const { darkMode, toggleDarkMode } = useDarkMode();
-  const { language, setLanguage, supportedLanguages } = useI18n();
+  const { language, setLanguage, supportedLanguages, t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -51,7 +51,7 @@ export default function Navbar() {
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
             >
-              Accueil
+              {t.nav.home}
             </Link>
             <Link
               to="/search"
@@ -61,7 +61,7 @@ export default function Navbar() {
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
             >
-              Explorer
+              {t.nav.search}
             </Link>
             {profile?.role === 'provider' && (
               <Link
@@ -72,7 +72,7 @@ export default function Navbar() {
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                 }`}
               >
-                Mon espace
+                {t.nav.dashboard}
               </Link>
             )}
             {profile?.role === 'admin' && (
@@ -84,7 +84,7 @@ export default function Navbar() {
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                 }`}
               >
-                Administration
+                {t.nav.dashboard}
               </Link>
             )}
           </div>
@@ -174,7 +174,7 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                       >
                         {profile?.role === 'admin' ? <Shield size={16} /> : <LayoutDashboard size={16} />}
-                        Tableau de bord
+                        {t.nav.dashboard}
                       </Link>
                       <Link
                         to="/favorites"
@@ -182,7 +182,7 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                       >
                         <Heart size={16} />
-                        Mes favoris
+                        {t.nav.profile}
                       </Link>
                       <Link
                         to="/messages"
@@ -190,7 +190,7 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                       >
                         <MessageSquare size={16} />
-                        Messagerie
+                        Messages
                       </Link>
                       <Link
                         to="/notifications"
@@ -198,7 +198,7 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                       >
                         <MessageSquare size={16} />
-                        Notifications
+                        {t.nav.settings}
                       </Link>
                       <Link
                         to="/profile"
@@ -206,7 +206,7 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                       >
                         <UserCircle size={16} />
-                        Mon profil
+                        {t.nav.profile}
                       </Link>
                       <Link
                         to="/settings"
@@ -214,15 +214,15 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                       >
                         <Settings size={16} />
-                        Paramètres
+                        {t.nav.settings}
                       </Link>
                       <div className="my-1 border-t border-neutral-100" />
                       <button
                         onClick={handleSignOut}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-error-600 hover:bg-error-50"
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <LogOut size={16} />
-                        Déconnexion
+                        {t.nav.logout}
                       </button>
                     </div>
                   </>
@@ -265,10 +265,10 @@ export default function Navbar() {
               </div>
               <Link to="/login" className="btn-ghost">
                 <User size={18} />
-                Connexion
+                {t.nav.login}
               </Link>
               <Link to="/signup" className="btn-primary">
-                S'inscrire
+                {t.nav.signup}
               </Link>
             </>
           )}
@@ -285,24 +285,24 @@ export default function Navbar() {
       {mobileOpen && (
         <div className={`border-t px-3 py-4 md:hidden ${darkMode ? 'border-white/10 bg-slate-950' : 'border-neutral-200 bg-white'}`}>
           <div className="mb-3 grid grid-cols-2 gap-2">
-            <Link to="/" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>Accueil</Link>
-            <Link to="/search" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>Explorer</Link>
+            <Link to="/" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>{t.nav.home}</Link>
+            <Link to="/search" onClick={() => setMobileOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? 'bg-white/5 text-white' : 'bg-neutral-50 text-neutral-700'}`}>{t.nav.search}</Link>
           </div>
 
           {user ? (
             <div className="space-y-1.5">
-              <Link to="/messages" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><MessageSquare size={16} /> Messagerie</Link>
-              <Link to="/favorites" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><Heart size={16} /> Favoris</Link>
-              <Link to="/notifications" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><MessageSquare size={16} /> Notifications</Link>
-              <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}>{profile?.role === 'admin' ? <Shield size={16} /> : <LayoutDashboard size={16} />} Tableau de bord</Link>
-              <Link to="/profile" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><UserCircle size={16} /> Mon profil</Link>
-              <Link to="/settings" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><Settings size={16} /> Paramètres</Link>
-              <button onClick={handleSignOut} className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-error-600 hover:bg-error-50"> <LogOut size={16} /> Déconnexion</button>
+              <Link to="/messages" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><MessageSquare size={16} /> Messages</Link>
+              <Link to="/favorites" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><Heart size={16} /> {t.nav.profile}</Link>
+              <Link to="/notifications" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><MessageSquare size={16} /> {t.nav.settings}</Link>
+              <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}>{profile?.role === 'admin' ? <Shield size={16} /> : <LayoutDashboard size={16} />} {t.nav.dashboard}</Link>
+              <Link to="/profile" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><UserCircle size={16} /> {t.nav.profile}</Link>
+              <Link to="/settings" onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${darkMode ? 'text-white hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'}`}><Settings size={16} /> {t.nav.settings}</Link>
+              <button onClick={handleSignOut} className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-error-600 hover:bg-error-50"> <LogOut size={16} /> {t.nav.logout}</button>
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"> <User size={16} /> Connexion</Link>
-              <Link to="/signup" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"> <Briefcase size={16} /> S'inscrire</Link>
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"> <User size={16} /> {t.nav.login}</Link>
+              <Link to="/signup" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"> <Briefcase size={16} /> {t.nav.signup}</Link>
             </div>
           )}
 
