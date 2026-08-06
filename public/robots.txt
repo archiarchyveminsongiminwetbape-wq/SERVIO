@@ -1,0 +1,25 @@
+# robots.txt pour SERVIO
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://archyveservizio.vercel.app/sitemap.xml
+
+# Interdire l'accès aux routes d'administration
+Disallow: /admin
+Disallow: /provider/dashboard
+Disallow: /provider/edit
+Disallow: /settings
+
+# Interdire l'accès aux routes d'authentification
+Disallow: /login
+Disallow: /signup
+Disallow: /reset-password
+
+# Interdire l'accès aux routes privées
+Disallow: /messages
+Disallow: /notifications
+Disallow: /bookings
+Disallow: /favorites
+Disallow: /profile
