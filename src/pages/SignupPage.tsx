@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Mail, Lock, User, AlertCircle, Loader2, Search, Wrench } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 
 export default function SignupPage() {
   const { signUp } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -56,7 +58,7 @@ export default function SignupPage() {
             </span>
             <span className="text-neutral-900">SERVIO</span>
           </Link>
-          <h1 className="mt-6 text-2xl font-bold text-neutral-900">Créer un compte</h1>
+          <h1 className="mt-6 text-2xl font-bold text-neutral-900">{t.auth.signup}</h1>
           <p className="mt-2 text-sm text-neutral-600">Rejoignez la communauté SERVIO</p>
         </div>
 
@@ -102,7 +104,7 @@ export default function SignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Nom complet</label>
+              <label className="label">{t.auth.fullName}</label>
               <div className="relative">
                 <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -117,7 +119,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="label">Email</label>
+              <label className="label">{t.auth.email}</label>
               <div className="relative">
                 <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -132,7 +134,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="label">Mot de passe</label>
+              <label className="label">{t.auth.password}</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -147,7 +149,7 @@ export default function SignupPage() {
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? <Loader2 size={18} className="animate-spin" /> : 'Créer mon compte'}
+              {loading ? <Loader2 size={18} className="animate-spin" /> : t.auth.signup}
             </button>
           </form>
 
@@ -160,9 +162,9 @@ export default function SignupPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-neutral-600">
-          Déjà un compte ?{' '}
+          {t.auth.hasAccount}{' '}
           <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
-            Se connecter
+            {t.auth.login}
           </Link>
         </p>
       </div>

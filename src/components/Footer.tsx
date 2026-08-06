@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Briefcase, Mail, Phone } from 'lucide-react';
+import { useI18n } from '@/context/I18nContext';
 
 export default function Footer() {
+  const { t } = useI18n();
   return (
     <footer className="border-t border-neutral-200 bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-800 text-white">
       <div className="mx-auto max-w-7xl px-3 py-8 sm:px-4 sm:py-10 lg:px-8 lg:py-12">
@@ -31,16 +33,16 @@ export default function Footer() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 backdrop-blur-sm">
-            <h3 className="text-xs sm:text-sm font-semibold text-white">Plateforme</h3>
+            <h3 className="text-xs sm:text-sm font-semibold text-white">{t.nav.search}</h3>
             <ul className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
-              <li><Link to="/search" className="text-xs sm:text-sm text-neutral-300 transition-colors hover:text-primary-300">Explorer les prestataires</Link></li>
-              <li><Link to="/signup" className="text-xs sm:text-sm text-neutral-300 transition-colors hover:text-primary-300">Devenir prestataire</Link></li>
+              <li><Link to="/search" className="text-xs sm:text-sm text-neutral-300 transition-colors hover:text-primary-300">{t.nav.search}</Link></li>
+              <li><Link to="/signup" className="text-xs sm:text-sm text-neutral-300 transition-colors hover:text-primary-300">{t.nav.signup}</Link></li>
               <li><Link to="/faq" className="text-xs sm:text-sm text-neutral-300 transition-colors hover:text-primary-300">FAQ</Link></li>
             </ul>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 backdrop-blur-sm">
-            <h3 className="text-xs sm:text-sm font-semibold text-white">Informations</h3>
+            <h3 className="text-xs sm:text-sm font-semibold text-white">{t.nav.settings}</h3>
             <ul className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
               <li><span className="text-xs sm:text-sm text-neutral-300">Conditions générales</span></li>
               <li><span className="text-xs sm:text-sm text-neutral-300">Confidentialité</span></li>
