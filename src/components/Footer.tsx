@@ -32,27 +32,27 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-white/10 bg-white/5 p-1 sm:p-1.5 md:p-2 lg:p-3 backdrop-blur-sm">
-            <h3 className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] font-semibold text-white">{t.nav.search}</h3>
-            <ul className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 space-y-0.25 sm:space-y-0.5 md:space-y-0.5 lg:space-y-1">
-              <li><Link to="/search" className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-neutral-300 transition-colors hover:text-primary-300">{t.nav.search}</Link></li>
-              <li><Link to="/signup" className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-neutral-300 transition-colors hover:text-primary-300">{t.nav.signup}</Link></li>
-              <li><Link to="/faq" className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-neutral-300 transition-colors hover:text-primary-300">FAQ</Link></li>
+          <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-white/10 bg-white/5 p-1 sm:p-1.5 md:p-1.5 lg:p-2 backdrop-blur-sm">
+            <h3 className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] font-semibold text-white">{t.nav.search}</h3>
+            <ul className="mt-0.5 sm:mt-1 md:mt-1 lg:mt-1.5 space-y-0.25 sm:space-y-0.5 md:space-y-0.5 lg:space-y-0.5">
+              <li><Link to="/search" className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] text-neutral-300 transition-colors hover:text-primary-300">{t.nav.search}</Link></li>
+              <li><Link to="/signup" className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] text-neutral-300 transition-colors hover:text-primary-300">{t.nav.signup}</Link></li>
+              <li><Link to="/faq" className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] text-neutral-300 transition-colors hover:text-primary-300">FAQ</Link></li>
             </ul>
           </div>
 
-          <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-white/10 bg-white/5 p-1 sm:p-1.5 md:p-2 lg:p-3 backdrop-blur-sm">
-            <h3 className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] font-semibold text-white">{t.nav.settings}</h3>
-            <ul className="mt-0.5 sm:mt-1 md:mt-1.5 lg:mt-2 space-y-0.25 sm:space-y-0.5 md:space-y-0.5 lg:space-y-1">
-              <li><span className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-neutral-300">Conditions générales</span></li>
-              <li><span className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-neutral-300">Confidentialité</span></li>
-              <li><span className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-neutral-300">Aide & FAQ</span></li>
+          <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-white/10 bg-white/5 p-1 sm:p-1.5 md:p-1.5 lg:p-2 backdrop-blur-sm">
+            <h3 className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] font-semibold text-white">{t.nav.settings}</h3>
+            <ul className="mt-0.5 sm:mt-1 md:mt-1 lg:mt-1.5 space-y-0.25 sm:space-y-0.5 md:space-y-0.5 lg:space-y-0.5">
+              <li><span className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] text-neutral-300">Conditions générales</span></li>
+              <li><span className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] text-neutral-300">Confidentialité</span></li>
+              <li><span className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] text-neutral-300">Aide & FAQ</span></li>
             </ul>
           </div>
         </div>
 
         <div className="mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 border-t border-white/10 pt-1 sm:pt-1.5 md:pt-2 lg:pt-3 text-center">
-          <p className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-neutral-400">© 2026 SERVIO. Tous droits réservés.</p>
+          <p className="text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] text-neutral-400">© 2026 SERVIO. Tous droits réservés.</p>
         </div>
       </div>
     </footer>

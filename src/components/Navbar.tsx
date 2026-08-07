@@ -33,11 +33,11 @@ export default function Navbar() {
 
   return (
     <nav className={`sticky top-0 z-50 border-b transition-all duration-300 ${darkMode ? 'border-white/10 bg-slate-950/80 backdrop-blur-xl' : 'border-white/60 bg-white/80 backdrop-blur-xl'}`}>
-      <div className="mx-auto flex h-8 sm:h-10 md:h-12 max-w-7xl items-center justify-between px-2 sm:px-3 md:px-4 lg:px-8">
+      <div className="mx-auto flex h-8 sm:h-10 md:h-9 max-w-7xl items-center justify-between px-2 sm:px-3 md:px-4 lg:px-8">
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
-          <Link to="/" className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-tight">
-            <span className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-2 sm:ring-3 ring-primary-500/10">
-              <Briefcase size={8} className="sm:size-10 md:size-14 lg:size-18" />
+          <Link to="/" className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 text-xs sm:text-sm md:text-sm lg:text-base font-bold tracking-tight">
+            <span className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-2 sm:ring-3 ring-primary-500/10">
+              <Briefcase size={8} className="sm:size-10 md:size-12 lg:size-14" />
             </span>
             <span className={`hidden sm:block ${darkMode ? 'text-white' : 'text-neutral-900'}`}>SERVIO</span>
           </Link>
@@ -45,7 +45,7 @@ export default function Navbar() {
           <div className="hidden items-center gap-0.25 sm:gap-0.5 md:flex">
             <Link
               to="/"
-              className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs font-semibold transition-all ${
+              className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-1.5 py-0.5 sm:py-1 md:py-0.5 text-[10px] sm:text-[11px] md:text-[10px] font-semibold transition-all ${
                 isActive('/') 
                   ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
@@ -55,7 +55,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/search"
-              className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs font-semibold transition-all ${
+              className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-1.5 py-0.5 sm:py-1 md:py-0.5 text-[10px] sm:text-[11px] md:text-[10px] font-semibold transition-all ${
                 isActive('/search') 
                   ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
@@ -66,7 +66,7 @@ export default function Navbar() {
             {profile?.role === 'provider' && (
               <Link
                 to="/provider/dashboard"
-                className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs font-semibold transition-all ${
+                className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-1.5 py-0.5 sm:py-1 md:py-0.5 text-[10px] sm:text-[11px] md:text-[10px] font-semibold transition-all ${
                   isActive('/provider/dashboard') 
                     ? 'bg-primary-50 text-primary-700' 
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
@@ -78,7 +78,7 @@ export default function Navbar() {
             {profile?.role === 'admin' && (
               <Link
                 to="/admin"
-                className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs font-semibold transition-all ${
+                className={`rounded-lg sm:rounded-xl px-1 sm:px-1.5 md:px-1.5 py-0.5 sm:py-1 md:py-0.5 text-[10px] sm:text-[11px] md:text-[10px] font-semibold transition-all ${
                   isActive('/admin') 
                     ? 'bg-primary-50 text-primary-700' 
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
@@ -95,23 +95,23 @@ export default function Navbar() {
             <>
               <Link
                 to="/messages"
-                className="relative flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-lg text-neutral-600 transition-all hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm"
+                className="relative flex h-7 w-7 sm:h-8 sm:w-8 md:h-7 md:w-7 items-center justify-center rounded-lg text-neutral-600 transition-all hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm"
               >
-                <MessageSquare size={14} className="sm:size-18 md:size-20" />
+                <MessageSquare size={14} className="sm:size-18 md:size-16" />
               </Link>
               <Link
                 to="/favorites"
-                className={`flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-lg transition-all ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm'}`}
+                className={`flex h-7 w-7 sm:h-8 sm:w-8 md:h-7 md:w-7 items-center justify-center rounded-lg transition-all ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm'}`}
               >
-                <Heart size={14} className="sm:size-18 md:size-20" />
+                <Heart size={14} className="sm:size-18 md:size-16" />
               </Link>
               <NotificationsPanel />
               
               <button
                 onClick={toggleDarkMode}
-                className={`flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                className={`flex h-7 w-7 sm:h-8 sm:w-8 md:h-7 md:w-7 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
               >
-                {darkMode ? <Sun size={14} className="sm:size-18 md:size-20" /> : <Moon size={14} className="sm:size-18 md:size-20" />}
+                {darkMode ? <Sun size={14} className="sm:size-18 md:size-16" /> : <Moon size={14} className="sm:size-18 md:size-16" />}
               </button>
 
               <div className="relative">
@@ -153,9 +153,9 @@ export default function Navbar() {
                   className="flex items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border border-neutral-200 bg-white/80 p-0.5 sm:p-1 pr-1.5 sm:pr-2 transition-all hover:border-primary-200 hover:bg-primary-50/60"
                 >
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-full object-cover" />
+                    <img src={profile.avatar_url} alt="" className="h-6 w-6 sm:h-7 sm:w-7 md:h-7 md:w-7 rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-primary-100 text-xs sm:text-sm font-semibold text-primary-700">
+                    <div className="flex h-6 w-6 sm:h-7 sm:w-7 md:h-7 md:w-7 items-center justify-center rounded-full bg-primary-100 text-xs sm:text-sm font-semibold text-primary-700">
                       {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
                     </div>
                   )}
