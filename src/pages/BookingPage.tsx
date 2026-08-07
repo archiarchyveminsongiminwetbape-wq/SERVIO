@@ -16,9 +16,12 @@ export default function BookingPage() {
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
   const [step, setStep] = useState<'select' | 'confirm' | 'success'>('select');
   const [notes, setNotes] = useState('');
-  const [locationType, setLocationType] = useState<'in_person' | 'remote'>('in_person');
+  const [locationType, setLocationType] = useState<'in_person' | 'remote' | 'hybrid'>('in_person');
   const [address, setAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [serviceType, setServiceType] = useState('Consultation');
+  const [duration, setDuration] = useState(60);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -57,6 +60,24 @@ export default function BookingPage() {
     }
   }
 
+  const getAvailableDates = () => {
+    const uniqueDates = [...new Set(slots.map(slot => slot.date))];
+    return uniqueDates.sort();
+  };
+
+  const getSlotsForDate = (date: string) => {
+    return slots.filter(slot => slot.date === date);
+  };
+
+  const getDurationOptions = () => [
+    { value: 30, label: '30 min' },
+    { value: 45, label: '45 min' },
+    { value: 60, label: '1 heure' },
+    { value: 90, label: '1h30' },
+    { value: 120, label: '2 heures' },
+    { value: 180, label: '3 heures' },
+  ];
+
   async function handleSubmitBooking() {
     if (!user || !provider || !selectedSlot) return;
     setSubmitting(true);
@@ -68,11 +89,11 @@ export default function BookingPage() {
     const { error } = await supabase.from('bookings').insert({
       client_id: user.id,
       provider_id: provider.id,
-      service_type: 'Consultation',
+      service_type: serviceType,
       scheduled_at: bookingDate.toISOString(),
-      duration_minutes: 60,
+      duration_minutes: duration,
       location_type: locationType,
-      location_address: locationType === 'in_person' ? address : null,
+      location_address: locationType === 'in_person' || locationType === 'hybrid' ? address : null,
       notes: notes || null,
       status: 'pending',
       price: null,
@@ -165,6 +186,36 @@ export default function BookingPage() {
             <div className="card p-6">
               <h3 className="text-lg font-semibold text-neutral-900 mb-4">Choisir un créneau</h3>
               
+              <div className="mb-6">
+                <label className="label">Type de service</label>
+                <input
+                  type="text"
+                  value={serviceType}
+                  onChange={(e) => setServiceType(e.target.value)}
+                  className="input-field"
+                  placeholder="Ex: Consultation, Audit, Formation..."
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="label">Durée</label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {getDurationOptions().map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setDuration(opt.value)}
+                      className={`px-4 py-2 rounded-lg border transition-colors ${
+                        duration === opt.value
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
               {slots.length === 0 ? (
                 <div className="text-center py-8">
                   <Calendar size={48} className="mx-auto text-neutral-300" />
@@ -172,37 +223,58 @@ export default function BookingPage() {
                   <p className="text-sm text-neutral-400">Le prestataire n'a pas encore défini ses disponibilités</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {slots.map((slot) => (
-                    <button
-                      key={slot.id}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`w-full flex items-center justify-between rounded-lg border p-4 text-left transition-colors ${
-                        selectedSlot?.id === slot.id
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-neutral-200 hover:border-neutral-300'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-medium text-neutral-900">
-                          {new Date(slot.date).toLocaleDateString('fr-FR', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
+                <>
+                  <div className="mb-4">
+                    <label className="label">Date</label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {getAvailableDates().map((date) => (
+                        <button
+                          key={date}
+                          onClick={() => setSelectedDate(date)}
+                          className={`px-4 py-2 rounded-lg border transition-colors ${
+                            selectedDate === date
+                              ? 'border-primary-500 bg-primary-50 text-primary-700'
+                              : 'border-neutral-200 hover:border-neutral-300'
+                          }`}
+                        >
+                          {new Date(date).toLocaleDateString('fr-FR', {
                             day: 'numeric',
+                            month: 'short',
                           })}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-neutral-600">
-                          <Clock size={14} />
-                          {slot.start_time} - {slot.end_time}
-                        </div>
-                      </div>
-                      {selectedSlot?.id === slot.id && (
-                        <Check size={20} className="text-primary-600" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {selectedDate && (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {getSlotsForDate(selectedDate).map((slot) => (
+                        <button
+                          key={slot.id}
+                          onClick={() => setSelectedSlot(slot)}
+                          className={`w-full flex items-center justify-between rounded-lg border p-4 text-left transition-colors ${
+                            selectedSlot?.id === slot.id
+                              ? 'border-primary-500 bg-primary-50'
+                              : 'border-neutral-200 hover:border-neutral-300'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center gap-2 text-sm text-neutral-600">
+                              <Clock size={14} />
+                              {slot.start_time} - {slot.end_time}
+                            </div>
+                            {slot.notes && (
+                              <div className="mt-1 text-xs text-neutral-500">{slot.notes}</div>
+                            )}
+                          </div>
+                          {selectedSlot?.id === slot.id && (
+                            <Check size={20} className="text-primary-600" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="mt-6 flex justify-end">
@@ -246,7 +318,7 @@ export default function BookingPage() {
 
                 <div>
                   <label className="label">Type de rendez-vous</label>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
+                  <div className="mt-2 grid grid-cols-3 gap-3">
                     <button
                       onClick={() => setLocationType('in_person')}
                       className={`flex items-center justify-center gap-2 rounded-lg border p-3 transition-colors ${
@@ -269,10 +341,21 @@ export default function BookingPage() {
                       <Video size={18} />
                       Visio
                     </button>
+                    <button
+                      onClick={() => setLocationType('hybrid')}
+                      className={`flex items-center justify-center gap-2 rounded-lg border p-3 transition-colors ${
+                        locationType === 'hybrid'
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <User size={18} />
+                      Hybride
+                    </button>
                   </div>
                 </div>
 
-                {locationType === 'in_person' && (
+                {(locationType === 'in_person' || locationType === 'hybrid') && (
                   <div>
                     <label className="label">Adresse</label>
                     <input
@@ -303,7 +386,7 @@ export default function BookingPage() {
                 </button>
                 <button
                   onClick={handleSubmitBooking}
-                  disabled={submitting || (locationType === 'in_person' && !address)}
+                  disabled={submitting || ((locationType === 'in_person' || locationType === 'hybrid') && !address)}
                   className="btn-primary"
                 >
                   {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirmer le rendez-vous'}
