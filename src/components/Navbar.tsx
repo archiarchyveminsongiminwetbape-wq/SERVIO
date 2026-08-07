@@ -33,11 +33,11 @@ export default function Navbar() {
 
   return (
     <nav className={`sticky top-0 z-50 border-b transition-all duration-300 ${darkMode ? 'border-white/10 bg-slate-950/80 backdrop-blur-xl' : 'border-white/60 bg-white/80 backdrop-blur-xl'}`}>
-      <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-2 sm:px-3 md:px-4 lg:px-8">
+      <div className="mx-auto flex h-12	sm:h-14 md:h-16 max-w-7xl items-center justify-between px-2 sm:px-3 md:px-4 lg:px-8">
         <div className="flex items-center gap-2 sm:gap-4 md:gap-8">
-          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 md:gap-3 text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
-            <span className="flex h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 items-center justify-center rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-2 sm:ring-4 ring-primary-500/10">
-              <Briefcase size={14} className="sm:size-18 md:size-24" />
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 md:gap-3 text-base sm:text-lg md:text-xl lg:text-2xl font-bold tracking-tight">
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 items-center justify-center rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-2 sm:ring-4 ring-primary-500/10">
+              <Briefcase size={12} className="sm:size-14 md:size-18 lg:size-24" />
             </span>
             <span className={`hidden sm:block ${darkMode ? 'text-white' : 'text-neutral-900'}`}>SERVIO</span>
           </Link>
@@ -45,7 +45,7 @@ export default function Navbar() {
           <div className="hidden items-center gap-0.5 sm:gap-1 md:flex">
             <Link
               to="/"
-              className={`rounded-lg sm:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
+              className={`rounded-lg sm:rounded-xl px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all ${
                 isActive('/') 
                   ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
@@ -55,7 +55,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/search"
-              className={`rounded-lg sm:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
+              className={`rounded-lg sm:rounded-xl px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all ${
                 isActive('/search') 
                   ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
@@ -66,7 +66,7 @@ export default function Navbar() {
             {profile?.role === 'provider' && (
               <Link
                 to="/provider/dashboard"
-                className={`rounded-lg sm:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
+                className={`rounded-lg sm:rounded-xl px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all ${
                   isActive('/provider/dashboard') 
                     ? 'bg-primary-50 text-primary-700' 
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
@@ -78,7 +78,7 @@ export default function Navbar() {
             {profile?.role === 'admin' && (
               <Link
                 to="/admin"
-                className={`rounded-lg sm:rounded-xl px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
+                className={`rounded-lg sm:rounded-xl px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-semibold transition-all ${
                   isActive('/admin') 
                     ? 'bg-primary-50 text-primary-700' 
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'

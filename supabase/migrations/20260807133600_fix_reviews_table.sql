@@ -1,29 +1,26 @@
--- Fix reviews table to make booking_id optional
+-- Fix reviews table to make author_id nullable and add booking_id
 -- This allows users to leave reviews without requiring a completed booking
 
--- First, drop the UNIQUE constraint if it exists
+-- Add booking_id column if it doesn't exist
 DO $$
 BEGIN
-    IF EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'reviews_booking_id_key' 
-        AND conrelid = 'reviews'::regclass
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'reviews' 
+        AND column_name = 'booking_id'
     ) THEN
-        ALTER TABLE reviews DROP CONSTRAINT reviews_booking_id_key;
+        ALTER TABLE reviews ADD COLUMN booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE;
     END IF;
 END $$;
 
--- Then make booking_id nullable
-ALTER TABLE reviews ALTER COLUMN booking_id DROP NOT NULL;
-
 -- Update the RLS policy to allow reviews without booking_id
-DROP POLICY IF EXISTS "Users can insert reviews for their bookings" ON reviews;
+DROP POLICY IF EXISTS "reviews_insert_own" ON reviews;
 
-CREATE POLICY "Users can insert reviews"
+CREATE POLICY "reviews_insert_own"
 ON reviews FOR INSERT
 TO authenticated
 WITH CHECK (
-  auth.uid() = user_id
+  auth.uid() = author_id
 );
 
 -- Update the trigger function to handle reviews without booking_id

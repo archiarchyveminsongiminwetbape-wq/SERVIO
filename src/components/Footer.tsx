@@ -6,53 +6,53 @@ export default function Footer() {
   const { t } = useI18n();
   return (
     <footer className="border-t border-neutral-200 bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-800 text-white">
-      <div className="mx-auto max-w-7xl px-2 sm:px-3 md:px-4 lg:px-8 py-6 sm:py-8 md:py-10 lg:py-12">
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8 md:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-2 sm:px-3 md:px-4 lg:px-8 py-4 sm:py-6 md:py-8 lg:py-10">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg md:text-xl font-bold text-white">
-              <span className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/20">
-                <Briefcase size={14} className="sm:size-18 md:size-20" />
+            <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-sm sm:text-base md:text-lg font-bold text-white">
+              <span className="flex h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/20">
+                <Briefcase size={12} className="sm:size-14 md:size-16 lg:size-20" />
               </span>
               <span>SERVIO</span>
             </div>
-            <p className="mt-2 sm:mt-3 md:mt-4 max-w-md text-[11px] sm:text-xs md:text-sm leading-relaxed text-neutral-300">
+            <p className="mt-1.5 sm:mt-2 md:mt-3 max-w-md text-[10px] sm:text-[11px] md:text-xs leading-relaxed text-neutral-300">
               La plateforme qui connecte les prestataires de services avec les clients
               qui les recherchent. Tous secteurs d'activité, partout au monde.
             </p>
-            <div className="mt-2 sm:mt-3 md:mt-4 space-y-1 sm:space-y-1.5 md:space-y-2">
-              <a href="mailto:contact@servio.com" className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm text-neutral-300 transition-colors hover:text-primary-300">
-                <Mail size={12} className="sm:size-14 md:size-16" /> contact@servio.com
+            <div className="mt-1.5 sm:mt-2 md:mt-3 space-y-0.5 sm:space-y-1 md:space-y-1.5">
+              <a href="mailto:contact@servio.com" className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-[11px] md:text-xs text-neutral-300 transition-colors hover:text-primary-300">
+                <Mail size={10} className="sm:size-12 md:size-14" /> contact@servio.com
               </a>
-              <a href="tel:+237657029080" className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm text-neutral-300 transition-colors hover:text-primary-300">
-                <Phone size={12} className="sm:size-14 md:size-16" /> +237 657 029 080
+              <a href="tel:+237657029080" className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-[11px] md:text-xs text-neutral-300 transition-colors hover:text-primary-300">
+                <Phone size={10} className="sm:size-12 md:size-14" /> +237 657 029 080
               </a>
-              <a href="tel:+237620972579" className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm text-neutral-300 transition-colors hover:text-primary-300">
-                <Phone size={12} className="sm:size-14 md:size-16" /> +237 620 972 579
+              <a href="tel:+237620972579" className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-[11px] md:text-xs text-neutral-300 transition-colors hover:text-primary-300">
+                <Phone size={10} className="sm:size-12 md:size-14" /> +237 620 972 579
               </a>
             </div>
           </div>
 
-          <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4 md:p-5 backdrop-blur-sm">
-            <h3 className="text-[11px] sm:text-xs md:text-sm font-semibold text-white">{t.nav.search}</h3>
-            <ul className="mt-2 sm:mt-3 md:mt-4 space-y-1 sm:space-y-1.5 md:space-y-2">
-              <li><Link to="/search" className="text-[11px] sm:text-xs md:text-sm text-neutral-300 transition-colors hover:text-primary-300">{t.nav.search}</Link></li>
-              <li><Link to="/signup" className="text-[11px] sm:text-xs md:text-sm text-neutral-300 transition-colors hover:text-primary-300">{t.nav.signup}</Link></li>
-              <li><Link to="/faq" className="text-[11px] sm:text-xs md:text-sm text-neutral-300 transition-colors hover:text-primary-300">FAQ</Link></li>
+          <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-white/10 bg-white/5 p-2 sm:p-3 md:p-4 lg:p-5 backdrop-blur-sm">
+            <h3 className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm font-semibold text-white">{t.nav.search}</h3>
+            <ul className="mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 space-y-0.5 sm:space-y-1 md:space-y-1.5 lg:space-y-2">
+              <li><Link to="/search" className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm text-neutral-300 transition-colors hover:text-primary-300">{t.nav.search}</Link></li>
+              <li><Link to="/signup" className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm text-neutral-300 transition-colors hover:text-primary-300">{t.nav.signup}</Link></li>
+              <li><Link to="/faq" className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm text-neutral-300 transition-colors hover:text-primary-300">FAQ</Link></li>
             </ul>
           </div>
 
-          <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4 md:p-5 backdrop-blur-sm">
-            <h3 className="text-[11px] sm:text-xs md:text-sm font-semibold text-white">{t.nav.settings}</h3>
-            <ul className="mt-2 sm:mt-3 md:mt-4 space-y-1 sm:space-y-1.5 md:space-y-2">
-              <li><span className="text-[11px] sm:text-xs md:text-sm text-neutral-300">Conditions générales</span></li>
-              <li><span className="text-[11px] sm:text-xs md:text-sm text-neutral-300">Confidentialité</span></li>
-              <li><span className="text-[11px] sm:text-xs md:text-sm text-neutral-300">Aide & FAQ</span></li>
+          <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-white/10 bg-white/5 p-2 sm:p-3 md:p-4 lg:p-5 backdrop-blur-sm">
+            <h3 className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm font-semibold text-white">{t.nav.settings}</h3>
+            <ul className="mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 space-y-0.5 sm:space-y-1 md:space-y-1.5 lg:space-y-2">
+              <li><span className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm text-neutral-300">Conditions générales</span></li>
+              <li><span className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm text-neutral-300">Confidentialité</span></li>
+              <li><span className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm text-neutral-300">Aide & FAQ</span></li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-4 sm:mt-6 md:mt-8 border-t border-white/10 pt-3 sm:pt-4 md:pt-6 text-center">
-          <p className="text-[11px] sm:text-xs md:text-sm text-neutral-400">© 2026 SERVIO. Tous droits réservés.</p>
+        <div className="mt-3 sm:mt-4 md:mt-6 lg:mt-8 border-t border-white/10 pt-2 sm:pt-3 md:pt-4 lg:pt-6 text-center">
+          <p className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm text-neutral-400">© 2026 SERVIO. Tous droits réservés.</p>
         </div>
       </div>
     </footer>

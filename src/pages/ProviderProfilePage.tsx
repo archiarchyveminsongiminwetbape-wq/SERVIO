@@ -83,7 +83,7 @@ export default function ProviderProfilePage() {
           .from('reviews')
           .select('id')
           .eq('provider_id', provData.id)
-          .eq('user_id', user.id)
+          .eq('author_id', user.id)
           .maybeSingle();
         setHasReviewed(!!existingReview);
       }
@@ -169,11 +169,11 @@ export default function ProviderProfilePage() {
       .from('reviews')
       .insert({
         provider_id: provider.id,
-        user_id: user.id,
+        author_id: user.id,
         rating: reviewRating,
-        content: reviewComment.trim(),
+        comment: reviewComment.trim(),
       })
-      .select('*, user:profiles!reviews_user_id_fkey(id, full_name, avatar_url)')
+      .select('*, author:profiles!reviews_author_id_fkey(id, full_name, avatar_url)')
       .single();
 
     if (!error && data) {
