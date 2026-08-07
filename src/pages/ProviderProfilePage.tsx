@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, Phone, Globe, Mail, BadgeCheck, Zap, Clock, Star,
   MessageSquare, Heart, Share2, Flag, ChevronLeft, ChevronRight,
-  Briefcase, Award, Languages, Loader2, X, Send, Plus
+  Briefcase, Award, Languages, Loader2, X, Send, Plus, Search, Eye, FolderOpen
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +46,8 @@ export default function ProviderProfilePage() {
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [reviewSort, setReviewSort] = useState<'recent' | 'rating_high' | 'rating_low'>('recent');
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [portfolioFilter, setPortfolioFilter] = useState('');
+  const [portfolioSort, setPortfolioSort] = useState<'recent' | 'title'>('recent');
 
   useEffect(() => {
     async function loadData() {
@@ -231,6 +233,27 @@ export default function ProviderProfilePage() {
     return sorted;
   };
 
+  const getFilteredPortfolio = () => {
+    let filtered = [...portfolio];
+    
+    if (portfolioFilter.trim()) {
+      const filter = portfolioFilter.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.title.toLowerCase().includes(filter) ||
+        item.description?.toLowerCase().includes(filter) ||
+        item.tags.some(tag => tag.toLowerCase().includes(filter))
+      );
+    }
+    
+    if (portfolioSort === 'recent') {
+      return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (portfolioSort === 'title') {
+      return filtered.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    
+    return filtered;
+  };
+
   const shareProfile = async () => {
     if (navigator.share) {
       try {
@@ -379,45 +402,113 @@ export default function ProviderProfilePage() {
           {activeTab === 'portfolio' && (
             <div>
               {portfolio.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {portfolio.map((item) => (
-                    <div key={item.id} className="card group overflow-hidden">
-                      {item.photos[0] && (
-                        <div
-                          className="relative h-56 cursor-pointer overflow-hidden bg-neutral-100"
-                          onClick={() => setLightbox({ photos: item.photos, index: 0 })}
-                        >
-                          <img
-                            src={item.photos[0]}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
-                          />
-                          {item.photos.length > 1 && (
-                            <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-                              {item.photos.length} photos
+                <>
+                  {/* Portfolio filters and controls */}
+                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="relative flex-1 max-w-md">
+                      <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                      <input
+                        type="text"
+                        value={portfolioFilter}
+                        onChange={(e) => setPortfolioFilter(e.target.value)}
+                        className="input-field pl-10"
+                        placeholder="Rechercher dans les réalisations..."
+                      />
+                    </div>
+                    <select
+                      value={portfolioSort}
+                      onChange={(e) => setPortfolioSort(e.target.value as 'recent' | 'title')}
+                      className="input-field sm:w-48"
+                    >
+                      <option value="recent">Plus récents</option>
+                      <option value="title">Par titre</option>
+                    </select>
+                  </div>
+
+                  {/* Portfolio grid */}
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {getFilteredPortfolio().map((item) => (
+                      <div key={item.id} className="card group overflow-hidden">
+                        {item.photos[0] && (
+                          <div
+                            className="relative h-56 cursor-pointer overflow-hidden bg-neutral-100"
+                            onClick={() => setLightbox({ photos: item.photos, index: 0 })}
+                          >
+                            <img
+                              src={item.photos[0]}
+                              alt={item.title}
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="rounded-full bg-white/90 p-3 shadow-lg">
+                                <Eye size={20} className="text-neutral-900" />
+                              </div>
+                            </div>
+                            {item.photos.length > 1 && (
+                              <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+                                {item.photos.length} photos
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <h3 className="font-semibold text-neutral-900">{item.title}</h3>
+                          {item.description && (
+                            <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>
+                          )}
+                          {item.tags.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {item.tags.slice(0, 3).map((tag) => (
+                                <span key={tag} className="badge bg-primary-50 text-primary-700 border border-primary-100 text-xs">
+                                  {tag}
+                                </span>
+                              ))}
+                              {item.tags.length > 3 && (
+                                <span className="badge bg-neutral-100 text-neutral-600 text-xs">
+                                  +{item.tags.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {item.created_at && (
+                            <div className="mt-3 flex items-center gap-1 text-xs text-neutral-500">
+                              <Clock size={12} />
+                              {formatRelativeTime(item.created_at)}
                             </div>
                           )}
                         </div>
-                      )}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-neutral-900">{item.title}</h3>
-                        {item.description && (
-                          <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>
-                        )}
-                        {item.tags.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {item.tags.map((tag) => (
-                              <span key={tag} className="badge bg-neutral-100 text-neutral-600">{tag}</span>
-                            ))}
-                          </div>
-                        )}
                       </div>
+                    ))}
+                  </div>
+
+                  {getFilteredPortfolio().length === 0 && (
+                    <div className="text-center py-12">
+                      <Search size={48} className="mx-auto text-neutral-300" />
+                      <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun résultat</h3>
+                      <p className="mt-1 text-sm text-neutral-500">
+                        Essayez de modifier vos critères de recherche.
+                      </p>
+                      {portfolioFilter && (
+                        <button
+                          onClick={() => setPortfolioFilter('')}
+                          className="btn-secondary mt-4"
+                        >
+                          Effacer le filtre
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               ) : (
-                <p className="text-center text-neutral-500">Aucune réalisation publiée pour le moment.</p>
+                <div className="text-center py-16">
+                  <FolderOpen size={64} className="mx-auto text-neutral-300" />
+                  <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucune réalisation publiée</h3>
+                  <p className="mt-2 text-sm text-neutral-500">
+                    Ce prestataire n'a pas encore ajouté de réalisations à son portfolio.
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -676,14 +767,15 @@ export default function ProviderProfilePage() {
       {/* Lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
           onClick={() => setLightbox(null)}
         >
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white" onClick={() => setLightbox(null)}>
+          <button className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white/70 hover:bg-white/20 hover:text-white transition-colors" onClick={() => setLightbox(null)}>
             <X size={28} />
           </button>
+          
           <button
-            className="absolute left-4 text-white/70 hover:text-white"
+            className="absolute left-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.photos.length) % lightbox.photos.length });
@@ -691,14 +783,9 @@ export default function ProviderProfilePage() {
           >
             <ChevronLeft size={36} />
           </button>
-          <img
-            src={lightbox.photos[lightbox.index]}
-            alt=""
-            className="max-h-full max-w-full rounded-lg object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+          
           <button
-            className="absolute right-4 text-white/70 hover:text-white"
+            className="absolute right-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.photos.length });
@@ -706,36 +793,58 @@ export default function ProviderProfilePage() {
           >
             <ChevronRight size={36} />
           </button>
-          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-white/70">
-            {lightbox.index + 1} / {lightbox.photos.length}
-          </span>
+          
+          <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightbox.photos[lightbox.index]}
+              alt={`Photo ${lightbox.index + 1}`}
+              className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
+            />
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-white text-sm">
+              <span>{lightbox.index + 1} / {lightbox.photos.length}</span>
+            </div>
+          </div>
+          
+          {/* Thumbnails */}
+          {lightbox.photos.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+              {lightbox.photos.map((photo, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setLightbox({ ...lightbox, index: idx })}
+                  className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${
+                    idx === lightbox.index ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'
+                  }`}
+                >
+                  <img src={photo} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Message modal */}
       {showMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowMessageModal(false)}>
-          <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
+          <div className="card max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-neutral-900">Envoyer un message</h3>
               <button onClick={() => setShowMessageModal(false)} className="text-neutral-400 hover:text-neutral-600">
                 <X size={20} />
               </button>
             </div>
-            <p className="mt-1 text-sm text-neutral-500">à {provider.business_name}</p>
             <textarea
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
+              className="input-field resize-none mb-4"
               rows={4}
-              className="input-field mt-4 resize-none"
-              placeholder="Décrivez votre besoin..."
-              autoFocus
+              placeholder="Votre message..."
             />
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="flex justify-end gap-2">
               <button onClick={() => setShowMessageModal(false)} className="btn-secondary">Annuler</button>
-              <button onClick={handleSendMessage} disabled={sending || !messageText.trim()} className="btn-primary">
-                {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                Envoyer
+              <button onClick={handleSendMessage} disabled={sending} className="btn-primary">
+                {sending ? <Loader2 size={16} className="animate-spin" /> : 'Envoyer'}
               </button>
             </div>
           </div>
