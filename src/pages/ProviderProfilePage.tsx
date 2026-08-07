@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { ProviderProfile, PortfolioItem, Review } from '@/types';
 import StarRating from '@/components/StarRating';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
+import { getProfileImageUrl } from '@/lib/storage';
 
 const badgeLabels: Record<string, { label: string; icon: typeof BadgeCheck; color: string }> = {
   'profil-verifie': { label: 'Profil vérifié', icon: BadgeCheck, color: 'text-success-600 bg-success-50' },
@@ -82,7 +83,7 @@ export default function ProviderProfilePage() {
           .from('reviews')
           .select('id')
           .eq('provider_id', provData.id)
-          .eq('author_id', user.id)
+          .eq('user_id', user.id)
           .maybeSingle();
         setHasReviewed(!!existingReview);
       }
@@ -168,11 +169,11 @@ export default function ProviderProfilePage() {
       .from('reviews')
       .insert({
         provider_id: provider.id,
-        author_id: user.id,
+        user_id: user.id,
         rating: reviewRating,
-        comment: reviewComment.trim(),
+        content: reviewComment.trim(),
       })
-      .select('*, author:profiles!reviews_author_id_fkey(id, full_name, avatar_url)')
+      .select('*, user:profiles!reviews_user_id_fkey(id, full_name, avatar_url)')
       .single();
 
     if (!error && data) {
@@ -242,7 +243,7 @@ export default function ProviderProfilePage() {
           <div className="flex-shrink-0">
             {provider.avatar_url ? (
               <img
-                src={provider.avatar_url}
+                src={getProfileImageUrl(provider.avatar_url)}
                 alt={provider.business_name}
                 className="h-24 w-24 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-32 sm:w-32 lg:h-36 lg:w-36"
               />
