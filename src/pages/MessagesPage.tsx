@@ -15,6 +15,9 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const quickReplies = [
@@ -35,6 +38,74 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     loadConversations();
+  }, [user]);
+
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!user || !selectedConv) return;
+
+    const channel = supabase
+      .channel(`messages:${selectedConv.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConv.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          setMessages((prev) => [...prev, newMsg]);
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 50);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConv.id}`,
+        },
+        (payload) => {
+          const updatedMsg = payload.new as Message;
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === updatedMsg.id ? updatedMsg : msg))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedConv]);
+
+  // Real-time subscription for conversations
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('conversations')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        },
+        () => {
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   async function loadConversations() {
@@ -126,6 +197,19 @@ export default function MessagesPage() {
     setSending(false);
   }
 
+  const filteredConversations = conversations.filter((conv) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const name = conv.other_provider?.business_name ?? conv.other_user?.full_name ?? '';
+    const preview = conv.last_message_preview ?? '';
+    return name.toLowerCase().includes(query) || preview.toLowerCase().includes(query);
+  });
+
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+    // Could emit typing indicator here
+  };
+
   if (authLoading || loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -146,6 +230,8 @@ export default function MessagesPage() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher..."
                 className="input-field pl-9 py-2"
               />
@@ -153,41 +239,57 @@ export default function MessagesPage() {
           </div>
 
           <div className="overflow-y-auto">
-            {conversations.length === 0 ? (
+            {filteredConversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <MessageSquare size={40} className="text-neutral-300" />
-                <p className="mt-3 text-sm text-neutral-500">Aucune conversation</p>
-                <p className="text-xs text-neutral-400">Contactez un prestataire pour commencer</p>
+                <p className="mt-3 text-sm text-neutral-500">
+                  {searchQuery ? 'Aucun résultat' : 'Aucune conversation'}
+                </p>
+                <p className="text-xs text-neutral-400">
+                  {searchQuery ? 'Essayez une autre recherche' : 'Contactez un prestataire pour commencer'}
+                </p>
               </div>
             ) : (
-              conversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => loadMessages(conv)}
-                  className={`flex w-full items-center gap-3 border-b border-neutral-100 p-3 text-left transition-colors hover:bg-neutral-50 ${
-                    selectedConv?.id === conv.id ? 'bg-primary-50' : ''
-                  }`}
-                >
-                  {conv.other_user?.avatar_url ? (
-                    <img src={conv.other_user.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
-                      {conv.other_user?.full_name?.[0]?.toUpperCase() ?? conv.other_provider?.business_name?.[0]?.toUpperCase() ?? '?'}
+              filteredConversations.map((conv) => {
+                if (!user) return null;
+                const otherId = conv.participant_a === user.id ? conv.participant_b : conv.participant_a;
+                const isOnline = onlineUsers.has(otherId);
+                return (
+                  <button
+                    key={conv.id}
+                    onClick={() => loadMessages(conv)}
+                    className={`flex w-full items-center gap-3 border-b border-neutral-100 p-3 text-left transition-colors hover:bg-neutral-50 ${
+                      selectedConv?.id === conv.id ? 'bg-primary-50' : ''
+                    }`}
+                  >
+                    <div className="relative">
+                      {conv.other_user?.avatar_url ? (
+                        <img src={conv.other_user.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                          {conv.other_user?.full_name?.[0]?.toUpperCase() ?? conv.other_provider?.business_name?.[0]?.toUpperCase() ?? '?'}
+                        </div>
+                      )}
+                      {isOnline && (
+                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-success-500" />
+                      )}
                     </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-neutral-900">
-                      {conv.other_provider?.business_name ?? conv.other_user?.full_name ?? 'Utilisateur'}
-                    </p>
-                    <p className="truncate text-xs text-neutral-500">
-                      {conv.last_message_preview ?? 'Nouvelle conversation'}
-                    </p>
-                  </div>
-                  {conv.last_message_at && (
-                    <span className="text-xs text-neutral-400">{formatRelativeTime(conv.last_message_at)}</span>
-                  )}
-                </button>
-              ))
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="truncate text-sm font-semibold text-neutral-900">
+                          {conv.other_provider?.business_name ?? conv.other_user?.full_name ?? 'Utilisateur'}
+                        </p>
+                        {conv.last_message_at && (
+                          <span className="text-xs text-neutral-400">{formatRelativeTime(conv.last_message_at)}</span>
+                        )}
+                      </div>
+                      <p className="truncate text-xs text-neutral-500">
+                        {conv.last_message_preview ?? 'Nouvelle conversation'}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -270,7 +372,7 @@ export default function MessagesPage() {
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => handleTyping(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                   className="input-field flex-1"
                   placeholder="Écrivez votre message..."
@@ -283,6 +385,16 @@ export default function MessagesPage() {
                   {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 </button>
               </div>
+              {isTyping && (
+                <div className="flex items-center gap-1 text-xs text-neutral-500">
+                  <div className="flex gap-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span>L'autre personne est en train d'écrire...</span>
+                </div>
+              )}
             </div>
           </div>
         ) : (
