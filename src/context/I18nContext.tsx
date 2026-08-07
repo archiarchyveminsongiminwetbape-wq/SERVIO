@@ -1,0 +1,62 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Language, Translations, getTranslations, defaultLanguage, supportedLanguages } from '@/i18n/translations';
+
+interface I18nContextType {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  syncLanguageFromProfile: (lang: Language | null | undefined) => void;
+  t: Translations;
+  supportedLanguages: typeof supportedLanguages;
+}
+
+const I18nContext = createContext<I18nContextType | undefined>(undefined);
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(() => {
+    // Try to get language from localStorage
+    const saved = localStorage.getItem('language') as Language;
+    if (saved && supportedLanguages.find(l => l.code === saved)) {
+      return saved;
+    }
+    // Try to get language from browser
+    const browserLang = navigator.language.split('-')[0] as Language;
+    if (supportedLanguages.find(l => l.code === browserLang)) {
+      return browserLang;
+    }
+    return defaultLanguage;
+  });
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem('language', lang);
+    document.documentElement.lang = lang;
+  };
+
+  const syncLanguageFromProfile = (lang: Language | null | undefined) => {
+    if (lang && supportedLanguages.find(l => l.code === lang)) {
+      setLanguageState(lang);
+      localStorage.setItem('language', lang);
+      document.documentElement.lang = lang;
+    }
+  };
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
+  const t = getTranslations(language);
+
+  return (
+    <I18nContext.Provider value={{ language, setLanguage, syncLanguageFromProfile, t, supportedLanguages }}>
+      {children}
+    </I18nContext.Provider>
+  );
+}
+
+export function useI18n() {
+  const context = useContext(I18nContext);
+  if (context === undefined) {
+    throw new Error('useI18n must be used within an I18nProvider');
+  }
+  return context;
+}

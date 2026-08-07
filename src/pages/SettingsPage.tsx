@@ -5,10 +5,13 @@ import {
   Lock, Mail, Phone, MapPin, CreditCard, AlertCircle 
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
+import type { Language } from '@/i18n/translations';
 
 export default function SettingsPage() {
   const { user, profile, signOut } = useAuth();
+  const { setLanguage } = useI18n();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,23 +39,28 @@ export default function SettingsPage() {
     if (!user) return;
 
     setLoading(true);
-    const { data } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    try {
+      const { data } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    if (data) {
-      setSettings({
-        emailNotifications: data.email_notifications ?? true,
-        pushNotifications: data.push_notifications ?? false,
-        emailMessages: data.email_messages ?? true,
-        emailReviews: data.email_reviews ?? true,
-        emailUpdates: data.email_updates ?? false,
-        language: data.language ?? 'fr',
-        currency: data.currency ?? 'EUR',
-        timezone: data.timezone ?? 'Europe/Paris',
-      });
+      if (data) {
+        setSettings({
+          emailNotifications: data.email_notifications ?? true,
+          pushNotifications: data.push_notifications ?? false,
+          emailMessages: data.email_messages ?? true,
+          emailReviews: data.email_reviews ?? true,
+          emailUpdates: data.email_updates ?? false,
+          language: data.language ?? 'fr',
+          currency: data.currency ?? 'EUR',
+          timezone: data.timezone ?? 'Europe/Paris',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      // Use default settings if table doesn't exist yet
     }
     setLoading(false);
   }
@@ -61,22 +69,30 @@ export default function SettingsPage() {
     if (!user) return;
 
     setSaving(true);
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert({
-        user_id: user.id,
-        email_notifications: settings.emailNotifications,
-        push_notifications: settings.pushNotifications,
-        email_messages: settings.emailMessages,
-        email_reviews: settings.emailReviews,
-        email_updates: settings.emailUpdates,
-        language: settings.language,
-        currency: settings.currency,
-        timezone: settings.timezone,
-        updated_at: new Date().toISOString(),
-      });
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          email_notifications: settings.emailNotifications,
+          push_notifications: settings.pushNotifications,
+          email_messages: settings.emailMessages,
+          email_reviews: settings.emailReviews,
+          email_updates: settings.emailUpdates,
+          language: settings.language,
+          currency: settings.currency,
+          timezone: settings.timezone,
+          updated_at: new Date().toISOString(),
+        });
 
-    if (error) {
+      if (error) {
+        console.error('Error saving settings:', error);
+        alert('Erreur lors de la sauvegarde des paramètres: ' + error.message);
+      } else {
+        setLanguage(settings.language as Language);
+        alert('Paramètres sauvegardés avec succès');
+      }
+    } catch (error) {
       console.error('Error saving settings:', error);
       alert('Erreur lors de la sauvegarde des paramètres');
     }

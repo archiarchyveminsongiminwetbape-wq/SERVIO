@@ -3,19 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
-  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin
+  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin, CalendarPlus, CalendarCheck, Video, Check
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
+import type { ProviderProfile, Category, Review, AvailabilitySlot, Booking, BookingStatus } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
 import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
+import ImageUpload from '@/components/ImageUpload';
+import PortfolioManager from '@/components/PortfolioManager';
 
-type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews';
+type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability' | 'bookings';
 
 export default function ProviderDashboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -23,8 +25,10 @@ export default function ProviderDashboardPage() {
   const [tab, setTab] = useState<Tab>('overview');
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [portfolioCount, setPortfolioCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -34,10 +38,9 @@ export default function ProviderDashboardPage() {
   const [skillsInput, setSkillsInput] = useState('');
   const [languagesInput, setLanguagesInput] = useState('');
 
-  // Portfolio form state
-  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
-  const [showItemForm, setShowItemForm] = useState(false);
-  const [itemForm, setItemForm] = useState({ title: '', description: '', photos: [''], tags: '' });
+  // Availability form state
+  const [showSlotForm, setShowSlotForm] = useState(false);
+  const [slotForm, setSlotForm] = useState({ date: '', start_time: '', end_time: '', notes: '' });
 
   useEffect(() => {
     if (!authLoading) {
@@ -67,6 +70,11 @@ export default function ProviderDashboardPage() {
     setProvider(prov);
     setCategories(catRes.data as Category[] ?? []);
 
+    const providerPortfolioCount = prov
+      ? await supabase.from('portfolio_items').select('id', { count: 'exact', head: true }).eq('provider_id', prov.id)
+      : null;
+    setPortfolioCount(providerPortfolioCount?.count ?? 0);
+
     if (prov) {
       setForm({
         business_name: prov.business_name,
@@ -90,12 +98,14 @@ export default function ProviderDashboardPage() {
       setSkillsInput(prov.skills.join(', '));
       setLanguagesInput(prov.languages.join(', '));
 
-      const [portRes, revRes] = await Promise.all([
-        supabase.from('portfolio_items').select('*').eq('provider_id', prov.id).order('sort_order'),
+      const [revRes, slotsRes, bookingsRes] = await Promise.all([
         supabase.from('reviews').select('*').eq('provider_id', prov.id).order('created_at', { ascending: false }),
+        supabase.from('availability_slots').select('*').eq('provider_id', prov.id).order('date', { ascending: true }),
+        supabase.from('bookings').select('*, client:profiles(*)').eq('provider_id', prov.id).order('scheduled_at', { ascending: false }),
       ]);
-      setPortfolio(portRes.data as PortfolioItem[] ?? []);
       setReviews(revRes.data as Review[] ?? []);
+      setAvailabilitySlots(slotsRes.data as AvailabilitySlot[] ?? []);
+      setBookings(bookingsRes.data as Booking[] ?? []);
     }
     setLoading(false);
   }
@@ -114,6 +124,8 @@ export default function ProviderDashboardPage() {
         business_name: form.business_name,
         headline: form.headline,
         description: form.description,
+        avatar_url: form.avatar_url || null,
+        banner_url: form.banner_url || null,
         category_id: form.category_id || null,
         city: form.city || null,
         country: form.country || null,
@@ -156,6 +168,8 @@ export default function ProviderDashboardPage() {
         slug,
         headline: 'Nouveau prestataire',
         description: '',
+        avatar_url: form.avatar_url || null,
+        banner_url: form.banner_url || null,
         skills: [],
         languages: ['Français'],
       })
@@ -190,50 +204,55 @@ export default function ProviderDashboardPage() {
     setSaving(false);
   }
 
-  async function savePortfolioItem() {
+  async function saveAvailabilitySlot() {
     if (!provider) return;
     setSaving(true);
-    const photos = itemForm.photos.filter((p) => p.trim());
-    const tags = itemForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
 
-    if (editingItem) {
-      const { error } = await supabase
-        .from('portfolio_items')
-        .update({
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          tags,
-        })
-        .eq('id', editingItem.id);
-      if (error) setSaveMsg({ type: 'error', text: error.message });
-    } else {
-      const { error } = await supabase
-        .from('portfolio_items')
-        .insert({
-          provider_id: provider.id,
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          tags,
-          sort_order: portfolio.length,
-        });
-      if (error) setSaveMsg({ type: 'error', text: error.message });
-    }
+    const { error } = await supabase.from('availability_slots').insert({
+      provider_id: provider.id,
+      date: slotForm.date,
+      start_time: slotForm.start_time,
+      end_time: slotForm.end_time,
+      notes: slotForm.notes || null,
+      is_available: true,
+    });
 
-    if (!saveMsg) {
-      setShowItemForm(false);
-      setEditingItem(null);
-      setItemForm({ title: '', description: '', photos: [''], tags: '' });
+    if (!error) {
       await loadData();
+      setSlotForm({ date: '', start_time: '', end_time: '', notes: '' });
+      setShowSlotForm(false);
     }
     setSaving(false);
   }
 
-  async function deletePortfolioItem(id: string) {
-    if (!confirm('Supprimer cette réalisation ?')) return;
-    await supabase.from('portfolio_items').delete().eq('id', id);
-    await loadData();
+  async function deleteAvailabilitySlot(id: string) {
+    if (!provider) return;
+    setSaving(true);
+    const { error } = await supabase.from('availability_slots').delete().eq('id', id);
+    if (!error) {
+      setAvailabilitySlots(availabilitySlots.filter((s) => s.id !== id));
+    }
+    setSaving(false);
+  }
+
+  async function toggleAvailabilitySlot(id: string, isAvailable: boolean) {
+    if (!provider) return;
+    setSaving(true);
+    const { error } = await supabase.from('availability_slots').update({ is_available: isAvailable }).eq('id', id);
+    if (!error) {
+      setAvailabilitySlots(availabilitySlots.map((slot) => slot.id === id ? { ...slot, is_available: isAvailable } : slot));
+    }
+    setSaving(false);
+  }
+
+  async function updateBookingStatus(bookingId: string, status: BookingStatus) {
+    if (!provider) return;
+    setSaving(true);
+    const { error } = await supabase.from('bookings').update({ status }).eq('id', bookingId);
+    if (!error) {
+      setBookings(bookings.map((b) => b.id === bookingId ? { ...b, status } : b));
+    }
+    setSaving(false);
   }
 
   async function respondToReview(reviewId: string) {
@@ -309,6 +328,8 @@ export default function ProviderDashboardPage() {
     { id: 'portfolio', label: 'Réalisations', icon: FolderOpen },
     { id: 'profile', label: 'Mon profil', icon: Settings },
     { id: 'reviews', label: 'Avis', icon: Star },
+    { id: 'availability', label: 'Disponibilités', icon: CalendarPlus },
+    { id: 'bookings', label: 'Rendez-vous', icon: CalendarCheck },
   ];
 
   return (
@@ -369,7 +390,7 @@ export default function ProviderDashboardPage() {
           />
           <BentoStatCard 
             icon={FolderOpen} 
-            value={portfolio.length} 
+            value={portfolioCount} 
             label="Réalisations" 
             variant="default"
           />
@@ -443,156 +464,7 @@ export default function ProviderDashboardPage() {
 
       {/* Portfolio */}
       {tab === 'portfolio' && (
-        <div>
-          <div className="mb-4 flex justify-between">
-            <h3 className="text-lg font-semibold text-neutral-900">Réalisations ({portfolio.length})</h3>
-            <button
-              onClick={() => {
-                setEditingItem(null);
-                setItemForm({ title: '', description: '', photos: [''], tags: '' });
-                setShowItemForm(true);
-              }}
-              className="btn-primary"
-            >
-              <Plus size={18} />
-              Ajouter
-            </button>
-          </div>
-
-          {showItemForm && (
-            <div className="card mb-6 p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h4 className="font-semibold text-neutral-900">
-                  {editingItem ? 'Modifier' : 'Nouvelle'} réalisation
-                </h4>
-                <button onClick={() => setShowItemForm(false)} className="text-neutral-400 hover:text-neutral-600">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="label">Titre</label>
-                  <input
-                    type="text"
-                    value={itemForm.title}
-                    onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
-                    className="input-field"
-                    placeholder="Ex: Séance portrait en studio"
-                  />
-                </div>
-                <div>
-                  <label className="label">Description</label>
-                  <textarea
-                    value={itemForm.description}
-                    onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                    className="input-field resize-none"
-                    rows={3}
-                    placeholder="Décrivez cette réalisation..."
-                  />
-                </div>
-                <div>
-                  <label className="label">URLs des photos (une par ligne)</label>
-                  {itemForm.photos.map((photo, i) => (
-                    <div key={i} className="mb-2 flex gap-2">
-                      <input
-                        type="url"
-                        value={photo}
-                        onChange={(e) => {
-                          const photos = [...itemForm.photos];
-                          photos[i] = e.target.value;
-                          setItemForm({ ...itemForm, photos });
-                        }}
-                        className="input-field"
-                        placeholder="https://..."
-                      />
-                      {itemForm.photos.length > 1 && (
-                        <button
-                          onClick={() => setItemForm({ ...itemForm, photos: itemForm.photos.filter((_, j) => j !== i) })}
-                          className="btn-secondary px-3"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => setItemForm({ ...itemForm, photos: [...itemForm.photos, ''] })}
-                    className="btn-ghost text-sm"
-                  >
-                    <Plus size={14} />
-                    Ajouter une photo
-                  </button>
-                </div>
-                <div>
-                  <label className="label">Tags (séparés par des virgules)</label>
-                  <input
-                    type="text"
-                    value={itemForm.tags}
-                    onChange={(e) => setItemForm({ ...itemForm, tags: e.target.value })}
-                    className="input-field"
-                    placeholder="portrait, studio, éclairage"
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setShowItemForm(false)} className="btn-secondary">Annuler</button>
-                  <button onClick={savePortfolioItem} disabled={saving || !itemForm.title} className="btn-primary">
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    Enregistrer
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {portfolio.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {portfolio.map((item) => (
-                <div key={item.id} className="card group overflow-hidden">
-                  {item.photos[0] && (
-                    <div className="relative h-48 overflow-hidden bg-neutral-100">
-                      <img src={item.photos[0]} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <h4 className="font-semibold text-neutral-900">{item.title}</h4>
-                    {item.description && <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>}
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingItem(item);
-                          setItemForm({
-                            title: item.title,
-                            description: item.description ?? '',
-                            photos: item.photos.length ? item.photos : [''],
-                            tags: item.tags.join(', '),
-                          });
-                          setShowItemForm(true);
-                        }}
-                        className="btn-ghost text-sm"
-                      >
-                        <Edit3 size={14} />
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => deletePortfolioItem(item.id)}
-                        className="btn-ghost text-sm text-error-600 hover:bg-error-50"
-                      >
-                        <Trash2 size={14} />
-                        Supprimer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="card flex flex-col items-center justify-center py-16 text-center">
-              <FolderOpen size={48} className="text-neutral-300" />
-              <p className="mt-3 text-sm text-neutral-500">Aucune réalisation publiée</p>
-              <p className="text-xs text-neutral-400">Ajoutez vos meilleurs projets pour mettre en valeur votre savoir-faire</p>
-            </div>
-          )}
-        </div>
+        <PortfolioManager />
       )}
 
       {/* Profile editing */}
@@ -805,27 +677,23 @@ export default function ProviderDashboardPage() {
 
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-neutral-900">Images</h3>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="label">URL de l'avatar</label>
-                <input
-                  type="url"
-                  value={form.avatar_url as string ?? ''}
-                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
-                  className="input-field"
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <label className="label">URL de la bannière</label>
-                <input
-                  type="url"
-                  value={form.banner_url as string ?? ''}
-                  onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
-                  className="input-field"
-                  placeholder="https://..."
-                />
-              </div>
+            <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <ImageUpload
+                currentUrl={form.avatar_url as string || null}
+                userId={user?.id || ''}
+                type="avatar"
+                aspectRatio="square"
+                onUrlChange={(url) => setForm({ ...form, avatar_url: url || '' })}
+                label="Avatar"
+              />
+              <ImageUpload
+                currentUrl={form.banner_url as string || null}
+                userId={user?.id || ''}
+                type="banner"
+                aspectRatio="wide"
+                onUrlChange={(url) => setForm({ ...form, banner_url: url || '' })}
+                label="Bannière"
+              />
             </div>
           </div>
 
@@ -874,6 +742,250 @@ export default function ProviderDashboardPage() {
             <div className="card flex flex-col items-center justify-center py-16 text-center">
               <Star size={48} className="text-neutral-300" />
               <p className="mt-3 text-sm text-neutral-500">Aucun avis pour le moment</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Availability */}
+      {tab === 'availability' && (
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-6 flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-neutral-900">Créneaux de disponibilité ({availabilitySlots.length})</h3>
+            <button
+              onClick={() => setShowSlotForm(true)}
+              className="btn-primary"
+            >
+              <CalendarPlus size={18} />
+              Ajouter un créneau
+            </button>
+          </div>
+
+          {showSlotForm && (
+            <div className="card mb-6 p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h4 className="font-semibold text-neutral-900">Nouveau créneau</h4>
+                <button onClick={() => setShowSlotForm(false)} className="text-neutral-400 hover:text-neutral-600">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label">Date</label>
+                  <input
+                    type="date"
+                    value={slotForm.date}
+                    onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Heure de début</label>
+                  <input
+                    type="time"
+                    value={slotForm.start_time}
+                    onChange={(e) => setSlotForm({ ...slotForm, start_time: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Heure de fin</label>
+                  <input
+                    type="time"
+                    value={slotForm.end_time}
+                    onChange={(e) => setSlotForm({ ...slotForm, end_time: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Notes (optionnel)</label>
+                  <input
+                    type="text"
+                    value={slotForm.notes}
+                    onChange={(e) => setSlotForm({ ...slotForm, notes: e.target.value })}
+                    className="input-field"
+                    placeholder="Ex: Préférence matin"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button onClick={() => setShowSlotForm(false)} className="btn-secondary">Annuler</button>
+                <button onClick={saveAvailabilitySlot} disabled={saving} className="btn-primary">
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  Enregistrer
+                </button>
+              </div>
+            </div>
+          )}
+
+          {availabilitySlots.length > 0 ? (
+            <div className="space-y-3">
+              {availabilitySlots.map((slot) => (
+                <div key={slot.id} className={`card p-4 ${!slot.is_available ? 'opacity-60' : ''}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                        <Calendar size={24} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-neutral-900">
+                          {new Date(slot.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </p>
+                        <p className="text-sm text-neutral-600">
+                          {slot.start_time} - {slot.end_time}
+                        </p>
+                        {slot.notes && (
+                          <p className="text-xs text-neutral-500 mt-1">{slot.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleAvailabilitySlot(slot.id, !slot.is_available)}
+                        className={`btn-ghost ${slot.is_available ? 'text-success-600' : 'text-neutral-400'}`}
+                        title={slot.is_available ? 'Marquer indisponible' : 'Marquer disponible'}
+                      >
+                        {slot.is_available ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+                      </button>
+                      <button
+                        onClick={() => deleteAvailabilitySlot(slot.id)}
+                        className="btn-ghost text-error-600"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <CalendarPlus size={48} className="text-neutral-300" />
+              <p className="mt-3 text-sm text-neutral-500">Aucun créneau de disponibilité</p>
+              <p className="text-xs text-neutral-400 mt-1">Ajoutez vos créneaux pour permettre aux clients de réserver</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bookings */}
+      {tab === 'bookings' && (
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Rendez-vous ({bookings.length})</h3>
+          </div>
+
+          {bookings.length > 0 ? (
+            <div className="space-y-4">
+              {bookings.map((booking) => {
+                const client = (booking as any).client;
+                const statusInfo: Record<string, { label: string; color: string }> = {
+                  pending: { label: 'En attente', color: 'bg-warning-100 text-warning-700' },
+                  confirmed: { label: 'Confirmé', color: 'bg-success-100 text-success-700' },
+                  completed: { label: 'Terminé', color: 'bg-neutral-100 text-neutral-700' },
+                  cancelled: { label: 'Annulé', color: 'bg-error-100 text-error-700' },
+                  no_show: { label: 'Absent', color: 'bg-error-100 text-error-700' },
+                };
+                const status = statusInfo[booking.status] || statusInfo.pending;
+
+                return (
+                  <div key={booking.id} className="card p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-xl font-bold text-primary-700">
+                          {client?.full_name?.[0] || '?'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-neutral-900">{client?.full_name || 'Client'}</h3>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>
+                              {status.label}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-sm text-neutral-600">
+                            <div className="flex items-center gap-2">
+                              <Calendar size={14} />
+                              {formatDate(booking.scheduled_at)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock size={14} />
+                              {new Date(booking.scheduled_at).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {booking.location_type === 'remote' ? (
+                                <>
+                                  <Video size={14} />
+                                  Visioconférence
+                                </>
+                              ) : (
+                                <>
+                                  <MapPin size={14} />
+                                  {booking.location_address || 'Adresse non spécifiée'}
+                                </>
+                              )}
+                            </div>
+                            {booking.price && (
+                              <div className="flex items-center gap-2">
+                                <CreditCard size={14} />
+                                {booking.price} {booking.currency}
+                              </div>
+                            )}
+                          </div>
+                          {booking.notes && (
+                            <p className="mt-2 text-sm text-neutral-500 italic">"{booking.notes}"</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {booking.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                              className="btn-ghost text-success-600"
+                              title="Accepter"
+                            >
+                              <Check size={18} />
+                            </button>
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                              className="btn-ghost text-error-600"
+                              title="Refuser"
+                            >
+                              <X size={18} />
+                            </button>
+                          </>
+                        )}
+                        {booking.status === 'confirmed' && (
+                          <button
+                            onClick={() => updateBookingStatus(booking.id, 'completed')}
+                            className="btn-ghost text-primary-600"
+                            title="Marquer terminé"
+                          >
+                            <CheckCircle2 size={18} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => navigate(`/messages`)}
+                          className="btn-secondary"
+                          title="Contacter"
+                        >
+                          <MessageSquare size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <CalendarCheck size={48} className="text-neutral-300" />
+              <p className="mt-3 text-sm text-neutral-500">Aucun rendez-vous</p>
+              <p className="text-xs text-neutral-400 mt-1">Vous recevrez les demandes de rendez-vous ici</p>
             </div>
           )}
         </div>

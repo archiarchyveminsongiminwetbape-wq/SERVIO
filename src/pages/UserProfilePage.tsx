@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, LogOut, Save, X, Camera, Globe, CreditCard, Bell, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
+import ImageUpload from '@/components/ImageUpload';
+import type { Language } from '@/i18n/translations';
 
 export default function UserProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { setLanguage } = useI18n();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,29 +54,50 @@ export default function UserProfilePage() {
 
   const handleSave = async () => {
     setLoading(true);
+    
+    // Mise à jour sécurisée: seules les colonnes réellement présentes dans la table profiles sont envoyées.
+    const updateData: Record<string, unknown> = {
+      full_name: formData.full_name,
+      phone: formData.phone,
+      country: formData.country || 'FR',
+      currency: formData.currency || 'EUR',
+      language: formData.language || 'fr',
+      email_notifications: formData.email_notifications,
+      push_notifications: formData.push_notifications,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Ajouter avatar_url s'il est défini
+    if (formData.avatar_url !== undefined) {
+      updateData.avatar_url = formData.avatar_url;
+    }
+
+    console.log('Updating profile with data:', updateData);
+
     const { error } = await supabase
       .from('profiles')
-      .update({
-        full_name: formData.full_name,
-        phone: formData.phone,
-        avatar_url: formData.avatar_url,
-        country: formData.country,
-        currency: formData.currency,
-        language: formData.language,
-        email_notifications: formData.email_notifications,
-        push_notifications: formData.push_notifications,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', user.id);
 
     if (error) {
       console.error('Error updating profile:', error);
-      alert('Erreur lors de la mise à jour du profil');
-    } else {
-      await refreshProfile();
-      setEditing(false);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      alert('Erreur lors de la mise à jour du profil: ' + error.message);
+      setLoading(false);
+      return;
     }
+
+    console.log('Profile updated successfully, refreshing...');
+    
+    // Attendre un peu pour que la base de données se mette à jour
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await refreshProfile();
+    setLanguage(formData.language as Language);
+    setEditing(false);
     setLoading(false);
+
+    console.log('Profile save completed');
   };
 
   const handleCancel = () => {
@@ -135,14 +160,30 @@ export default function UserProfilePage() {
           <div className="card overflow-hidden">
             <div className="relative h-32 bg-gradient-to-br from-primary-600 to-primary-800">
               {editing && (
-                <button className="absolute right-2 top-2 rounded bg-white/20 p-2 text-white hover:bg-white/30">
-                  <Camera size={16} />
-                </button>
+                <div className="absolute right-2 top-2">
+                  <ImageUpload
+                    currentUrl={null}
+                    userId={user.id}
+                    type="banner"
+                    aspectRatio="wide"
+                    onUrlChange={() => {}}
+                    label=""
+                  />
+                </div>
               )}
             </div>
             <div className="px-6 pb-6">
               <div className="-mt-12 mb-4 flex justify-center">
-                <div className="relative">
+                {editing ? (
+                  <ImageUpload
+                    currentUrl={formData.avatar_url}
+                    userId={user.id}
+                    type="avatar"
+                    aspectRatio="square"
+                    onUrlChange={(url) => setFormData({ ...formData, avatar_url: url || '' })}
+                    label=""
+                  />
+                ) : (
                   <div className="h-24 w-24 rounded-full border-4 border-white bg-neutral-200 flex items-center justify-center overflow-hidden">
                     {profile.avatar_url ? (
                       <img src={profile.avatar_url} alt={profile.full_name || 'Avatar'} className="h-full w-full object-cover" />
@@ -150,12 +191,7 @@ export default function UserProfilePage() {
                       <User size={48} className="text-neutral-400" />
                     )}
                   </div>
-                  {editing && (
-                    <button className="absolute bottom-0 right-0 rounded-full bg-primary-600 p-2 text-white hover:bg-primary-700">
-                      <Camera size={14} />
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
               <div className="text-center">
                 <h2 className="text-xl font-semibold text-neutral-900">{profile.full_name || 'Utilisateur'}</h2>

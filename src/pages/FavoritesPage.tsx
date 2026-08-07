@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import type { ProviderProfile } from '@/types';
+import { getFavorites } from '@/services/favoritesService';
 import ProviderCard from '@/components/ProviderCard';
 
 export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [favorites, setFavorites] = useState<ProviderProfile[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,14 +23,9 @@ export default function FavoritesPage() {
   async function loadFavorites() {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('favorites')
-      .select('provider:provider_profiles(*, category:categories(*))')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    const favs = (data ?? []).map((f: Record<string, unknown>) => f.provider as ProviderProfile);
-    setFavorites(favs);
+    const data = await getFavorites(user.id);
+    const providers = data.map(fav => fav.provider).filter(Boolean);
+    setFavorites(providers);
     setLoading(false);
   }
 

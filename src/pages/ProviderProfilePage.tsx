@@ -3,13 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, Phone, Globe, Mail, BadgeCheck, Zap, Clock, Star,
   MessageSquare, Heart, Share2, Flag, ChevronLeft, ChevronRight,
-  Briefcase, Award, Languages, Loader2, X, Send, Plus
+  Briefcase, Award, Languages, Loader2, X, Send, Plus, ExternalLink, Github
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import type { ProviderProfile, PortfolioItem, Review } from '@/types';
 import StarRating from '@/components/StarRating';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
+import { getProfileImageUrl } from '@/lib/storage';
 
 const badgeLabels: Record<string, { label: string; icon: typeof BadgeCheck; color: string }> = {
   'profil-verifie': { label: 'Profil vérifié', icon: BadgeCheck, color: 'text-success-600 bg-success-50' },
@@ -64,10 +65,10 @@ export default function ProviderProfilePage() {
       await supabase.rpc('increment_profile_views', { profile_id: provData.id }).then(() => {});
 
       const [portRes, revRes] = await Promise.all([
-        supabase.from('portfolio_items').select('*').eq('provider_id', provData.id).order('sort_order'),
+        supabase.from('portfolio_items').select('*').eq('provider_id', provData.user_id).eq('is_published', true).order('sort_order'),
         supabase
           .from('reviews')
-          .select('*, author:profiles!reviews_author_id_fkey(id, full_name, avatar_url)')
+          .select('*')
           .eq('provider_id', provData.id)
           .order('created_at', { ascending: false }),
       ]);
@@ -129,7 +130,7 @@ export default function ProviderProfilePage() {
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
-      .or(`and(participant_a.eq.${user.id},participant_b.eq.${otherUserId}),and(participant_a.eq.${otherUserId},participant_b.eq.${user.id})`)
+      .or(`and(user_id.eq.${user.id},provider_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},provider_id.eq.${user.id})`)
       .maybeSingle();
 
     let convId = existing?.id;
@@ -137,7 +138,7 @@ export default function ProviderProfilePage() {
     if (!convId) {
       const { data: newConv } = await supabase
         .from('conversations')
-        .insert({ participant_a: user.id, participant_b: otherUserId })
+        .insert({ user_id: user.id, provider_id: otherUserId })
         .select('id')
         .single();
       convId = newConv?.id;
@@ -229,25 +230,25 @@ export default function ProviderProfilePage() {
   return (
     <div className="animate-fade-in">
       {/* Banner */}
-      <div className="relative h-64 overflow-hidden bg-neutral-200 sm:h-80">
+      <div className="relative h-48 overflow-hidden bg-neutral-200 sm:h-64 lg:h-80">
         {provider.banner_url && (
           <img src={provider.banner_url} alt="" className="h-full w-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8">
         {/* Profile header */}
-        <div className="relative -mt-20 flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="relative -mt-16 flex flex-col gap-4 sm:flex-row sm:items-end sm:-mt-20">
           <div className="flex-shrink-0">
             {provider.avatar_url ? (
               <img
-                src={provider.avatar_url}
+                src={getProfileImageUrl(provider.avatar_url)}
                 alt={provider.business_name}
-                className="h-32 w-32 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-36 sm:w-36"
+                className="h-24 w-24 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-32 sm:w-32 lg:h-36 lg:w-36"
               />
             ) : (
-              <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-primary-100 text-4xl font-bold text-primary-700 ring-4 ring-white shadow-lg sm:h-36 sm:w-36">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-primary-100 text-3xl font-bold text-primary-700 ring-4 ring-white shadow-lg sm:h-32 sm:w-32 lg:h-36 lg:w-36">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
@@ -255,41 +256,42 @@ export default function ProviderProfilePage() {
 
           <div className="flex-1 pb-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-neutral-900">{provider.business_name}</h1>
-              <div className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{provider.business_name}</h1>
+              <div className="flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-medium text-neutral-700 shadow-sm">
                 <span className={`h-1.5 w-1.5 rounded-full ${avail.color}`} />
-                {avail.label}
+                <span className="hidden sm:inline">{avail.label}</span>
               </div>
             </div>
-            <p className="mt-1 text-neutral-600">{provider.headline}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
+            <p className="mt-1 text-sm sm:text-base text-neutral-600">{provider.headline}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-neutral-500">
               {provider.city && (
-                <span className="flex items-center gap-1"><MapPin size={14} /> {provider.city}</span>
+                <span className="flex items-center gap-1"><MapPin size={12} className="sm:size-14" /> {provider.city}</span>
               )}
               {provider.experience_years && (
-                <span className="flex items-center gap-1"><Briefcase size={14} /> {provider.experience_years} ans d'expérience</span>
+                <span className="flex items-center gap-1"><Briefcase size={12} className="sm:size-14" /> {provider.experience_years} ans d'expérience</span>
               )}
               <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
             </div>
           </div>
 
           {!isOwnProfile && (
-            <div className="flex flex-wrap gap-2 pb-2">
+            <div className="flex flex-wrap gap-2 pb-2 w-full sm:w-auto">
               <button
                 onClick={() => setShowMessageModal(true)}
-                className="btn-primary"
+                className="btn-primary flex-1 sm:flex-none text-sm sm:text-base"
               >
-                <MessageSquare size={18} />
-                Envoyer un message
+                <MessageSquare size={16} className="sm:size-18" />
+                <span className="hidden sm:inline">Envoyer un message</span>
+                <span className="sm:hidden">Message</span>
               </button>
               <button
                 onClick={toggleFavorite}
                 className={`btn-secondary ${isFavorited ? 'text-error-600' : ''}`}
               >
-                <Heart size={18} className={isFavorited ? 'fill-error-500' : ''} />
+                <Heart size={16} className="sm:size-18" />
               </button>
               <button onClick={shareProfile} className="btn-secondary">
-                <Share2 size={18} />
+                <Share2 size={16} className="sm:size-18" />
               </button>
             </div>
           )}
@@ -313,13 +315,13 @@ export default function ProviderProfilePage() {
         )}
 
         {/* Tabs */}
-        <div className="mt-8 border-b border-neutral-200">
-          <div className="flex gap-1">
+        <div className="mt-6 sm:mt-8 border-b border-neutral-200">
+          <div className="flex gap-1 overflow-x-auto">
             {(['portfolio', 'reviews', 'about'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-4 py-3 text-sm font-medium transition-colors ${
+                className={`relative whitespace-nowrap px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
                   activeTab === tab ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
@@ -335,40 +337,133 @@ export default function ProviderProfilePage() {
         </div>
 
         {/* Tab content */}
-        <div className="py-8">
+        <div className="py-6 sm:py-8">
           {activeTab === 'portfolio' && (
             <div>
               {portfolio.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {portfolio.map((item) => (
                     <div key={item.id} className="card group overflow-hidden">
-                      {item.photos[0] && (
-                        <div
-                          className="relative h-56 cursor-pointer overflow-hidden bg-neutral-100"
-                          onClick={() => setLightbox({ photos: item.photos, index: 0 })}
-                        >
-                          <img
-                            src={item.photos[0]}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
+                      <div className="relative h-48 sm:h-56 overflow-hidden bg-neutral-100">
+                        {item.video_url ? (
+                          <video
+                            src={item.video_url}
+                            controls
+                            muted
+                            autoPlay
+                            playsInline
+                            loop
+                            preload="metadata"
+                            poster={item.image_url || undefined}
+                            className="h-full w-full object-cover"
                           />
-                          {item.photos.length > 1 && (
-                            <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-                              {item.photos.length} photos
-                            </div>
-                          )}
+                        ) : (
+                          <div
+                            className="h-full w-full cursor-pointer"
+                            onClick={() => setLightbox({ photos: [item.image_url], index: 0 })}
+                          >
+                            {item.image_url ? (
+                              <img
+                                src={item.image_url}
+                                alt={item.title}
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-sm text-neutral-400">
+                                Aperçu non disponible
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-800 opacity-0 shadow-sm transition-all duration-300 group-hover:opacity-100">
+                          Mini lecteur
                         </div>
-                      )}
+                        {item.gallery_urls && item.gallery_urls.length > 0 && (
+                          <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+                            {item.gallery_urls.length + 1} photos
+                          </div>
+                        )}
+                        {item.video_url && (
+                          <div className="absolute left-2 top-2 rounded-full bg-accent-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                            Vidéo courte de démonstration · 10s max
+                          </div>
+                        )}
+                      </div>
                       <div className="p-4">
                         <h3 className="font-semibold text-neutral-900">{item.title}</h3>
+                        {item.short_description && (
+                          <p className="mt-1 text-sm text-neutral-600">{item.short_description}</p>
+                        )}
                         {item.description && (
                           <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>
+                        )}
+                        {item.category && (
+                          <div className="mt-2 text-xs text-neutral-500">
+                            <span className="font-medium">Catégorie:</span> {item.category}
+                            {item.subcategory && ` > ${item.subcategory}`}
+                          </div>
+                        )}
+                        {item.project_date && (
+                          <div className="mt-1 text-xs text-neutral-500">
+                            <span className="font-medium">Date:</span> {new Date(item.project_date).toLocaleDateString('fr-FR')}
+                          </div>
+                        )}
+                        {item.client_name && (
+                          <div className="mt-1 text-xs text-neutral-500">
+                            <span className="font-medium">Client:</span> {item.client_name}
+                          </div>
                         )}
                         {item.tags.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {item.tags.map((tag) => (
                               <span key={tag} className="badge bg-neutral-100 text-neutral-600">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                        {item.technologies.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {item.technologies.map((tech) => (
+                              <span key={tech} className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded">{tech}</span>
+                            ))}
+                          </div>
+                        )}
+                        {(item.project_url || item.github_url || item.behance_url) && (
+                          <div className="mt-3 flex gap-2">
+                            {item.project_url && (
+                              <a href={item.project_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1">
+                                <ExternalLink size={12} /> Projet
+                              </a>
+                            )}
+                            {item.github_url && (
+                              <a href={item.github_url} target="_blank" rel="noopener noreferrer" className="text-xs text-neutral-600 hover:text-neutral-700 flex items-center gap-1">
+                                <Github size={12} /> GitHub
+                              </a>
+                            )}
+                            {item.behance_url && (
+                              <a href={item.behance_url} target="_blank" rel="noopener noreferrer" className="text-xs text-neutral-600 hover:text-neutral-700 flex items-center gap-1">
+                                <ExternalLink size={12} /> Behance
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        {item.video_url && (
+                          <div className="mt-3 rounded-lg border border-accent-200 bg-accent-50 px-3 py-2 text-xs font-medium text-accent-700">
+                            Vidéo courte de démonstration
+                          </div>
+                        )}
+                        {item.gallery_urls && item.gallery_urls.length > 0 && (
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            {[item.image_url, ...item.gallery_urls].slice(0, 3).map((photo, idx) => (
+                              <button
+                                key={`${item.id}-${photo}-${idx}`}
+                                type="button"
+                                onClick={() => setLightbox({ photos: [item.image_url, ...(item.gallery_urls || [])], index: idx })}
+                                className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50"
+                              >
+                                <img src={photo} alt={`${item.title} ${idx + 1}`} className="h-16 w-full object-cover" />
+                              </button>
                             ))}
                           </div>
                         )}
@@ -605,7 +700,7 @@ export default function ProviderProfilePage() {
             <ChevronLeft size={36} />
           </button>
           <img
-            src={lightbox.photos[lightbox.index]}
+            src={lightbox.photos?.[lightbox.index] || ''}
             alt=""
             className="max-h-full max-w-full rounded-lg object-contain"
             onClick={(e) => e.stopPropagation()}
@@ -620,7 +715,7 @@ export default function ProviderProfilePage() {
             <ChevronRight size={36} />
           </button>
           <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-white/70">
-            {lightbox.index + 1} / {lightbox.photos.length}
+            {lightbox.index + 1} / {lightbox.photos?.length || 1}
           </span>
         </div>
       )}

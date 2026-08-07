@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
@@ -28,6 +28,10 @@ export default function SearchPage() {
   const [minExperience, setMinExperience] = useState(searchParams.get('experience') ?? '');
   const [remoteOnly, setRemoteOnly] = useState(searchParams.get('remote') === 'true');
   const [language, setLanguage] = useState(searchParams.get('language') ?? '');
+  const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get('verified') === 'true');
+  const [withReviewsOnly, setWithReviewsOnly] = useState(searchParams.get('reviews') === 'true');
+  const [page, setPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
 
   // Load subcategories when a category is selected
   useEffect(() => {
@@ -93,19 +97,36 @@ export default function SearchPage() {
     if (language) {
       q = q.contains('languages', [language]);
     }
+    if (verifiedOnly) {
+      q = q.eq('is_verified', true);
+    }
+    if (withReviewsOnly) {
+      q = q.gte('review_count', 1);
+    }
 
     if (sortBy === 'rating') {
       q = q.order('rating_avg', { ascending: false });
     } else if (sortBy === 'recent') {
       q = q.order('created_at', { ascending: false });
+    } else if (sortBy === 'price_low') {
+      q = q.order('price_min', { ascending: true });
+    } else if (sortBy === 'price_high') {
+      q = q.order('price_min', { ascending: false });
     } else {
       q = q.order('is_featured', { ascending: false }).order('rating_avg', { ascending: false });
     }
 
-    const { data } = await q.limit(24);
+    // Get total count
+    const { count } = await q;
+    setTotalResults(count || 0);
+
+    // Get paginated results
+    const from = (page - 1) * 24;
+    const to = from + 23;
+    const { data } = await q.range(from, to);
     setProviders(data as ProviderProfile[] ?? []);
     setLoading(false);
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language]);
+  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, withReviewsOnly, page]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -120,7 +141,10 @@ export default function SearchPage() {
       if (minExperience) params.experience = minExperience;
       if (remoteOnly) params.remote = 'true';
       if (language) params.language = language;
+      if (verifiedOnly) params.verified = 'true';
+      if (withReviewsOnly) params.reviews = 'true';
       if (sortBy !== 'featured') params.sort = sortBy;
+      if (page > 1) params.page = page.toString();
       setSearchParams(params);
     }, 300);
     return () => clearTimeout(timer);
@@ -138,37 +162,40 @@ export default function SearchPage() {
     setMinExperience('');
     setRemoteOnly(false);
     setLanguage('');
+    setVerifiedOnly(false);
+    setWithReviewsOnly(false);
     setSortBy('featured');
+    setPage(1);
   };
 
-  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language;
+  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || withReviewsOnly;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
-        <p className="mt-1 text-sm text-neutral-600">
-          {loading ? 'Recherche en cours...' : `${providers.length} prestataire${providers.length > 1 ? 's' : ''} trouvé${providers.length > 1 ? 's' : ''}`}
+    <div className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
+        <p className="mt-1 text-xs sm:text-sm text-neutral-600">
+          {loading ? 'Recherche en cours...' : `${totalResults} résultat${totalResults > 1 ? 's' : ''} (${providers.length} affiché${providers.length > 1 ? 's' : ''})`}
         </p>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row">
         {/* Filters sidebar */}
         <aside className="lg:w-72 lg:flex-shrink-0">
           <div className="lg:sticky lg:top-20">
             <div className="flex items-center justify-between lg:hidden">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="btn-secondary w-full"
+                className="btn-secondary w-full text-sm"
               >
-                <SlidersHorizontal size={18} />
+                <SlidersHorizontal size={16} />
                 Filtres
               </button>
             </div>
 
-            <div className={`card p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+            <div className={`card p-4 sm:p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-neutral-900">Filtres</h3>
+                <h3 className="text-xs sm:text-sm font-semibold text-neutral-900">Filtres</h3>
                 {hasFilters && (
                   <button onClick={clearFilters} className="text-xs font-medium text-primary-600 hover:text-primary-700">
                     Effacer
@@ -176,9 +203,9 @@ export default function SearchPage() {
                 )}
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 <div>
-                  <label className="label">Secteur</label>
+                  <label className="label text-xs sm:text-sm">Secteur</label>
                   <select
                     value={categorySlug}
                     onChange={(e) => { setCategorySlug(e.target.value); setSelectedSubCat(''); }}
@@ -328,6 +355,30 @@ export default function SearchPage() {
                     <span className="text-sm text-neutral-700">Service à distance uniquement</span>
                   </label>
                 </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={verifiedOnly}
+                      onChange={(e) => setVerifiedOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">Prestataires vérifiés uniquement</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={withReviewsOnly}
+                      onChange={(e) => setWithReviewsOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">Avec avis uniquement</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -336,33 +387,35 @@ export default function SearchPage() {
         {/* Results - Bento Grid */}
         <div className="flex-1">
           <BentoGrid>
-            <BentoCard colSpan={3} className="p-4">
+            <BentoCard colSpan={3} className="p-3 sm:p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative flex-1 sm:max-w-md">
-                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <Search size={16} className="sm:size-18 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="input-field pl-10"
+                    className="input-field pl-10 text-sm"
                     placeholder="Rechercher par nom, métier, compétence..."
                   />
                 </div>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="input-field sm:w-48"
+                  className="input-field w-full sm:w-48 text-sm"
                 >
                   <option value="featured">En vedette</option>
                   <option value="rating">Meilleures notes</option>
                   <option value="recent">Plus récents</option>
+                  <option value="price_low">Prix croissant</option>
+                  <option value="price_high">Prix décroissant</option>
                 </select>
               </div>
             </BentoCard>
 
             {loading ? (
-              <BentoCard colSpan={3} className="flex items-center justify-center py-20">
-                <Loader2 size={32} className="animate-spin text-primary-500" />
+              <BentoCard colSpan={3} className="flex items-center justify-center py-16 sm:py-20">
+                <Loader2 size={28} className="sm:size-32 animate-spin text-primary-500" />
               </BentoCard>
             ) : providers.length > 0 ? (
               providers.map((p) => (
@@ -371,8 +424,8 @@ export default function SearchPage() {
                 </BentoCard>
               ))
             ) : (
-              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-20 text-center">
-                <Frown size={48} className="text-neutral-300" />
+              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
+                <Frown size={40} className="sm:size-48 text-neutral-300" />
                 <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun résultat</h3>
                 <p className="mt-1 text-sm text-neutral-500">
                   Essayez de modifier vos critères de recherche.
@@ -386,6 +439,31 @@ export default function SearchPage() {
               </BentoCard>
             )}
           </BentoGrid>
+
+          {/* Pagination */}
+          {!loading && totalResults > 24 && (
+            <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="btn-secondary text-xs sm:text-sm"
+              >
+                <ChevronLeft size={14} className="sm:size-18" />
+                <span className="hidden sm:inline">Précédent</span>
+              </button>
+              <span className="text-xs sm:text-sm text-neutral-600">
+                Page {page} sur {Math.ceil(totalResults / 24)}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(Math.ceil(totalResults / 24), p + 1))}
+                disabled={page >= Math.ceil(totalResults / 24)}
+                className="btn-secondary text-xs sm:text-sm"
+              >
+                <span className="hidden sm:inline">Suivant</span>
+                <ChevronRight size={14} className="sm:size-18" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
