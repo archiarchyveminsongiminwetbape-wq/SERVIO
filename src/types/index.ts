@@ -77,6 +77,14 @@ export interface PortfolioItem {
   category_id: string | null;
   tags: string[];
   sort_order: number;
+  client_name: string | null;
+  project_date: string | null;
+  budget: string | null;
+  location: string | null;
+  featured: boolean;
+  technologies_used: string[];
+  duration: string | null;
+  team_size: number | null;
   created_at: string;
   updated_at: string;
 }

@@ -37,7 +37,20 @@ export default function ProviderDashboardPage() {
   // Portfolio form state
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [showItemForm, setShowItemForm] = useState(false);
-  const [itemForm, setItemForm] = useState({ title: '', description: '', photos: [''], tags: '' });
+  const [itemForm, setItemForm] = useState({
+    title: '',
+    description: '',
+    photos: [''],
+    tags: '',
+    client_name: '',
+    project_date: '',
+    budget: '',
+    location: '',
+    featured: false,
+    technologies_used: '',
+    duration: '',
+    team_size: ''
+  });
 
   // Availability form state
   const [availabilitySchedule, setAvailabilitySchedule] = useState<Record<string, { start: string; end: string; available: boolean }>>({
@@ -206,11 +219,25 @@ export default function ProviderDashboardPage() {
     setSaving(true);
     const photos = itemForm.photos.filter((p) => p.trim());
     const tags = itemForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
+    const technologiesUsed = itemForm.technologies_used.split(',').map((t) => t.trim()).filter(Boolean);
 
     if (editingItem) {
       const { error } = await supabase
         .from('portfolio_items')
-        .update({ title: itemForm.title, description: itemForm.description, photos, tags })
+        .update({
+          title: itemForm.title,
+          description: itemForm.description,
+          photos,
+          tags,
+          client_name: itemForm.client_name || null,
+          project_date: itemForm.project_date || null,
+          budget: itemForm.budget || null,
+          location: itemForm.location || null,
+          featured: itemForm.featured,
+          technologies_used: technologiesUsed,
+          duration: itemForm.duration || null,
+          team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
+        })
         .eq('id', editingItem.id);
       if (error) setSaveMsg({ type: 'error', text: error.message });
       else {
@@ -220,7 +247,21 @@ export default function ProviderDashboardPage() {
     } else {
       const { error } = await supabase
         .from('portfolio_items')
-        .insert({ provider_id: provider.id, title: itemForm.title, description: itemForm.description, photos, tags })
+        .insert({
+          provider_id: provider.id,
+          title: itemForm.title,
+          description: itemForm.description,
+          photos,
+          tags,
+          client_name: itemForm.client_name || null,
+          project_date: itemForm.project_date || null,
+          budget: itemForm.budget || null,
+          location: itemForm.location || null,
+          featured: itemForm.featured,
+          technologies_used: technologiesUsed,
+          duration: itemForm.duration || null,
+          team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
+        })
         .select();
       if (error) setSaveMsg({ type: 'error', text: error.message });
       else {
@@ -231,7 +272,20 @@ export default function ProviderDashboardPage() {
     setSaving(false);
     setShowItemForm(false);
     setEditingItem(null);
-    setItemForm({ title: '', description: '', photos: [''], tags: '' });
+    setItemForm({
+      title: '',
+      description: '',
+      photos: [''],
+      tags: '',
+      client_name: '',
+      project_date: '',
+      budget: '',
+      location: '',
+      featured: false,
+      technologies_used: '',
+      duration: '',
+      team_size: ''
+    });
     setTimeout(() => setSaveMsg(null), 4000);
   }
 
@@ -560,6 +614,93 @@ export default function ProviderDashboardPage() {
                     className="input-field"
                     placeholder="portrait, studio, éclairage"
                   />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="label">Nom du client</label>
+                    <input
+                      type="text"
+                      value={itemForm.client_name}
+                      onChange={(e) => setItemForm({ ...itemForm, client_name: e.target.value })}
+                      className="input-field"
+                      placeholder="Nom de l'entreprise ou du client"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Date du projet</label>
+                    <input
+                      type="date"
+                      value={itemForm.project_date}
+                      onChange={(e) => setItemForm({ ...itemForm, project_date: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="label">Budget</label>
+                    <input
+                      type="text"
+                      value={itemForm.budget}
+                      onChange={(e) => setItemForm({ ...itemForm, budget: e.target.value })}
+                      className="input-field"
+                      placeholder="Ex: 500-1000€"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Lieu du projet</label>
+                    <input
+                      type="text"
+                      value={itemForm.location}
+                      onChange={(e) => setItemForm({ ...itemForm, location: e.target.value })}
+                      className="input-field"
+                      placeholder="Ex: Paris, France"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Technologies utilisées (séparées par des virgules)</label>
+                  <input
+                    type="text"
+                    value={itemForm.technologies_used}
+                    onChange={(e) => setItemForm({ ...itemForm, technologies_used: e.target.value })}
+                    className="input-field"
+                    placeholder="React, Node.js, PostgreSQL"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="label">Durée du projet</label>
+                    <input
+                      type="text"
+                      value={itemForm.duration}
+                      onChange={(e) => setItemForm({ ...itemForm, duration: e.target.value })}
+                      className="input-field"
+                      placeholder="Ex: 2 semaines, 1 mois"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Taille de l'équipe</label>
+                    <input
+                      type="number"
+                      value={itemForm.team_size}
+                      onChange={(e) => setItemForm({ ...itemForm, team_size: e.target.value })}
+                      className="input-field"
+                      placeholder="Nombre de personnes"
+                      min="1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={itemForm.featured}
+                      onChange={(e) => setItemForm({ ...itemForm, featured: e.target.checked })}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">Mettre en avant cette réalisation</span>
+                  </label>
                 </div>
                 <div className="flex justify-end gap-2">
                   <button onClick={() => setShowItemForm(false)} className="btn-secondary">Annuler</button>

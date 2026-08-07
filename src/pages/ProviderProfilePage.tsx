@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, Phone, Globe, Mail, BadgeCheck, Zap, Clock, Star,
   MessageSquare, Heart, Share2, Flag, ChevronLeft, ChevronRight,
-  Briefcase, Award, Languages, Loader2, X, Send, Plus, Search, Eye, FolderOpen
+  Briefcase, Award, Languages, Loader2, X, Send, Plus, Search, Eye, FolderOpen, Calendar, Users
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -451,6 +451,11 @@ export default function ProviderProfilePage() {
                                 {item.photos.length} photos
                               </div>
                             )}
+                            {item.featured && (
+                              <div className="absolute top-2 left-2 rounded-full bg-accent-500 px-2 py-1 text-xs text-white font-semibold">
+                                En vedette
+                              </div>
+                            )}
                           </div>
                         )}
                         <div className="p-4">
@@ -458,6 +463,62 @@ export default function ProviderProfilePage() {
                           {item.description && (
                             <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>
                           )}
+                          
+                          {/* Additional project information */}
+                          <div className="mt-3 space-y-2">
+                            {item.client_name && (
+                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+                                <span className="font-medium">Client:</span>
+                                <span>{item.client_name}</span>
+                              </div>
+                            )}
+                            {item.project_date && (
+                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+                                <Calendar size={12} />
+                                <span>{new Date(item.project_date).toLocaleDateString('fr-FR')}</span>
+                              </div>
+                            )}
+                            {item.location && (
+                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+                                <MapPin size={12} />
+                                <span>{item.location}</span>
+                              </div>
+                            )}
+                            {item.budget && (
+                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+                                <span className="font-medium">Budget:</span>
+                                <span>{item.budget}</span>
+                              </div>
+                            )}
+                            {item.duration && (
+                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+                                <Clock size={12} />
+                                <span>{item.duration}</span>
+                              </div>
+                            )}
+                            {item.team_size && (
+                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
+                                <Users size={12} />
+                                <span>{item.team_size} personne{item.team_size > 1 ? 's' : ''}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {item.technologies_used && item.technologies_used.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {item.technologies_used.slice(0, 3).map((tech) => (
+                                <span key={tech} className="badge bg-accent-50 text-accent-700 border border-accent-100 text-xs">
+                                  {tech}
+                                </span>
+                              ))}
+                              {item.technologies_used.length > 3 && (
+                                <span className="badge bg-neutral-100 text-neutral-600 text-xs">
+                                  +{item.technologies_used.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
                           {item.tags.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               {item.tags.slice(0, 3).map((tag) => (
@@ -472,6 +533,7 @@ export default function ProviderProfilePage() {
                               )}
                             </div>
                           )}
+                          
                           {item.created_at && (
                             <div className="mt-3 flex items-center gap-1 text-xs text-neutral-500">
                               <Clock size={12} />
