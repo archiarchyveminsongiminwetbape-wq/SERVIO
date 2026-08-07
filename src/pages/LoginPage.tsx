@@ -4,7 +4,7 @@ import { Briefcase, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, profile } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,13 +16,19 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error, profileRole } = await signIn(email, password);
     if (error) {
       setError(error);
       setLoading(false);
+      return;
+    }
+
+    if (profileRole === 'admin') {
+      navigate('/admin');
     } else {
       navigate('/');
     }
+    setLoading(false);
   };
 
   return (
@@ -83,6 +89,11 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <div className="mt-4 text-center">
+            <Link to="/reset-password" className="text-sm text-primary-600 hover:text-primary-700">
+              Mot de passe oublié ?
+            </Link>
+          </div>
         </div>
 
         <p className="mt-6 text-center text-sm text-neutral-600">

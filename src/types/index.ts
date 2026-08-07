@@ -2,6 +2,11 @@ export type UserRole = 'visitor' | 'provider' | 'admin';
 export type UserStatus = 'active' | 'suspended' | 'banned';
 export type ValidationStatus = 'pending' | 'approved' | 'rejected' | 'changes_requested';
 export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
+export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type LocationType = 'in_person' | 'remote' | 'hybrid';
+export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+export type PaymentMethod = 'card' | 'bank_transfer' | 'paypal' | 'cash';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
 export interface Profile {
   id: string;
@@ -150,4 +155,78 @@ export interface Notification {
   link: string | null;
   is_read: boolean;
   created_at: string;
+}
+
+export interface Booking {
+  id: string;
+  client_id: string;
+  provider_id: string;
+  service_type: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  location_type: LocationType;
+  location_address: string | null;
+  notes: string | null;
+  status: BookingStatus;
+  price: number | null;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  client?: Profile | null;
+  provider?: ProviderProfile | null;
+}
+
+export interface AvailabilitySlot {
+  id: string;
+  provider_id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Payment {
+  id: string;
+  booking_id: string | null;
+  user_id: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  payment_method: PaymentMethod;
+  payment_provider: string | null;
+  provider_payment_id: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  failed_at: string | null;
+  refunded_at: string | null;
+  refund_reason: string | null;
+  booking?: Booking | null;
+}
+
+export interface Invoice {
+  id: string;
+  payment_id: string | null;
+  booking_id: string | null;
+  invoice_number: string;
+  issued_at: string;
+  due_at: string;
+  paid_at: string | null;
+  status: InvoiceStatus;
+  subtotal: number;
+  tax: number;
+  total: number;
+  currency: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  payment?: Payment | null;
+  booking?: Booking | null;
 }

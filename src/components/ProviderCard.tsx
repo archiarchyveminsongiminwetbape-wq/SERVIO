@@ -21,87 +21,90 @@ export default function ProviderCard({ provider }: { provider: ProviderProfile }
   return (
     <Link
       to={`/provider/${provider.slug}`}
-      className="group card overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5"
+      className="group card overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
     >
-      <div className="relative h-40 overflow-hidden bg-neutral-100">
+      <div className="relative h-52 overflow-hidden bg-neutral-100">
         {provider.banner_url ? (
           <img
             src={provider.banner_url}
             alt={provider.business_name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-primary-100 to-primary-200" />
+          <div className="h-full w-full bg-gradient-to-br from-primary-100 via-primary-200 to-primary-300" />
         )}
-        <div className="absolute top-3 left-3 flex gap-2">
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/60 via-transparent to-transparent" />
+        
+        <div className="absolute top-4 left-4 flex gap-2">
           {provider.badges.slice(0, 2).map((badge) => {
             const info = badgeLabels[badge];
             if (!info) return null;
             const Icon = info.icon;
             return (
-              <span key={badge} className={`badge ${info.color} backdrop-blur-sm`}>
+              <span key={badge} className={`badge ${info.color} backdrop-blur-md shadow-sm`}>
                 <Icon size={12} />
                 {info.label}
               </span>
             );
           })}
         </div>
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-neutral-700 backdrop-blur-sm">
-          <span className={`h-1.5 w-1.5 rounded-full ${avail.color}`} />
+        
+        <div className="absolute top-4 right-4 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-neutral-700 backdrop-blur-md shadow-sm">
+          <span className={`h-2 w-2 rounded-full ${avail.color} animate-pulse`} />
           {avail.label}
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0">
+      <div className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 -mt-12">
             {provider.avatar_url ? (
               <img
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-12 w-12 rounded-full object-cover ring-2 ring-white"
+                className="h-16 w-16 rounded-2xl object-cover ring-4 ring-white shadow-lg"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg font-bold text-white ring-4 ring-white shadow-lg">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-semibold text-neutral-900 group-hover:text-primary-600">
+          <div className="min-w-0 flex-1 pt-1">
+            <h3 className="truncate text-base font-bold text-neutral-900 group-hover:text-primary-700 transition-colors">
               {provider.business_name}
             </h3>
-            <p className="truncate text-xs text-neutral-500">{provider.headline}</p>
+            <p className="truncate text-sm text-neutral-500 mt-1">{provider.headline}</p>
           </div>
         </div>
 
         {provider.city && (
-          <div className="mt-3 flex items-center gap-1 text-xs text-neutral-500">
-            <MapPin size={12} />
+          <div className="mt-4 flex items-center gap-1.5 text-sm text-neutral-600">
+            <MapPin size={16} className="text-primary-600" />
             {provider.city}
             {provider.remote_service && <span className="text-neutral-400">· Service à distance</span>}
           </div>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-4 flex flex-wrap gap-2">
           {provider.skills.slice(0, 3).map((skill) => (
-            <span key={skill} className="badge bg-neutral-100 text-neutral-600">
+            <span key={skill} className="badge bg-primary-50 text-primary-700 border border-primary-100">
               {skill}
             </span>
           ))}
           {provider.skills.length > 3 && (
-            <span className="badge bg-neutral-100 text-neutral-400">
+            <span className="badge bg-neutral-100 text-neutral-600 border border-neutral-200">
               +{provider.skills.length - 3}
             </span>
           )}
         </div>
 
-        <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
+        <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4">
           <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
           {provider.price_range && (
-            <span className="text-xs font-medium text-neutral-600">{provider.price_range}</span>
+            <span className="text-sm font-bold text-primary-700">{provider.price_range}</span>
           )}
         </div>
       </div>

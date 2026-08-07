@@ -3,13 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
-  CheckCircle2, Clock, XCircle, Upload, Star
+  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
+import { BentoGrid, BentoCard } from '@/components/BentoGrid';
+import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
+import { countries } from '@/data/countries';
+import { currencies } from '@/data/currencies';
 
 type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews';
 
@@ -70,11 +74,13 @@ export default function ProviderDashboardPage() {
         description: prov.description ?? '',
         category_id: prov.category_id ?? '',
         city: prov.city ?? '',
+        country: (prov as any).country ?? 'FR',
         service_area: prov.service_area ?? '',
         remote_service: prov.remote_service,
         phone: prov.phone ?? '',
         website: prov.website ?? '',
         price_range: prov.price_range ?? '',
+        currency: (prov as any).currency ?? 'EUR',
         availability: prov.availability,
         experience_years: prov.experience_years ?? '',
         certifications: prov.certifications ?? '',
@@ -110,11 +116,13 @@ export default function ProviderDashboardPage() {
         description: form.description,
         category_id: form.category_id || null,
         city: form.city || null,
+        country: form.country || null,
         service_area: form.service_area || null,
         remote_service: form.remote_service,
         phone: form.phone || null,
         website: form.website || null,
         price_range: form.price_range || null,
+        currency: form.currency || null,
         availability: form.availability,
         experience_years: form.experience_years ? parseInt(form.experience_years as string) : null,
         certifications: form.certifications || null,
@@ -344,53 +352,36 @@ export default function ProviderDashboardPage() {
         </div>
       )}
 
-      {/* Overview */}
+      {/* Overview - Bento Grid */}
       {tab === 'overview' && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="card p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-                <Eye size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-neutral-900">{provider.profile_views}</p>
-                <p className="text-sm text-neutral-500">Vues du profil</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent-50 text-accent-600">
-                <Star size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-neutral-900">{provider.rating_avg.toFixed(1)}</p>
-                <p className="text-sm text-neutral-500">{provider.rating_count} avis</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success-50 text-success-600">
-                <FolderOpen size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-neutral-900">{portfolio.length}</p>
-                <p className="text-sm text-neutral-500">Réalisations</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card col-span-full p-6">
-            <div className="flex items-center justify-between">
+        <BentoGrid>
+          <BentoStatCard 
+            icon={Eye} 
+            value={provider.profile_views} 
+            label="Vues du profil" 
+            variant="default"
+          />
+          <BentoStatCard 
+            icon={Star} 
+            value={provider.rating_avg.toFixed(1)} 
+            label={`${provider.rating_count} avis`}
+            variant="primary"
+          />
+          <BentoStatCard 
+            icon={FolderOpen} 
+            value={portfolio.length} 
+            label="Réalisations" 
+            variant="default"
+          />
+          
+          <BentoCard colSpan={2} className="p-6">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-neutral-900">Complétion du profil</h3>
               <span className={`text-sm font-bold ${completionPct >= 80 ? 'text-success-600' : completionPct >= 50 ? 'text-accent-600' : 'text-error-600'}`}>
                 {completionPct}%
               </span>
             </div>
-            <div className="mt-3 h-3 overflow-hidden rounded-full bg-neutral-100">
+            <div className="h-3 overflow-hidden rounded-full bg-neutral-100">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   completionPct >= 80 ? 'bg-success-500' : completionPct >= 50 ? 'bg-accent-500' : 'bg-error-500'
@@ -398,27 +389,34 @@ export default function ProviderDashboardPage() {
                 style={{ width: `${completionPct}%` }}
               />
             </div>
-            <p className="mt-2 text-sm text-neutral-500">
+            <p className="mt-3 text-sm text-neutral-500">
               {completionPct >= 80
                 ? 'Votre profil est bien complet ! Continuez à ajouter des réalisations pour attirer plus de clients.'
                 : 'Complétez votre profil pour augmenter votre visibilité et attirer plus de clients.'}
             </p>
-          </div>
+          </BentoCard>
+
+          <BentoFeatureCard 
+            icon={TrendingUp}
+            title="Statistiques"
+            description="Voir vos performances et tendances"
+            variant="primary"
+          />
 
           {provider.validation_note && (
-            <div className="card col-span-full p-5">
+            <BentoCard colSpan={3} className="p-5 bg-warning-50 border-warning-200">
               <p className="text-sm font-semibold text-neutral-900">Note de l'administration</p>
               <p className="mt-1 text-sm text-neutral-600">{provider.validation_note}</p>
-            </div>
+            </BentoCard>
           )}
 
-          <div className="card col-span-full p-6">
-            <h3 className="text-lg font-semibold text-neutral-900">Aperçu de votre profil public</h3>
-            <div className="mt-4 flex items-center gap-4">
+          <BentoCard colSpan={3} className="p-6">
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Aperçu de votre profil public</h3>
+            <div className="flex items-center gap-4">
               {provider.avatar_url ? (
-                <img src={provider.avatar_url} alt="" className="h-16 w-16 rounded-xl object-cover" />
+                <img src={provider.avatar_url} alt="" className="h-16 w-16 rounded-2xl object-cover" />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary-100 text-xl font-bold text-primary-700">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 text-xl font-bold text-primary-700">
                   {provider.business_name[0]?.toUpperCase()}
                 </div>
               )}
@@ -439,8 +437,8 @@ export default function ProviderDashboardPage() {
                 Voir le profil
               </a>
             </div>
-          </div>
-        </div>
+          </BentoCard>
+        </BentoGrid>
       )}
 
       {/* Portfolio */}
@@ -702,44 +700,93 @@ export default function ProviderDashboardPage() {
                 />
               </div>
               <div>
+                <label className="label">Pays</label>
+                <select
+                  value={form.country as string ?? 'FR'}
+                  onChange={(e) => setForm({ ...form, country: e.target.value })}
+                  className="input-field"
+                >
+                  {countries.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.flag} {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Téléphone</label>
+                <input
+                  type="tel"
+                  value={form.phone as string ?? ''}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="input-field"
+                  placeholder="+33 6 12 34 56 78"
+                />
+              </div>
+              <div>
+                <label className="label">Site web</label>
+                <input
+                  type="url"
+                  value={form.website as string ?? ''}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  className="input-field"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
                 <label className="label">Zone d'intervention</label>
                 <input
                   type="text"
                   value={form.service_area as string ?? ''}
                   onChange={(e) => setForm({ ...form, service_area: e.target.value })}
                   className="input-field"
-                  placeholder="Île-de-France (50km)"
+                  placeholder="Île-de-France"
                 />
               </div>
               <div>
-                <label className="label">Téléphone</label>
-                <input
-                  type="text"
-                  value={form.phone as string ?? ''}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="input-field"
-                  placeholder="+33 6..."
-                />
+                <label className="label">Service à distance</label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.remote_service as boolean ?? false}
+                    onChange={(e) => setForm({ ...form, remote_service: e.target.checked })}
+                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-neutral-700">Proposer des services à distance</span>
+                </label>
               </div>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Tarifs & Disponibilité</h3>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="label">Site web</label>
-                <input
-                  type="text"
-                  value={form.website as string ?? ''}
-                  onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  className="input-field"
-                  placeholder="www.monsite.fr"
-                />
-              </div>
-              <div>
-                <label className="label">Fourchette de prix</label>
-                <input
-                  type="text"
+                <label className="label">Gamme de prix</label>
+                <select
                   value={form.price_range as string ?? ''}
                   onChange={(e) => setForm({ ...form, price_range: e.target.value })}
                   className="input-field"
-                  placeholder="50€ — 200€"
-                />
+                >
+                  <option value="">Sélectionner...</option>
+                  <option value="€">€ (Économique)</option>
+                  <option value="€€">€€ (Standard)</option>
+                  <option value="€€€">€€€ (Premium)</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Devise</label>
+                <select
+                  value={form.currency as string ?? 'EUR'}
+                  onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                  className="input-field"
+                >
+                  {currencies.map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="label">Disponibilité</label>
@@ -753,24 +800,40 @@ export default function ProviderDashboardPage() {
                   <option value="unavailable">Indisponible</option>
                 </select>
               </div>
-              <div className="sm:col-span-2">
-                <label className="flex items-center gap-2 text-sm text-neutral-700">
-                  <input
-                    type="checkbox"
-                    checked={form.remote_service as boolean ?? false}
-                    onChange={(e) => setForm({ ...form, remote_service: e.target.checked })}
-                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  Service à distance disponible
-                </label>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Images</h3>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label">URL de l'avatar</label>
+                <input
+                  type="url"
+                  value={form.avatar_url as string ?? ''}
+                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+                  className="input-field"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="label">URL de la bannière</label>
+                <input
+                  type="url"
+                  value={form.banner_url as string ?? ''}
+                  onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
+                  className="input-field"
+                  placeholder="https://..."
+                />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setTab('overview')} className="btn-secondary">Annuler</button>
             <button onClick={saveProfile} disabled={saving} className="btn-primary">
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              Enregistrer les modifications
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              Enregistrer
             </button>
           </div>
         </div>

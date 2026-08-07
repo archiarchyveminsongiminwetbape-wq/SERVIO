@@ -22,17 +22,27 @@ export default function SignupPage() {
       return;
     }
 
+    if (!fullName.trim()) {
+      setError('Veuillez entrer votre nom complet.');
+      return;
+    }
+
     setLoading(true);
+    console.log('Attempting signup with:', { email, fullName, role });
+    
     const { error } = await signUp(email, password, {
       full_name: fullName,
       role,
     });
 
     if (error) {
+      console.error('Signup failed:', error);
       setError(error);
       setLoading(false);
     } else {
-      navigate('/');
+      console.log('Signup successful, redirecting to confirmation');
+      // Rediriger vers la page de confirmation
+      navigate('/signup/confirmation', { state: { email } });
     }
   };
 

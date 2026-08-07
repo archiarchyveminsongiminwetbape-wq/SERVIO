@@ -9,7 +9,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, metadata: { full_name: string; role: string }) => Promise<{ error: string | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null; profileRole?: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -66,14 +66,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, metadata: { full_name: string; role: string }) {
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: metadata,
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
-    return { error: error?.message ?? null };
+    
+    if (error) {
+      console.error('Signup error:', error);
+      return { error: error.message ?? null };
+    }
+    
+    // Si l'inscription réussit mais pas de session (email confirmation activée)
+    if (!data.session) {
+      console.log('Email confirmation required or signup pending');
+      return { error: null };
+    }
+    
+    // Créer manuellement le profil si le trigger ne fonctionne pas
+    if (data.user) {
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: metadata.full_name,
+            role: metadata.role,
+          });
+        
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Le trigger a peut-être déjà créé le profil, ignorer l'erreur
+        }
+      } catch (e) {
+        console.error('Profile creation failed:', e);
+      }
+    }
+    
+    return { error: null };
   }
 
   async function signIn(email: string, password: string) {
@@ -81,7 +115,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     });
-    return { error: error?.message ?? null };
+
+    if (error) {
+      return { error: error.message ?? null };
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      await fetchProfile(session.user.id);
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      return { error: null, profileRole: data?.role ?? null };
+    }
+
+    return { error: null, profileRole: null };
   }
 
   async function signOut() {

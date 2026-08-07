@@ -1,15 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
 import CategoryIcon from '@/components/CategoryIcon';
+import { BentoGrid, BentoCard } from '@/components/BentoGrid';
+import { categoryTaxonomy } from '@/data/categories';
+import { countries } from '@/data/countries';
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [subCategories, setSubCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<typeof categoryTaxonomy[0]['subcategories']>([]);
   const [selectedSubCat, setSelectedSubCat] = useState<string>('');
   const [providers, setProviders] = useState<ProviderProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,16 +20,14 @@ export default function SearchPage() {
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [categorySlug, setCategorySlug] = useState(searchParams.get('category') ?? '');
   const [city, setCity] = useState(searchParams.get('city') ?? '');
+  const [country, setCountry] = useState(searchParams.get('country') ?? '');
   const [minRating, setMinRating] = useState(searchParams.get('rating') ?? '');
   const [availability, setAvailability] = useState(searchParams.get('availability') ?? '');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') ?? 'featured');
-
-  useEffect(() => {
-    supabase.from('categories').select('*').order('sort_order').then(({ data }) => {
-      const allCats = data as Category[] ?? [];
-      setCategories(allCats.filter((c) => !c.parent_id));
-    });
-  }, []);
+  const [priceRange, setPriceRange] = useState(searchParams.get('price') ?? '');
+  const [minExperience, setMinExperience] = useState(searchParams.get('experience') ?? '');
+  const [remoteOnly, setRemoteOnly] = useState(searchParams.get('remote') === 'true');
+  const [language, setLanguage] = useState(searchParams.get('language') ?? '');
 
   // Load subcategories when a category is selected
   useEffect(() => {
@@ -36,13 +36,12 @@ export default function SearchPage() {
       setSelectedSubCat('');
       return;
     }
-    const parent = categories.find((c) => c.slug === categorySlug);
-    if (!parent) return;
-    supabase.from('categories').select('*').eq('parent_id', parent.id).order('sort_order').then(({ data }) => {
-      setSubCategories(data as Category[] ?? []);
+    const sector = categoryTaxonomy.find((c) => c.slug === categorySlug);
+    if (sector) {
+      setSubCategories(sector.subcategories);
       setSelectedSubCat('');
-    });
-  }, [categorySlug, categories]);
+    }
+  }, [categorySlug]);
 
   const doSearch = useCallback(async () => {
     setLoading(true);
@@ -55,28 +54,44 @@ export default function SearchPage() {
       q = q.or(`business_name.ilike.%${query}%,headline.ilike.%${query}%,description.ilike.%${query}%,skills.cs.{${query}}`);
     }
     if (categorySlug) {
-      const cat = categories.find((c) => c.slug === categorySlug);
+      const cat = categoryTaxonomy.find((c) => c.slug === categorySlug);
       if (cat) {
         // If a subcategory is selected, filter by it; otherwise filter by parent + all children
         if (selectedSubCat) {
           const subCat = subCategories.find((sc) => sc.slug === selectedSubCat);
-          if (subCat) q = q.eq('category_id', subCat.id);
+          if (subCat) {
+            // Filter by subcategory slug
+            q = q.ilike('category_slug', `%${subCat.slug}%`);
+          }
         } else {
-          // Get all child category IDs + the parent itself
-          const childIds = subCategories.map((sc) => sc.id);
-          const allIds = [cat.id, ...childIds];
-          q = q.in('category_id', allIds);
+          // Filter by sector slug
+          q = q.ilike('category_slug', `%${cat.slug}%`);
         }
       }
     }
     if (city.trim()) {
       q = q.ilike('city', `%${city}%`);
     }
+    if (country.trim()) {
+      q = q.eq('country', country);
+    }
     if (minRating) {
       q = q.gte('rating_avg', parseFloat(minRating));
     }
     if (availability) {
       q = q.eq('availability', availability);
+    }
+    if (priceRange) {
+      q = q.ilike('price_range', `%${priceRange}%`);
+    }
+    if (minExperience) {
+      q = q.gte('experience_years', parseInt(minExperience));
+    }
+    if (remoteOnly) {
+      q = q.eq('remote_service', true);
+    }
+    if (language) {
+      q = q.contains('languages', [language]);
     }
 
     if (sortBy === 'rating') {
@@ -90,7 +105,7 @@ export default function SearchPage() {
     const { data } = await q.limit(24);
     setProviders(data as ProviderProfile[] ?? []);
     setLoading(false);
-  }, [query, categorySlug, city, minRating, availability, sortBy, categories]);
+  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -101,23 +116,32 @@ export default function SearchPage() {
       if (city) params.city = city;
       if (minRating) params.rating = minRating;
       if (availability) params.availability = availability;
+      if (priceRange) params.price = priceRange;
+      if (minExperience) params.experience = minExperience;
+      if (remoteOnly) params.remote = 'true';
+      if (language) params.language = language;
       if (sortBy !== 'featured') params.sort = sortBy;
       setSearchParams(params);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, categories, subCategories, doSearch, setSearchParams]);
+  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, categoryTaxonomy, subCategories, doSearch, setSearchParams]);
 
   const clearFilters = () => {
     setQuery('');
     setCategorySlug('');
     setSelectedSubCat('');
     setCity('');
+    setCountry('');
     setMinRating('');
     setAvailability('');
+    setPriceRange('');
+    setMinExperience('');
+    setRemoteOnly(false);
+    setLanguage('');
     setSortBy('featured');
   };
 
-  const hasFilters = query || categorySlug || selectedSubCat || city || minRating || availability;
+  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -161,8 +185,8 @@ export default function SearchPage() {
                     className="input-field"
                   >
                     <option value="">Tous les secteurs</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                    {categoryTaxonomy.map((cat) => (
+                      <option key={cat.slug} value={cat.slug}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -179,7 +203,7 @@ export default function SearchPage() {
                       </button>
                       {subCategories.map((sub) => (
                         <button
-                          key={sub.id}
+                          key={sub.slug}
                           onClick={() => setSelectedSubCat(sub.slug)}
                           className={`badge ${selectedSubCat === sub.slug ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
                         >
@@ -201,6 +225,25 @@ export default function SearchPage() {
                       className="input-field pl-9"
                       placeholder="Ex: Paris"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Pays</label>
+                  <div className="relative">
+                    <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                    <select
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      className="input-field pl-9"
+                    >
+                      <option value="">Tous les pays</option>
+                      {countries.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.flag} {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -229,60 +272,120 @@ export default function SearchPage() {
                     <option value="busy">Sur mission</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="label">Gamme de prix</label>
+                  <select
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Tous les prix</option>
+                    <option value="€">€ (Économique)</option>
+                    <option value="€€">€€ (Standard)</option>
+                    <option value="€€€">€€€ (Premium)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Expérience minimale</label>
+                  <select
+                    value={minExperience}
+                    onChange={(e) => setMinExperience(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Tous</option>
+                    <option value="1">1+ an</option>
+                    <option value="3">3+ ans</option>
+                    <option value="5">5+ ans</option>
+                    <option value="10">10+ ans</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Langue</label>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Toutes les langues</option>
+                    <option value="Français">Français</option>
+                    <option value="English">English</option>
+                    <option value="Español">Español</option>
+                    <option value="Deutsch">Deutsch</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={remoteOnly}
+                      onChange={(e) => setRemoteOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">Service à distance uniquement</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
         </aside>
 
-        {/* Results */}
+        {/* Results - Bento Grid */}
         <div className="flex-1">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1 sm:max-w-md">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="input-field pl-10"
-                placeholder="Rechercher par nom, métier, compétence..."
-              />
-            </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="input-field sm:w-48"
-            >
-              <option value="featured">En vedette</option>
-              <option value="rating">Meilleures notes</option>
-              <option value="recent">Plus récents</option>
-            </select>
-          </div>
+          <BentoGrid>
+            <BentoCard colSpan={3} className="p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative flex-1 sm:max-w-md">
+                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="input-field pl-10"
+                    placeholder="Rechercher par nom, métier, compétence..."
+                  />
+                </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="input-field sm:w-48"
+                >
+                  <option value="featured">En vedette</option>
+                  <option value="rating">Meilleures notes</option>
+                  <option value="recent">Plus récents</option>
+                </select>
+              </div>
+            </BentoCard>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 size={32} className="animate-spin text-primary-500" />
-            </div>
-          ) : providers.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {providers.map((p) => (
-                <ProviderCard key={p.id} provider={p} />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Frown size={48} className="text-neutral-300" />
-              <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun résultat</h3>
-              <p className="mt-1 text-sm text-neutral-500">
-                Essayez de modifier vos critères de recherche.
-              </p>
-              {hasFilters && (
-                <button onClick={clearFilters} className="btn-secondary mt-4">
-                  <X size={16} />
-                  Effacer les filtres
-                </button>
-              )}
-            </div>
-          )}
+            {loading ? (
+              <BentoCard colSpan={3} className="flex items-center justify-center py-20">
+                <Loader2 size={32} className="animate-spin text-primary-500" />
+              </BentoCard>
+            ) : providers.length > 0 ? (
+              providers.map((p) => (
+                <BentoCard key={p.id} className="p-0 overflow-hidden">
+                  <ProviderCard provider={p} />
+                </BentoCard>
+              ))
+            ) : (
+              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-20 text-center">
+                <Frown size={48} className="text-neutral-300" />
+                <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun résultat</h3>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Essayez de modifier vos critères de recherche.
+                </p>
+                {hasFilters && (
+                  <button onClick={clearFilters} className="btn-secondary mt-4">
+                    <X size={16} />
+                    Effacer les filtres
+                  </button>
+                )}
+              </BentoCard>
+            )}
+          </BentoGrid>
         </div>
       </div>
     </div>
