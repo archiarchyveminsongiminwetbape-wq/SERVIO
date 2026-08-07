@@ -33,6 +33,10 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<ProviderProfile | null>(null);
   const [validationNote, setValidationNote] = useState('');
+  const [validationFilter, setValidationFilter] = useState<'all' | 'pending' | 'changes_requested'>('all');
+  const [bulkAction, setBulkAction] = useState('');
+  const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set());
+  const [showPortfolioPreview, setShowPortfolioPreview] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -126,6 +130,45 @@ export default function AdminDashboardPage() {
     }
     setActionLoading(false);
   }
+
+  async function bulkValidateProviders(status: 'approved' | 'rejected' | 'changes_requested') {
+    if (!user || selectedProviders.size === 0) return;
+    setActionLoading(true);
+
+    const { error } = await supabase
+      .from('provider_profiles')
+      .update({
+        validation_status: status,
+        validated_at: new Date().toISOString(),
+        validated_by: user.id,
+      })
+      .in('id', Array.from(selectedProviders));
+
+    if (!error) {
+      await logAdminAction('bulk_validate_providers', 'provider_profile', '', `Status: ${status}. Count: ${selectedProviders.size}`);
+      setSelectedProviders(new Set());
+      setBulkAction('');
+      await loadAllData();
+    }
+    setActionLoading(false);
+  }
+
+  const toggleProviderSelection = (providerId: string) => {
+    setSelectedProviders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(providerId)) {
+        newSet.delete(providerId);
+      } else {
+        newSet.add(providerId);
+      }
+      return newSet;
+    });
+  };
+
+  const getFilteredProviders = () => {
+    if (validationFilter === 'all') return pendingProviders;
+    return pendingProviders.filter(p => p.validation_status === validationFilter);
+  };
 
   async function updateUserStatus(userId: string, status: 'active' | 'suspended' | 'banned') {
     setActionLoading(true);
@@ -286,16 +329,78 @@ export default function AdminDashboardPage() {
       {/* Validation queue */}
       {tab === 'validation' && (
         <div>
-          {pendingProviders.length === 0 ? (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setValidationFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  validationFilter === 'all'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                }`}
+              >
+                Tous ({pendingProviders.length})
+              </button>
+              <button
+                onClick={() => setValidationFilter('pending')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  validationFilter === 'pending'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                }`}
+              >
+                En attente ({pendingProviders.filter(p => p.validation_status === 'pending').length})
+              </button>
+              <button
+                onClick={() => setValidationFilter('changes_requested')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  validationFilter === 'changes_requested'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                }`}
+              >
+                Corrections demandées ({pendingProviders.filter(p => p.validation_status === 'changes_requested').length})
+              </button>
+            </div>
+
+            {selectedProviders.size > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-600">{selectedProviders.size} sélectionné(s)</span>
+                <select
+                  value={bulkAction}
+                  onChange={(e) => {
+                    setBulkAction(e.target.value);
+                    if (e.target.value) {
+                      bulkValidateProviders(e.target.value as 'approved' | 'rejected' | 'changes_requested');
+                    }
+                  }}
+                  className="input-field text-sm"
+                >
+                  <option value="">Action groupée...</option>
+                  <option value="approved">Valider tout</option>
+                  <option value="rejected">Refuser tout</option>
+                  <option value="changes_requested">Demander corrections</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {getFilteredProviders().length === 0 ? (
             <div className="card flex flex-col items-center justify-center py-16 text-center">
               <CheckCircle2 size={48} className="text-success-300" />
-              <p className="mt-3 text-sm text-neutral-500">Aucun profil en attente de validation</p>
+              <p className="mt-3 text-sm text-neutral-500">Aucun profil à valider</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingProviders.map((prov) => (
+              {getFilteredProviders().map((prov) => (
                 <div key={prov.id} className="card p-5">
                   <div className="flex items-start gap-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedProviders.has(prov.id)}
+                      onChange={() => toggleProviderSelection(prov.id)}
+                      className="mt-1 h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
                     {prov.avatar_url ? (
                       <img src={prov.avatar_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
                     ) : (
@@ -304,7 +409,18 @@ export default function AdminDashboardPage() {
                       </div>
                     )}
                     <div className="flex-1">
-                      <h3 className="font-semibold text-neutral-900">{prov.business_name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-neutral-900">{prov.business_name}</h3>
+                        <span className={`badge ${
+                          prov.validation_status === 'pending' ? 'bg-warning-50 text-warning-700' :
+                          prov.validation_status === 'changes_requested' ? 'bg-accent-50 text-accent-700' :
+                          'bg-success-50 text-success-700'
+                        }`}>
+                          {prov.validation_status === 'pending' ? 'En attente' :
+                           prov.validation_status === 'changes_requested' ? 'Corrections' :
+                           'Validé'}
+                        </span>
+                      </div>
                       <p className="text-sm text-neutral-500">{prov.headline}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {prov.category?.name && <span className="badge bg-primary-50 text-primary-700">{prov.category.name}</span>}
@@ -313,6 +429,11 @@ export default function AdminDashboardPage() {
                       </div>
                       {prov.description && (
                         <p className="mt-2 text-sm text-neutral-600 line-clamp-2">{prov.description}</p>
+                      )}
+                      {prov.validation_note && (
+                        <div className="mt-2 rounded-lg bg-accent-50 p-2 text-xs text-accent-700">
+                          <span className="font-semibold">Note précédente:</span> {prov.validation_note}
+                        </div>
                       )}
                     </div>
                     <div className="flex flex-col gap-2">
@@ -328,14 +449,30 @@ export default function AdminDashboardPage() {
 
                   {selectedProvider?.id === prov.id && (
                     <div className="mt-4 border-t border-neutral-100 pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-500 mb-2">Informations de contact</p>
+                          <p className="text-sm text-neutral-700">Email: {prov.contact_email || 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Téléphone: {prov.contact_phone || 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Site web: {prov.website || 'Non renseigné'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-neutral-500 mb-2">Tarifs</p>
+                          <p className="text-sm text-neutral-700">Gamme: {prov.price_range || 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Min: {prov.price_min ? `${prov.price_min}€` : 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Max: {prov.price_max ? `${prov.price_max}€` : 'Non renseigné'}</p>
+                        </div>
+                      </div>
+
                       {prov.description && (
                         <div className="mb-3">
                           <p className="text-xs font-semibold text-neutral-500">Description complète</p>
                           <p className="mt-1 text-sm text-neutral-700">{prov.description}</p>
                         </div>
                       )}
+
                       <div className="mb-3">
-                        <label className="label">Note (optionnelle)</label>
+                        <label className="label">Note de validation (optionnelle)</label>
                         <textarea
                           value={validationNote}
                           onChange={(e) => setValidationNote(e.target.value)}
