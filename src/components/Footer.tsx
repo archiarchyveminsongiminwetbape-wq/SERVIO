@@ -11,7 +11,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-0.5 sm:gap-0.5 md:gap-1 text-[10px] sm:text-xs md:text-sm font-bold text-white">
               <span className="flex h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 lg:h-7 lg:w-7 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/20">
-                <Briefcase size={8} className="sm:size-10 md:size-12 lg:size-14" />
+                <Briefcase className="h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 lg:h-3.5 lg:w-3.5" />
               </span>
               <span>SERVIO</span>
             </div>
@@ -21,13 +21,13 @@ export default function Footer() {
             </p>
             <div className="mt-0.5 sm:mt-1 md:mt-1.5 space-y-0.25 sm:space-y-0.5 md:space-y-0.5">
               <a href="mailto:contact@servio.com" className="flex items-center gap-0.5 sm:gap-0.5 md:gap-1 text-[8px] sm:text-[9px] md:text-[10px] text-neutral-300 transition-colors hover:text-primary-300">
-                <Mail size={6} className="sm:size-8 md:size-10" /> contact@servio.com
+                <Mail className="h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-2.5 md:w-2.5" /> contact@servio.com
               </a>
               <a href="tel:+237657029080" className="flex items-center gap-0.5 sm:gap-0.5 md:gap-1 text-[8px] sm:text-[9px] md:text-[10px] text-neutral-300 transition-colors hover:text-primary-300">
-                <Phone size={6} className="sm:size-8 md:size-10" /> +237 657 029 080
+                <Phone className="h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-2.5 md:w-2.5" /> +237 657 029 080
               </a>
               <a href="tel:+237620972579" className="flex items-center gap-0.5 sm:gap-0.5 md:gap-1 text-[8px] sm:text-[9px] md:text-[10px] text-neutral-300 transition-colors hover:text-primary-300">
-                <Phone size={6} className="sm:size-8 md:size-10" /> +237 620 972 579
+                <Phone className="h-1.5 w-1.5 sm:h-2 sm:w-2 md:h-2.5 md:w-2.5" /> +237 620 972 579
               </a>
             </div>
           </div>

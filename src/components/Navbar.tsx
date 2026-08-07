@@ -37,7 +37,7 @@ export default function Navbar() {
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
           <Link to="/" className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 text-xs sm:text-sm md:text-sm lg:text-base font-bold tracking-tight">
             <span className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 ring-2 sm:ring-3 ring-primary-500/10">
-              <Briefcase size={8} className="sm:size-10 md:size-12 lg:size-14" />
+              <Briefcase className="h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 lg:h-3.5 lg:w-3.5" />
             </span>
             <span className={`hidden sm:block ${darkMode ? 'text-white' : 'text-neutral-900'}`}>SERVIO</span>
           </Link>
@@ -97,13 +97,13 @@ export default function Navbar() {
                 to="/messages"
                 className="relative flex h-7 w-7 sm:h-8 sm:w-8 md:h-7 md:w-7 items-center justify-center rounded-lg text-neutral-600 transition-all hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm"
               >
-                <MessageSquare size={14} className="sm:size-18 md:size-16" />
+                <MessageSquare className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </Link>
               <Link
                 to="/favorites"
                 className={`flex h-7 w-7 sm:h-8 sm:w-8 md:h-7 md:w-7 items-center justify-center rounded-lg transition-all ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 hover:shadow-sm'}`}
               >
-                <Heart size={14} className="sm:size-18 md:size-16" />
+                <Heart className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </Link>
               <NotificationsPanel />
               
@@ -111,7 +111,7 @@ export default function Navbar() {
                 onClick={toggleDarkMode}
                 className={`flex h-7 w-7 sm:h-8 sm:w-8 md:h-7 md:w-7 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
               >
-                {darkMode ? <Sun size={14} className="sm:size-18 md:size-16" /> : <Moon size={14} className="sm:size-18 md:size-16" />}
+                {darkMode ? <Sun className="h-3.5 w-3.5 md:h-4 md:w-4" /> : <Moon className="h-3.5 w-3.5 md:h-4 md:w-4" />}
               </button>
 
               <div className="relative">
@@ -119,11 +119,11 @@ export default function Navbar() {
                   onClick={() => setLangMenuOpen(!langMenuOpen)}
                   className="flex items-center gap-1.5 sm:gap-2 rounded-lg px-1.5 sm:px-2 py-1 sm:py-1.5 transition-colors hover:bg-neutral-100"
                 >
-                  <Globe size={14} className="sm:size-16" />
+                  <Globe className="h-3.5 w-3.5 md:h-4 md:w-4" />
                   <span className="text-xs sm:text-sm font-medium text-neutral-700">
                     {supportedLanguages.find(l => l.code === language)?.flag}
                   </span>
-                  <ChevronDown size={12} className="sm:size-14 text-neutral-400" />
+                  <ChevronDown className="h-3 w-3 md:h-3.5 md:w-3.5 text-neutral-400" />
                 </button>
 
                 {langMenuOpen && (
@@ -236,11 +236,11 @@ export default function Navbar() {
                   onClick={() => setLangMenuOpen(!langMenuOpen)}
                   className="flex items-center gap-1.5 sm:gap-2 rounded-lg px-1.5 sm:px-2 py-1 sm:py-1.5 transition-colors hover:bg-neutral-100"
                 >
-                  <Globe size={14} className="sm:size-16" />
+                  <Globe className="h-3.5 w-3.5 md:h-4 md:w-4" />
                   <span className="text-xs sm:text-sm font-medium text-neutral-700">
                     {supportedLanguages.find(l => l.code === language)?.flag}
                   </span>
-                  <ChevronDown size={12} className="sm:size-14 text-neutral-400" />
+                  <ChevronDown className="h-3 w-3 md:h-3.5 md:w-3.5 text-neutral-400" />
                 </button>
 
                 {langMenuOpen && (
@@ -263,11 +263,11 @@ export default function Navbar() {
                   </>
                 )}
               </div>
-              <Link to="/login" className="btn-ghost px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
-                <User size={14} className="sm:size-18" />
+              <Link to="/login" className="btn-ghost px-2 sm:px-3 md:px-2 py-1.5 sm:py-2 md:py-1 text-xs sm:text-sm md:text-[11px]">
+                <User className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 <span className="hidden sm:inline ml-1.5 sm:ml-2">{t.nav.login}</span>
               </Link>
-              <Link to="/signup" className="btn-primary px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm">
+              <Link to="/signup" className="btn-primary px-2 sm:px-4 md:px-2.5 py-1.5 sm:py-2 md:py-1 text-xs sm:text-sm md:text-[11px]">
                 {t.nav.signup}
               </Link>
             </>
