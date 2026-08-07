@@ -73,6 +73,8 @@ export interface PortfolioItem {
   title: string;
   description: string | null;
   photos: string[];
+  videos: string[];
+  video_thumbnails: string[];
   video_url: string | null;
   category_id: string | null;
   tags: string[];

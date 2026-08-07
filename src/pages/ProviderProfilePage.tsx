@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-  MapPin, Phone, Globe, Mail, BadgeCheck, Zap, Clock, Star,
-  MessageSquare, Heart, Share2, Flag, ChevronLeft, ChevronRight,
-  Briefcase, Award, Languages, Loader2, X, Send, Plus, Search, Eye, FolderOpen, Calendar, Users
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { 
+  MapPin, Mail, Phone, Globe, Star, Calendar, Users, Clock, Search, Filter, Play, Video, 
+  Share2, Flag, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Plus, Eye, FolderOpen,
+  BadgeCheck, Zap, MessageSquare, Heart
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -429,24 +429,35 @@ export default function ProviderProfilePage() {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {getFilteredPortfolio().map((item) => (
                       <div key={item.id} className="card group overflow-hidden">
-                        {item.photos[0] && (
-                          <div
-                            className="relative h-56 cursor-pointer overflow-hidden bg-neutral-100"
-                            onClick={() => setLightbox({ photos: item.photos, index: 0 })}
-                          >
-                            <img
-                              src={item.photos[0]}
-                              alt={item.title}
-                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="rounded-full bg-white/90 p-3 shadow-lg">
-                                <Eye size={20} className="text-neutral-900" />
+                        {(item.photos[0] || (item.videos && item.videos[0])) && (
+                          <div className="relative h-56 cursor-pointer overflow-hidden bg-neutral-100">
+                            {item.videos && item.videos[0] ? (
+                              <div className="relative h-full w-full">
+                                <video
+                                  src={item.videos[0]}
+                                  className="h-full w-full object-cover"
+                                  muted
+                                  onMouseEnter={(e) => e.currentTarget.play()}
+                                  onMouseLeave={(e) => e.currentTarget.pause()}
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Play size={32} className="text-white" />
+                                </div>
+                                <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white flex items-center gap-1">
+                                  <Video size={12} />
+                                  {item.videos.length} vidéo{item.videos.length > 1 ? 's' : ''}
+                                </div>
                               </div>
-                            </div>
-                            {item.photos.length > 1 && (
+                            ) : (
+                              <img
+                                src={item.photos[0]}
+                                alt={item.title}
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                onClick={() => setLightbox({ photos: item.photos, index: 0 })}
+                              />
+                            )}
+                            {item.photos.length > 1 && !item.videos?.[0] && (
                               <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
                                 {item.photos.length} photos
                               </div>

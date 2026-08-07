@@ -41,6 +41,8 @@ export default function ProviderDashboardPage() {
     title: '',
     description: '',
     photos: [''],
+    videos: [''],
+    video_thumbnails: [''],
     tags: '',
     client_name: '',
     project_date: '',
@@ -51,6 +53,7 @@ export default function ProviderDashboardPage() {
     duration: '',
     team_size: ''
   });
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   // Availability form state
   const [availabilitySchedule, setAvailabilitySchedule] = useState<Record<string, { start: string; end: string; available: boolean }>>({
@@ -218,6 +221,8 @@ export default function ProviderDashboardPage() {
     if (!provider) return;
     setSaving(true);
     const photos = itemForm.photos.filter((p) => p.trim());
+    const videos = itemForm.videos.filter((v) => v.trim());
+    const videoThumbnails = itemForm.video_thumbnails.filter((t) => t.trim());
     const tags = itemForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
     const technologiesUsed = itemForm.technologies_used.split(',').map((t) => t.trim()).filter(Boolean);
 
@@ -228,6 +233,8 @@ export default function ProviderDashboardPage() {
           title: itemForm.title,
           description: itemForm.description,
           photos,
+          videos,
+          video_thumbnails: videoThumbnails,
           tags,
           client_name: itemForm.client_name || null,
           project_date: itemForm.project_date || null,
@@ -252,6 +259,8 @@ export default function ProviderDashboardPage() {
           title: itemForm.title,
           description: itemForm.description,
           photos,
+          videos,
+          video_thumbnails: videoThumbnails,
           tags,
           client_name: itemForm.client_name || null,
           project_date: itemForm.project_date || null,
@@ -276,6 +285,8 @@ export default function ProviderDashboardPage() {
       title: '',
       description: '',
       photos: [''],
+      videos: [''],
+      video_thumbnails: [''],
       tags: '',
       client_name: '',
       project_date: '',
@@ -287,6 +298,65 @@ export default function ProviderDashboardPage() {
       team_size: ''
     });
     setTimeout(() => setSaveMsg(null), 4000);
+  }
+
+  async function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate video duration (max 20 seconds)
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onloadedmetadata = async () => {
+      if (video.duration > 20) {
+        setSaveMsg({ type: 'error', text: 'La vidéo ne doit pas dépasser 20 secondes.' });
+        setTimeout(() => setSaveMsg(null), 4000);
+        return;
+      }
+
+      setUploadingVideo(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${user?.id}/portfolio-videos/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('portfolio-videos')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('portfolio-videos')
+          .getPublicUrl(filePath);
+
+        setItemForm(prev => ({
+          ...prev,
+          videos: [...prev.videos.filter(v => v), publicUrl],
+          video_thumbnails: [...prev.video_thumbnails.filter(t => t), ''] // Placeholder for thumbnail
+        }));
+
+        setSaveMsg({ type: 'success', text: 'Vidéo ajoutée avec succès.' });
+        setTimeout(() => setSaveMsg(null), 4000);
+      } catch (error) {
+        console.error('Error uploading video:', error);
+        setSaveMsg({ type: 'error', text: 'Erreur lors du téléchargement de la vidéo.' });
+        setTimeout(() => setSaveMsg(null), 4000);
+      } finally {
+        setUploadingVideo(false);
+      }
+    };
+
+    video.onerror = () => {
+      setSaveMsg({ type: 'error', text: 'Erreur lors de la lecture de la vidéo.' });
+      setTimeout(() => setSaveMsg(null), 4000);
+      setUploadingVideo(false);
+    };
+
+    video.src = URL.createObjectURL(file);
   }
 
   async function saveAvailabilitySchedule() {
@@ -531,7 +601,22 @@ export default function ProviderDashboardPage() {
             <button
               onClick={() => {
                 setEditingItem(null);
-                setItemForm({ title: '', description: '', photos: [''], tags: '' });
+                setItemForm({ 
+                  title: '', 
+                  description: '', 
+                  photos: [''], 
+                  videos: [''],
+                  video_thumbnails: [''],
+                  tags: '',
+                  client_name: '',
+                  project_date: '',
+                  budget: '',
+                  location: '',
+                  featured: false,
+                  technologies_used: '',
+                  duration: '',
+                  team_size: ''
+                });
                 setShowItemForm(true);
               }}
               className="btn-primary"
@@ -604,6 +689,46 @@ export default function ProviderDashboardPage() {
                     <Plus size={14} />
                     Ajouter une photo
                   </button>
+                </div>
+
+                <div>
+                  <label className="label">Vidéos (max 20 secondes chacune)</label>
+                  <div className="mb-3">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                      disabled={uploadingVideo}
+                      className="input-field"
+                    />
+                    <p className="mt-1 text-xs text-neutral-500">Formats acceptés: MP4, WebM. Durée maximale: 20 secondes.</p>
+                  </div>
+                  {itemForm.videos.filter(v => v).length > 0 && (
+                    <div className="space-y-2">
+                      {itemForm.videos.filter(v => v).map((video, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2 bg-neutral-50 rounded-lg">
+                          <video
+                            src={video}
+                            className="h-16 w-24 object-cover rounded"
+                            controls
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-neutral-600 truncate">{video}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const videos = itemForm.videos.filter((_, j) => j !== i);
+                              const thumbnails = itemForm.video_thumbnails.filter((_, j) => j !== i);
+                              setItemForm({ ...itemForm, videos, video_thumbnails: thumbnails });
+                            }}
+                            className="btn-ghost text-error-600"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="label">Tags (séparés par des virgules)</label>
@@ -733,7 +858,17 @@ export default function ProviderDashboardPage() {
                             title: item.title,
                             description: item.description ?? '',
                             photos: item.photos.length ? item.photos : [''],
+                            videos: item.videos?.length ? item.videos : [''],
+                            video_thumbnails: item.video_thumbnails?.length ? item.video_thumbnails : [''],
                             tags: item.tags.join(', '),
+                            client_name: item.client_name ?? '',
+                            project_date: item.project_date ?? '',
+                            budget: item.budget ?? '',
+                            location: item.location ?? '',
+                            featured: item.featured,
+                            technologies_used: item.technologies_used.join(', '),
+                            duration: item.duration ?? '',
+                            team_size: item.team_size?.toString() ?? ''
                           });
                           setShowItemForm(true);
                         }}
