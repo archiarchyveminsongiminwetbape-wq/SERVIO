@@ -15,7 +15,7 @@ import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 
-type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews';
+type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability';
 
 export default function ProviderDashboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -38,6 +38,17 @@ export default function ProviderDashboardPage() {
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [showItemForm, setShowItemForm] = useState(false);
   const [itemForm, setItemForm] = useState({ title: '', description: '', photos: [''], tags: '' });
+
+  // Availability form state
+  const [availabilitySchedule, setAvailabilitySchedule] = useState<Record<string, { start: string; end: string; available: boolean }>>({
+    monday: { start: '09:00', end: '18:00', available: true },
+    tuesday: { start: '09:00', end: '18:00', available: true },
+    wednesday: { start: '09:00', end: '18:00', available: true },
+    thursday: { start: '09:00', end: '18:00', available: true },
+    friday: { start: '09:00', end: '18:00', available: true },
+    saturday: { start: '09:00', end: '12:00', available: false },
+    sunday: { start: '09:00', end: '12:00', available: false },
+  });
 
   useEffect(() => {
     if (!authLoading) {
@@ -199,35 +210,51 @@ export default function ProviderDashboardPage() {
     if (editingItem) {
       const { error } = await supabase
         .from('portfolio_items')
-        .update({
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          tags,
-        })
+        .update({ title: itemForm.title, description: itemForm.description, photos, tags })
         .eq('id', editingItem.id);
       if (error) setSaveMsg({ type: 'error', text: error.message });
+      else {
+        setSaveMsg({ type: 'success', text: 'Élément mis à jour avec succès.' });
+        await loadData();
+      }
     } else {
       const { error } = await supabase
         .from('portfolio_items')
-        .insert({
-          provider_id: provider.id,
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          tags,
-          sort_order: portfolio.length,
-        });
+        .insert({ provider_id: provider.id, title: itemForm.title, description: itemForm.description, photos, tags })
+        .select();
       if (error) setSaveMsg({ type: 'error', text: error.message });
+      else {
+        setSaveMsg({ type: 'success', text: 'Élément ajouté avec succès.' });
+        await loadData();
+      }
     }
+    setSaving(false);
+    setShowItemForm(false);
+    setEditingItem(null);
+    setItemForm({ title: '', description: '', photos: [''], tags: '' });
+    setTimeout(() => setSaveMsg(null), 4000);
+  }
 
-    if (!saveMsg) {
-      setShowItemForm(false);
-      setEditingItem(null);
-      setItemForm({ title: '', description: '', photos: [''], tags: '' });
+  async function saveAvailabilitySchedule() {
+    if (!provider) return;
+    setSaving(true);
+    setSaveMsg(null);
+
+    const { error } = await supabase
+      .from('provider_profiles')
+      .update({
+        availability_schedule: availabilitySchedule,
+      })
+      .eq('id', provider.id);
+
+    if (error) {
+      setSaveMsg({ type: 'error', text: error.message });
+    } else {
+      setSaveMsg({ type: 'success', text: 'Horaires mis à jour avec succès.' });
       await loadData();
     }
     setSaving(false);
+    setTimeout(() => setSaveMsg(null), 4000);
   }
 
   async function deletePortfolioItem(id: string) {
@@ -309,6 +336,7 @@ export default function ProviderDashboardPage() {
     { id: 'portfolio', label: 'Réalisations', icon: FolderOpen },
     { id: 'profile', label: 'Mon profil', icon: Settings },
     { id: 'reviews', label: 'Avis', icon: Star },
+    { id: 'availability', label: 'Disponibilité', icon: Calendar },
   ];
 
   return (
@@ -592,6 +620,97 @@ export default function ProviderDashboardPage() {
               <p className="text-xs text-neutral-400">Ajoutez vos meilleurs projets pour mettre en valeur votre savoir-faire</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Availability management */}
+      {tab === 'availability' && (
+        <div className="mx-auto max-w-3xl space-y-6">
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Horaires de disponibilité</h3>
+            <p className="mt-1 text-sm text-neutral-500">Définissez vos horaires de travail pour chaque jour de la semaine</p>
+            
+            <div className="mt-6 space-y-4">
+              {Object.entries(availabilitySchedule).map(([day, schedule]) => (
+                <div key={day} className="flex items-center gap-4 rounded-lg border border-neutral-200 p-4">
+                  <div className="flex-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={schedule.available}
+                        onChange={(e) => setAvailabilitySchedule({
+                          ...availabilitySchedule,
+                          [day]: { ...schedule, available: e.target.checked }
+                        })}
+                        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="font-medium text-neutral-900 capitalize">{day}</span>
+                    </label>
+                  </div>
+                  {schedule.available && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={schedule.start}
+                        onChange={(e) => setAvailabilitySchedule({
+                          ...availabilitySchedule,
+                          [day]: { ...schedule, start: e.target.value }
+                        })}
+                        className="input-field w-32"
+                      />
+                      <span className="text-neutral-500">-</span>
+                      <input
+                        type="time"
+                        value={schedule.end}
+                        onChange={(e) => setAvailabilitySchedule({
+                          ...availabilitySchedule,
+                          [day]: { ...schedule, end: e.target.value }
+                        })}
+                        className="input-field w-32"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={saveAvailabilitySchedule}
+                disabled={saving}
+                className="btn-primary"
+              >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                Enregistrer les horaires
+              </button>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Statut actuel</h3>
+            <div className="mt-4">
+              <label className="label">Disponibilité générale</label>
+              <select
+                value={form.availability as string ?? 'available'}
+                onChange={(e) => setForm({ ...form, availability: e.target.value })}
+                className="input-field"
+              >
+                <option value="available">Disponible pour de nouvelles missions</option>
+                <option value="busy">Sur mission</option>
+                <option value="unavailable">Indisponible temporairement</option>
+              </select>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={saveProfile}
+                disabled={saving}
+                className="btn-primary"
+              >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                Mettre à jour le statut
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
