@@ -11,10 +11,58 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'unread' | Notification['type']>('all');
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
   useEffect(() => {
     loadNotifications();
-  }, [user]);
+
+    // Real-time subscription for new notifications
+    if (user) {
+      const channel = supabase
+        .channel('notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          setNotifications(prev => [payload.new as Notification, ...prev]);
+          if (soundEnabled) {
+            playNotificationSound();
+          }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          setNotifications(prev =>
+            prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
+          );
+        })
+        .on('postgres_changes', {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, soundEnabled]);
+
+  const playNotificationSound = () => {
+    const audio = new Audio('/notification.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+  };
 
   async function loadNotifications() {
     if (!user) return;
@@ -97,6 +145,22 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  const filteredNotifications = notifications.filter(n => {
+    if (filterType === 'all') return true;
+    if (filterType === 'unread') return !n.is_read;
+    return n.type === filterType;
+  });
+
+  const notificationTypes = [
+    { value: 'all', label: 'Toutes' },
+    { value: 'unread', label: 'Non lues' },
+    { value: 'message', label: 'Messages' },
+    { value: 'review', label: 'Avis' },
+    { value: 'validation', label: 'Validation' },
+    { value: 'report', label: 'Signalements' },
+    { value: 'system', label: 'Système' },
+  ];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-center justify-between">
@@ -106,24 +170,50 @@ export default function NotificationsPage() {
             {unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}` : 'Toutes les notifications sont lues'}
           </p>
         </div>
-        {unreadCount > 0 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={markAllAsRead}
-            disabled={markingAll}
-            className="btn-secondary"
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`btn-ghost ${soundEnabled ? 'text-primary-600' : 'text-neutral-400'}`}
+            title={soundEnabled ? 'Désactiver le son' : 'Activer le son'}
           >
-            {markingAll ? <span className="animate-spin">⏳</span> : <><CheckCheck size={18} /> Tout marquer comme lu</>}
+            {soundEnabled ? '🔊' : '🔇'}
           </button>
-        )}
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              disabled={markingAll}
+              className="btn-secondary"
+            >
+              {markingAll ? <span className="animate-spin">⏳</span> : <><CheckCheck size={18} /> Tout marquer comme lu</>}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filter buttons */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {notificationTypes.map((type) => (
+          <button
+            key={type.value}
+            onClick={() => setFilterType(type.value as any)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              filterType === type.value
+                ? 'bg-primary-600 text-white'
+                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+            }`}
+          >
+            {type.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={32} className="animate-spin text-primary-500" />
         </div>
-      ) : notifications.length > 0 ? (
+      ) : filteredNotifications.length > 0 ? (
         <div className="space-y-3">
-          {notifications.map((notification) => {
+          {filteredNotifications.map((notification) => {
             const Icon = getNotificationIcon(notification.type);
             const colorClass = getNotificationColor(notification.type);
 
@@ -202,9 +292,11 @@ export default function NotificationsPage() {
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Bell size={48} className="text-neutral-300" />
-          <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucune notification</h3>
+          <h3 className="mt-4 text-lg font-semibold text-neutral-900">
+            {filterType === 'all' ? 'Aucune notification' : `Aucune notification "${notificationTypes.find(t => t.value === filterType)?.label}"`}
+          </h3>
           <p className="mt-1 text-sm text-neutral-500">
-            Vous n'avez pas encore de notifications.
+            {filterType === 'all' ? 'Vous n\'avez pas encore de notifications.' : 'Aucune notification de ce type.'}
           </p>
         </div>
       )}
