@@ -83,11 +83,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 rounded-lg bg-primary-50 px-4 py-3 text-xs text-primary-700">
-            <p className="font-semibold">Compte administrateur de démonstration :</p>
-            <p className="mt-1">Email : admin@servio.com</p>
-            <p>Mot de passe : admin123456</p>
-          </div>
         </div>
 
         <p className="mt-6 text-center text-sm text-neutral-600">
