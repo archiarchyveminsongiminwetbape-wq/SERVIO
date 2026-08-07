@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, TrendingUp, Users, Award, Clock } from 'lucide-react';
+import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, TrendingUp, Users, Award, Clock, Quote, Check, Play, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useDarkMode } from '@/context/DarkModeContext';
 import type { Category, ProviderProfile } from '@/types';
@@ -213,29 +213,212 @@ export default function LandingPage() {
         </BentoGrid>
       </BentoSection>
 
-      {/* How it works - Bento Grid */}
-      <BentoSection title="Comment ça marche" description="Simple, rapide et efficace">
-        <BentoGrid>
-          <BentoFeatureCard 
-            icon={Search}
-            title="1. Recherchez"
-            description="Explorez les profils par secteur, localisation ou mot-clé. Comparez les portfolios et les avis."
-            variant="default"
-          />
-          <BentoFeatureCard 
-            icon={MessageSquare}
-            title="2. Contactez"
-            description="Envoyez un message directement via la messagerie intégrée. Pas besoin d'outils externes."
-            variant="primary"
-          />
-          <BentoFeatureCard 
-            icon={TrendingUp}
-            title="3. Collaborez"
-            description="Échangez, convenez d'un devis, et laissez votre avis après la prestation."
-            variant="default"
-          />
-        </BentoGrid>
-      </BentoSection>
+      {/* Testimonials */}
+      <section className="py-20 bg-gradient-to-b from-white to-neutral-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-neutral-900">Ce que disent nos utilisateurs</h2>
+            <p className="mt-3 text-lg text-neutral-600">Des témoignages authentiques de notre communauté</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="card p-6">
+              <div className="flex items-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
+                ))}
+              </div>
+              <Quote className="text-primary-300 mb-4" size={32} />
+              <p className="text-neutral-700 mb-4">
+                "J'ai trouvé un photographe professionnel en moins de 24h. Le processus était simple et la qualité du travail exceptionnelle."
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold">
+                  ML
+                </div>
+                <div>
+                  <p className="font-semibold text-neutral-900">Marie Laurent</p>
+                  <p className="text-sm text-neutral-500">Entrepreneure</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card p-6">
+              <div className="flex items-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
+                ))}
+              </div>
+              <Quote className="text-primary-300 mb-4" size={32} />
+              <p className="text-neutral-700 mb-4">
+                "En tant que développeur freelance, cette plateforme m'a permis de trouver des clients sérieux et de construire mon portfolio."
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-semibold">
+                  TD
+                </div>
+                <div>
+                  <p className="font-semibold text-neutral-900">Thomas Dubois</p>
+                  <p className="text-sm text-neutral-500">Développeur Web</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card p-6">
+              <div className="flex items-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
+                ))}
+              </div>
+              <Quote className="text-primary-300 mb-4" size={32} />
+              <p className="text-neutral-700 mb-4">
+                "La messagerie intégrée facilite vraiment la communication. J'ai pu échanger avec plusieurs prestataires avant de choisir."
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center text-white font-semibold">
+                  SM
+                </div>
+                <div>
+                  <p className="font-semibold text-neutral-900">Sophie Martin</p>
+                  <p className="text-sm text-neutral-500">Chef de projet</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-neutral-900">Pourquoi choisir SERVIO ?</h2>
+            <p className="mt-3 text-lg text-neutral-600">Une plateforme pensée pour simplifier vos collaborations</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 mb-4">
+                <ShieldCheck size={32} />
+              </div>
+              <h3 className="font-semibold text-neutral-900 mb-2">Profils vérifiés</h3>
+              <p className="text-sm text-neutral-600">Tous nos prestataires sont vérifiés pour garantir leur professionnalisme.</p>
+            </div>
+
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-50 to-accent-100 text-accent-600 mb-4">
+                <MessageSquare size={32} />
+              </div>
+              <h3 className="font-semibold text-neutral-900 mb-2">Messagerie intégrée</h3>
+              <p className="text-sm text-neutral-600">Communiquez directement avec les prestataires sans quitter la plateforme.</p>
+            </div>
+
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-success-50 to-success-100 text-success-600 mb-4">
+                <Star size={32} />
+              </div>
+              <h3 className="font-semibold text-neutral-900 mb-2">Avis authentiques</h3>
+              <p className="text-sm text-neutral-600">Consultez les avis clients réels pour faire le meilleur choix.</p>
+            </div>
+
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-warning-50 to-warning-100 text-warning-600 mb-4">
+                <Clock size={32} />
+              </div>
+              <h3 className="font-semibold text-neutral-900 mb-2">Réponse rapide</h3>
+              <p className="text-sm text-neutral-600">Nos prestataires s'engagent à répondre dans les 24 heures.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Start Guide */}
+      <section className="py-20 bg-gradient-to-br from-primary-50 to-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-neutral-900">Commencez en 3 étapes</h2>
+            <p className="mt-3 text-lg text-neutral-600">Simple et rapide, pas besoin d'expérience technique</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="relative">
+              <div className="card p-8 relative z-10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white font-bold text-xl mb-4">
+                  1
+                </div>
+                <h3 className="font-semibold text-neutral-900 mb-2">Créez votre compte</h3>
+                <p className="text-sm text-neutral-600 mb-4">Inscription gratuite en 2 minutes. Juste votre email et quelques informations de base.</p>
+                <ul className="space-y-2 text-sm text-neutral-600">
+                  <li className="flex items-center gap-2">
+                    <Check size={16} className="text-success-500" />
+                    Inscription gratuite
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={16} className="text-success-500" />
+                    Vérification email
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={16} className="text-success-500" />
+                    Profil personnalisable
+                  </li>
+                </ul>
+              </div>
+              <div className="hidden md:block absolute top-1/2 -right-4 z-20">
+                <ChevronRight size={32} className="text-primary-300" />
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="card p-8 relative z-10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white font-bold text-xl mb-4">
+                  2
+                </div>
+                <h3 className="font-semibold text-neutral-900 mb-2">Complétez votre profil</h3>
+                <p className="text-sm text-neutral-600 mb-4">Ajoutez vos compétences, portfolio et disponibilités pour attirer les clients.</p>
+                <ul className="space-y-2 text-sm text-neutral-600">
+                  <li className="flex items-center gap-2">
+                    <Check size={16} className="text-success-500" />
+                    Portfolio photo
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={16} className="text-success-500" />
+                    Compétences et certifications
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={16} className="text-success-500" />
+                    Calendrier de disponibilité
+                  </li>
+                </ul>
+              </div>
+              <div className="hidden md:block absolute top-1/2 -right-4 z-20">
+                <ChevronRight size={32} className="text-primary-300" />
+              </div>
+            </div>
+
+            <div className="card p-8">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white font-bold text-xl mb-4">
+                3
+              </div>
+              <h3 className="font-semibold text-neutral-900 mb-2">Recevez des demandes</h3>
+              <p className="text-sm text-neutral-600 mb-4">Les clients vous contactent directement via la messagerie intégrée.</p>
+              <ul className="space-y-2 text-sm text-neutral-600">
+                <li className="flex items-center gap-2">
+                  <Check size={16} className="text-success-500" />
+                  Notifications en temps réel
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={16} className="text-success-500" />
+                  Messagerie sécurisée
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={16} className="text-success-500" />
+                  Gestion des devis
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CTA - Bento Grid */}
       <BentoSection className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800">
