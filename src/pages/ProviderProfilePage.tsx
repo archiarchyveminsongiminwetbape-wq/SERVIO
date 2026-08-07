@@ -38,9 +38,13 @@ export default function ProviderProfilePage() {
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [respondingToReview, setRespondingToReview] = useState<string | null>(null);
+  const [responseText, setResponseText] = useState('');
+  const [submittingResponse, setSubmittingResponse] = useState(false);
+  const [reviewSort, setReviewSort] = useState<'recent' | 'rating_high' | 'rating_low'>('recent');
   const [hasReviewed, setHasReviewed] = useState(false);
 
   useEffect(() => {
@@ -189,6 +193,42 @@ export default function ProviderProfilePage() {
       });
     }
     setSubmittingReview(false);
+  };
+
+  const submitResponse = async (reviewId: string) => {
+    if (!user || !provider || !responseText.trim()) return;
+
+    setSubmittingResponse(true);
+    const { error } = await supabase
+      .from('reviews')
+      .update({
+        provider_response: responseText.trim(),
+        provider_response_at: new Date().toISOString(),
+      })
+      .eq('id', reviewId);
+
+    if (!error) {
+      setReviews(reviews.map(r => 
+        r.id === reviewId 
+          ? { ...r, provider_response: responseText.trim(), provider_response_at: new Date().toISOString() }
+          : r
+      ));
+      setRespondingToReview(null);
+      setResponseText('');
+    }
+    setSubmittingResponse(false);
+  };
+
+  const getSortedReviews = () => {
+    const sorted = [...reviews];
+    if (reviewSort === 'recent') {
+      return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (reviewSort === 'rating_high') {
+      return sorted.sort((a, b) => b.rating - a.rating);
+    } else if (reviewSort === 'rating_low') {
+      return sorted.sort((a, b) => a.rating - b.rating);
+    }
+    return sorted;
   };
 
   const shareProfile = async () => {
@@ -458,9 +498,22 @@ export default function ProviderProfilePage() {
                 </div>
               )}
 
-              {reviews.length > 0 ? (
+              <div className="mb-6 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-neutral-900">Avis ({reviews.length})</h3>
+                <select
+                  value={reviewSort}
+                  onChange={(e) => setReviewSort(e.target.value as 'recent' | 'rating_high' | 'rating_low')}
+                  className="input-field text-sm py-1.5"
+                >
+                  <option value="recent">Plus récents</option>
+                  <option value="rating_high">Meilleures notes</option>
+                  <option value="rating_low">Moins bonnes notes</option>
+                </select>
+              </div>
+
+              {getSortedReviews().length > 0 ? (
                 <div className="space-y-4">
-                  {reviews.map((review) => (
+                  {getSortedReviews().map((review) => (
                     <div key={review.id} className="card p-5">
                       <div className="flex items-start gap-3">
                         {review.author?.avatar_url ? (
@@ -483,6 +536,40 @@ export default function ProviderProfilePage() {
                             <div className="mt-3 rounded-lg bg-neutral-50 p-3">
                               <p className="text-xs font-semibold text-neutral-700">Réponse du prestataire</p>
                               <p className="mt-1 text-sm text-neutral-600">{review.provider_response}</p>
+                            </div>
+                          )}
+                          {isOwnProfile && !review.provider_response && (
+                            <button
+                              onClick={() => setRespondingToReview(review.id)}
+                              className="mt-3 text-sm font-medium text-primary-600 hover:text-primary-700"
+                            >
+                              Répondre à cet avis
+                            </button>
+                          )}
+                          {respondingToReview === review.id && (
+                            <div className="mt-3 rounded-lg bg-primary-50 p-3">
+                              <textarea
+                                value={responseText}
+                                onChange={(e) => setResponseText(e.target.value)}
+                                className="input-field resize-none mb-2"
+                                rows={3}
+                                placeholder="Votre réponse..."
+                              />
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => { setRespondingToReview(null); setResponseText(''); }}
+                                  className="btn-secondary text-sm py-1.5"
+                                >
+                                  Annuler
+                                </button>
+                                <button
+                                  onClick={() => submitResponse(review.id)}
+                                  disabled={submittingResponse || !responseText.trim()}
+                                  className="btn-primary text-sm py-1.5"
+                                >
+                                  {submittingResponse ? <Loader2 size={14} className="animate-spin" /> : 'Envoyer'}
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
