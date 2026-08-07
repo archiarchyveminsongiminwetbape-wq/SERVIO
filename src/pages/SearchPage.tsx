@@ -15,6 +15,7 @@ export default function SearchPage() {
   const [selectedSubCat, setSelectedSubCat] = useState<string>('');
   const [providers, setProviders] = useState<ProviderProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
@@ -28,6 +29,8 @@ export default function SearchPage() {
   const [minExperience, setMinExperience] = useState(searchParams.get('experience') ?? '');
   const [remoteOnly, setRemoteOnly] = useState(searchParams.get('remote') === 'true');
   const [language, setLanguage] = useState(searchParams.get('language') ?? '');
+  const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get('verified') === 'true');
+  const [responseTime, setResponseTime] = useState(searchParams.get('response') ?? '');
 
   // Load subcategories when a category is selected
   useEffect(() => {
@@ -45,67 +48,92 @@ export default function SearchPage() {
 
   const doSearch = useCallback(async () => {
     setLoading(true);
-    let q = supabase
-      .from('provider_profiles')
-      .select('*, category:categories(*)')
-      .eq('validation_status', 'approved');
+    setError(null);
+    try {
+      let q = supabase
+        .from('provider_profiles')
+        .select('*, category:categories(*)')
+        .eq('validation_status', 'approved');
 
-    if (query.trim()) {
-      q = q.or(`business_name.ilike.%${query}%,headline.ilike.%${query}%,description.ilike.%${query}%,skills.cs.{${query}}`);
-    }
-    if (categorySlug) {
-      const cat = categoryTaxonomy.find((c) => c.slug === categorySlug);
-      if (cat) {
-        // If a subcategory is selected, filter by it; otherwise filter by parent + all children
-        if (selectedSubCat) {
-          const subCat = subCategories.find((sc) => sc.slug === selectedSubCat);
-          if (subCat) {
-            // Filter by subcategory slug
-            q = q.ilike('category_slug', `%${subCat.slug}%`);
+      if (query.trim()) {
+        q = q.or(`business_name.ilike.%${query}%,headline.ilike.%${query}%,description.ilike.%${query}%,skills.cs.{${query}}`);
+      }
+      if (categorySlug) {
+        const cat = categoryTaxonomy.find((c) => c.slug === categorySlug);
+        if (cat) {
+          // If a subcategory is selected, filter by it; otherwise filter by parent + all children
+          if (selectedSubCat) {
+            const subCat = subCategories.find((sc) => sc.slug === selectedSubCat);
+            if (subCat) {
+              // Filter by subcategory slug
+              q = q.ilike('category_slug', `%${subCat.slug}%`);
+            }
+          } else {
+            // Filter by sector slug
+            q = q.ilike('category_slug', `%${cat.slug}%`);
           }
-        } else {
-          // Filter by sector slug
-          q = q.ilike('category_slug', `%${cat.slug}%`);
         }
       }
-    }
-    if (city.trim()) {
-      q = q.ilike('city', `%${city}%`);
-    }
-    if (country.trim()) {
-      q = q.eq('country', country);
-    }
-    if (minRating) {
-      q = q.gte('rating_avg', parseFloat(minRating));
-    }
-    if (availability) {
-      q = q.eq('availability', availability);
-    }
-    if (priceRange) {
-      q = q.ilike('price_range', `%${priceRange}%`);
-    }
-    if (minExperience) {
-      q = q.gte('experience_years', parseInt(minExperience));
-    }
-    if (remoteOnly) {
-      q = q.eq('remote_service', true);
-    }
-    if (language) {
-      q = q.contains('languages', [language]);
-    }
+      if (city.trim()) {
+        q = q.ilike('city', `%${city}%`);
+      }
+      if (country.trim()) {
+        q = q.eq('country', country);
+      }
+      if (minRating) {
+        q = q.gte('rating_avg', parseFloat(minRating));
+      }
+      if (availability) {
+        q = q.eq('availability', availability);
+      }
+      if (priceRange) {
+        q = q.ilike('price_range', `%${priceRange}%`);
+      }
+      if (minExperience) {
+        q = q.gte('experience_years', parseInt(minExperience));
+      }
+      if (remoteOnly) {
+        q = q.eq('remote_service', true);
+      }
+      if (language) {
+        q = q.contains('languages', [language]);
+      }
+      if (verifiedOnly) {
+        q = q.eq('is_verified', true);
+      }
+      if (responseTime) {
+        q = q.lte('response_time_hours', parseInt(responseTime));
+      }
 
-    if (sortBy === 'rating') {
-      q = q.order('rating_avg', { ascending: false });
-    } else if (sortBy === 'recent') {
-      q = q.order('created_at', { ascending: false });
-    } else {
-      q = q.order('is_featured', { ascending: false }).order('rating_avg', { ascending: false });
-    }
+      if (sortBy === 'rating') {
+        q = q.order('rating_avg', { ascending: false });
+      } else if (sortBy === 'recent') {
+        q = q.order('created_at', { ascending: false });
+      } else if (sortBy === 'price_low') {
+        q = q.order('price_min', { ascending: true });
+      } else if (sortBy === 'price_high') {
+        q = q.order('price_max', { ascending: false });
+      } else if (sortBy === 'experience') {
+        q = q.order('experience_years', { ascending: false });
+      } else {
+        q = q.order('is_featured', { ascending: false }).order('rating_avg', { ascending: false });
+      }
 
-    const { data } = await q.limit(24);
-    setProviders(data as ProviderProfile[] ?? []);
-    setLoading(false);
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language]);
+      const { data, error: fetchError } = await q.limit(24);
+      
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      setProviders(data as ProviderProfile[] ?? []);
+    } catch (err) {
+      console.error('Error searching providers:', err);
+      setError('Une erreur est survenue lors de la recherche. Veuillez réessayer.');
+      setProviders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -120,11 +148,13 @@ export default function SearchPage() {
       if (minExperience) params.experience = minExperience;
       if (remoteOnly) params.remote = 'true';
       if (language) params.language = language;
+      if (verifiedOnly) params.verified = 'true';
+      if (responseTime) params.response = responseTime;
       if (sortBy !== 'featured') params.sort = sortBy;
       setSearchParams(params);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, categoryTaxonomy, subCategories, doSearch, setSearchParams]);
+  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, categoryTaxonomy, subCategories, doSearch, setSearchParams]);
 
   const clearFilters = () => {
     setQuery('');
@@ -138,10 +168,12 @@ export default function SearchPage() {
     setMinExperience('');
     setRemoteOnly(false);
     setLanguage('');
+    setVerifiedOnly(false);
+    setResponseTime('');
     setSortBy('featured');
   };
 
-  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language;
+  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -328,6 +360,34 @@ export default function SearchPage() {
                     <span className="text-sm text-neutral-700">Service à distance uniquement</span>
                   </label>
                 </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={verifiedOnly}
+                      onChange={(e) => setVerifiedOnly(e.target.checked)}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">Prestataires vérifiés uniquement</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="label">Temps de réponse</label>
+                  <select
+                    value={responseTime}
+                    onChange={(e) => setResponseTime(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Tous</option>
+                    <option value="1">Moins d'1 heure</option>
+                    <option value="3">Moins de 3 heures</option>
+                    <option value="6">Moins de 6 heures</option>
+                    <option value="12">Moins de 12 heures</option>
+                    <option value="24">Moins de 24 heures</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -356,6 +416,9 @@ export default function SearchPage() {
                   <option value="featured">En vedette</option>
                   <option value="rating">Meilleures notes</option>
                   <option value="recent">Plus récents</option>
+                  <option value="price_low">Prix croissant</option>
+                  <option value="price_high">Prix décroissant</option>
+                  <option value="experience">Plus d'expérience</option>
                 </select>
               </div>
             </BentoCard>
@@ -363,6 +426,15 @@ export default function SearchPage() {
             {loading ? (
               <BentoCard colSpan={3} className="flex items-center justify-center py-20">
                 <Loader2 size={32} className="animate-spin text-primary-500" />
+              </BentoCard>
+            ) : error ? (
+              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-20 text-center">
+                <AlertCircle size={48} className="text-error-500" />
+                <h3 className="mt-4 text-lg font-semibold text-neutral-900">Erreur de recherche</h3>
+                <p className="mt-1 text-sm text-neutral-500">{error}</p>
+                <button onClick={doSearch} className="btn-primary mt-4">
+                  Réessayer
+                </button>
               </BentoCard>
             ) : providers.length > 0 ? (
               providers.map((p) => (
