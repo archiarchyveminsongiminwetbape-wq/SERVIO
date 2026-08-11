@@ -31,7 +31,7 @@ export default function ProviderProfilePage() {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null);
+  const [lightbox, setLightbox] = useState<{ photos: string[]; videos: string[]; index: number; type: 'photo' | 'video' } | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messageText, setMessageText] = useState('');
@@ -47,7 +47,9 @@ export default function ProviderProfilePage() {
   const [reviewSort, setReviewSort] = useState<'recent' | 'rating_high' | 'rating_low'>('recent');
   const [hasReviewed, setHasReviewed] = useState(false);
   const [portfolioFilter, setPortfolioFilter] = useState('');
-  const [portfolioSort, setPortfolioSort] = useState<'recent' | 'title'>('recent');
+  const [portfolioSort, setPortfolioSort] = useState<'recent' | 'title' | 'featured'>('recent');
+  const [portfolioTypeFilter, setPortfolioTypeFilter] = useState<'all' | 'photos' | 'videos'>('all');
+  const [portfolioTagFilter, setPortfolioTagFilter] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -236,6 +238,14 @@ export default function ProviderProfilePage() {
   const getFilteredPortfolio = () => {
     let filtered = [...portfolio];
     
+    // Filter by type (photos/videos)
+    if (portfolioTypeFilter === 'photos') {
+      filtered = filtered.filter(item => item.photos.length > 0);
+    } else if (portfolioTypeFilter === 'videos') {
+      filtered = filtered.filter(item => item.videos && item.videos.length > 0);
+    }
+    
+    // Filter by search query
     if (portfolioFilter.trim()) {
       const filter = portfolioFilter.toLowerCase();
       filtered = filtered.filter(item => 
@@ -245,10 +255,24 @@ export default function ProviderProfilePage() {
       );
     }
     
+    // Filter by tag
+    if (portfolioTagFilter.trim()) {
+      filtered = filtered.filter(item => 
+        item.tags.some(tag => tag.toLowerCase().includes(portfolioTagFilter.toLowerCase()))
+      );
+    }
+    
+    // Sort
     if (portfolioSort === 'recent') {
       return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     } else if (portfolioSort === 'title') {
       return filtered.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (portfolioSort === 'featured') {
+      return filtered.sort((a, b) => {
+        if (a.featured && !b.featured) return -1;
+        if (!a.featured && b.featured) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
     }
     
     return filtered;
@@ -415,15 +439,49 @@ export default function ProviderProfilePage() {
                         placeholder="Rechercher dans les réalisations..."
                       />
                     </div>
-                    <select
-                      value={portfolioSort}
-                      onChange={(e) => setPortfolioSort(e.target.value as 'recent' | 'title')}
-                      className="input-field sm:w-48"
-                    >
-                      <option value="recent">Plus récents</option>
-                      <option value="title">Par titre</option>
-                    </select>
+                    <div className="flex flex-wrap gap-2">
+                      <select
+                        value={portfolioTypeFilter}
+                        onChange={(e) => setPortfolioTypeFilter(e.target.value as 'all' | 'photos' | 'videos')}
+                        className="input-field sm:w-40"
+                      >
+                        <option value="all">Tous les médias</option>
+                        <option value="photos">Photos</option>
+                        <option value="videos">Vidéos</option>
+                      </select>
+                      <select
+                        value={portfolioSort}
+                        onChange={(e) => setPortfolioSort(e.target.value as 'recent' | 'title' | 'featured')}
+                        className="input-field sm:w-40"
+                      >
+                        <option value="recent">Plus récents</option>
+                        <option value="featured">En vedette</option>
+                        <option value="title">Par titre</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {/* Tag filter */}
+                  {portfolio.length > 0 && (
+                    <div className="mb-6 flex flex-wrap gap-2 items-center">
+                      <span className="text-sm font-medium text-neutral-700">Tags:</span>
+                      <button
+                        onClick={() => setPortfolioTagFilter('')}
+                        className={`badge ${!portfolioTagFilter ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                      >
+                        Tous
+                      </button>
+                      {Array.from(new Set(portfolio.flatMap(item => item.tags))).slice(0, 10).map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => setPortfolioTagFilter(tag)}
+                          className={`badge ${portfolioTagFilter === tag ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Portfolio grid */}
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -439,6 +497,12 @@ export default function ProviderProfilePage() {
                                   muted
                                   onMouseEnter={(e) => e.currentTarget.play()}
                                   onMouseLeave={(e) => e.currentTarget.pause()}
+                                  onClick={() => setLightbox({ 
+                                    photos: item.photos, 
+                                    videos: item.videos || [], 
+                                    index: 0, 
+                                    type: 'video' 
+                                  })}
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Play size={32} className="text-white" />
@@ -454,7 +518,12 @@ export default function ProviderProfilePage() {
                                 alt={item.title}
                                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 loading="lazy"
-                                onClick={() => setLightbox({ photos: item.photos, index: 0 })}
+                                onClick={() => setLightbox({ 
+                                  photos: item.photos, 
+                                  videos: item.videos || [], 
+                                  index: 0, 
+                                  type: 'photo' 
+                                })}
                               />
                             )}
                             {item.photos.length > 1 && !item.videos?.[0] && (
@@ -847,51 +916,85 @@ export default function ProviderProfilePage() {
             <X size={28} />
           </button>
           
-          <button
-            className="absolute left-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.photos.length) % lightbox.photos.length });
-            }}
-          >
-            <ChevronLeft size={36} />
-          </button>
+          {lightbox.type === 'photo' && (
+            <>
+              <button
+                className="absolute left-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.photos.length) % lightbox.photos.length });
+                }}
+              >
+                <ChevronLeft size={36} />
+              </button>
+              
+              <button
+                className="absolute right-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.photos.length });
+                }}
+              >
+                <ChevronRight size={36} />
+              </button>
+              
+              <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+                <img
+                  src={lightbox.photos[lightbox.index]}
+                  alt={`Photo ${lightbox.index + 1}`}
+                  className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
+                />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-white text-sm">
+                  <span>{lightbox.index + 1} / {lightbox.photos.length}</span>
+                </div>
+              </div>
+              
+              {/* Thumbnails */}
+              {lightbox.photos.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  {lightbox.photos.map((photo, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setLightbox({ ...lightbox, index: idx })}
+                      className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${
+                        idx === lightbox.index ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={photo} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
           
-          <button
-            className="absolute right-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.photos.length });
-            }}
-          >
-            <ChevronRight size={36} />
-          </button>
-          
-          <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={lightbox.photos[lightbox.index]}
-              alt={`Photo ${lightbox.index + 1}`}
-              className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
-            />
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-white text-sm">
-              <span>{lightbox.index + 1} / {lightbox.photos.length}</span>
-            </div>
-          </div>
-          
-          {/* Thumbnails */}
-          {lightbox.photos.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-              {lightbox.photos.map((photo, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setLightbox({ ...lightbox, index: idx })}
-                  className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${
-                    idx === lightbox.index ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'
-                  }`}
-                >
-                  <img src={photo} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />
-                </button>
-              ))}
+          {lightbox.type === 'video' && (
+            <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+              <video
+                src={lightbox.videos[lightbox.index]}
+                controls
+                autoPlay
+                className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
+              />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-white text-sm">
+                <span>{lightbox.index + 1} / {lightbox.videos.length}</span>
+              </div>
+              
+              {lightbox.videos.length > 1 && (
+                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  {lightbox.videos.map((video, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setLightbox({ ...lightbox, index: idx })}
+                      className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${
+                        idx === lightbox.index ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'
+                      }`}
+                    >
+                      <video src={video} className="h-full w-full object-cover" muted />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

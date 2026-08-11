@@ -152,27 +152,27 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-neutral-900">Réserver un rendez-vous</h1>
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:py-8">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Réserver un rendez-vous</h1>
         <p className="mt-1 text-neutral-600">avec {provider.business_name}</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Provider Info */}
         <div className="md:col-span-1">
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             {provider.avatar_url ? (
-              <img src={provider.avatar_url} alt="" className="h-24 w-24 rounded-2xl object-cover mx-auto" />
+              <img src={provider.avatar_url} alt="" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover mx-auto" />
             ) : (
-              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-primary-100 text-3xl font-bold text-primary-700">
+              <div className="mx-auto flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-primary-100 text-2xl sm:text-3xl font-bold text-primary-700">
                 {provider.business_name[0]}
               </div>
             )}
-            <h3 className="mt-4 text-center font-semibold text-neutral-900">{provider.business_name}</h3>
+            <h3 className="mt-3 sm:mt-4 text-center font-semibold text-neutral-900 text-base sm:text-lg">{provider.business_name}</h3>
             <p className="mt-1 text-center text-sm text-neutral-600">{provider.headline}</p>
             {provider.city && (
-              <div className="mt-3 flex items-center justify-center gap-1 text-sm text-neutral-500">
+              <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1 text-sm text-neutral-500">
                 <MapPin size={14} />
                 {provider.city}
               </div>
@@ -183,10 +183,10 @@ export default function BookingPage() {
         {/* Booking Form */}
         <div className="md:col-span-2">
           {step === 'select' && (
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Choisir un créneau</h3>
+            <div className="card p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-4">Choisir un créneau</h3>
               
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <label className="label">Type de service</label>
                 <input
                   type="text"
@@ -197,14 +197,14 @@ export default function BookingPage() {
                 />
               </div>
 
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 <label className="label">Durée</label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {getDurationOptions().map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => setDuration(opt.value)}
-                      className={`px-4 py-2 rounded-lg border transition-colors ${
+                      className={`px-3 sm:px-4 py-2 rounded-lg border text-sm transition-colors ${
                         duration === opt.value
                           ? 'border-primary-500 bg-primary-50 text-primary-700'
                           : 'border-neutral-200 hover:border-neutral-300'
@@ -217,10 +217,10 @@ export default function BookingPage() {
               </div>
               
               {slots.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar size={48} className="mx-auto text-neutral-300" />
-                  <p className="mt-3 text-neutral-600">Aucun créneau disponible</p>
-                  <p className="text-sm text-neutral-400">Le prestataire n'a pas encore défini ses disponibilités</p>
+                <div className="text-center py-6 sm:py-8">
+                  <Calendar size={40} className="mx-auto text-neutral-300" />
+                  <p className="mt-3 text-sm sm:text-base text-neutral-600">Aucun créneau disponible</p>
+                  <p className="text-xs sm:text-sm text-neutral-400">Le prestataire n'a pas encore défini ses disponibilités</p>
                 </div>
               ) : (
                 <>
@@ -231,7 +231,7 @@ export default function BookingPage() {
                         <button
                           key={date}
                           onClick={() => setSelectedDate(date)}
-                          className={`px-4 py-2 rounded-lg border transition-colors ${
+                          className={`px-3 sm:px-4 py-2 rounded-lg border text-sm transition-colors ${
                             selectedDate === date
                               ? 'border-primary-500 bg-primary-50 text-primary-700'
                               : 'border-neutral-200 hover:border-neutral-300'
@@ -247,12 +247,12 @@ export default function BookingPage() {
                   </div>
 
                   {selectedDate && (
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto">
                       {getSlotsForDate(selectedDate).map((slot) => (
                         <button
                           key={slot.id}
                           onClick={() => setSelectedSlot(slot)}
-                          className={`w-full flex items-center justify-between rounded-lg border p-4 text-left transition-colors ${
+                          className={`w-full flex items-center justify-between rounded-lg border p-3 sm:p-4 text-left transition-colors ${
                             selectedSlot?.id === slot.id
                               ? 'border-primary-500 bg-primary-50'
                               : 'border-neutral-200 hover:border-neutral-300'
@@ -277,7 +277,7 @@ export default function BookingPage() {
                 </>
               )}
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-4 sm:mt-6 flex justify-end">
                 <button
                   onClick={() => setStep('confirm')}
                   disabled={!selectedSlot}
@@ -290,12 +290,12 @@ export default function BookingPage() {
           )}
 
           {step === 'confirm' && (
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <button onClick={() => setStep('select')} className="text-sm text-neutral-600 hover:text-neutral-900 mb-4">
                 ← Retour aux créneaux
               </button>
 
-              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Confirmer le rendez-vous</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-4">Confirmer le rendez-vous</h3>
 
               <div className="space-y-4">
                 <div className="rounded-lg bg-neutral-50 p-4">
@@ -318,38 +318,39 @@ export default function BookingPage() {
 
                 <div>
                   <label className="label">Type de rendez-vous</label>
-                  <div className="mt-2 grid grid-cols-3 gap-3">
+                  <div className="mt-2 grid grid-cols-3 gap-2 sm:gap-3">
                     <button
                       onClick={() => setLocationType('in_person')}
-                      className={`flex items-center justify-center gap-2 rounded-lg border p-3 transition-colors ${
+                      className={`flex items-center justify-center gap-1 sm:gap-2 rounded-lg border p-2 sm:p-3 text-xs sm:text-sm transition-colors ${
                         locationType === 'in_person'
                           ? 'border-primary-500 bg-primary-50 text-primary-700'
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                     >
-                      <MapPin size={18} />
-                      En personne
+                      <MapPin size={16} />
+                      <span className="hidden sm:inline">En personne</span>
+                      <span className="sm:hidden">Présentiel</span>
                     </button>
                     <button
                       onClick={() => setLocationType('remote')}
-                      className={`flex items-center justify-center gap-2 rounded-lg border p-3 transition-colors ${
+                      className={`flex items-center justify-center gap-1 sm:gap-2 rounded-lg border p-2 sm:p-3 text-xs sm:text-sm transition-colors ${
                         locationType === 'remote'
                           ? 'border-primary-500 bg-primary-50 text-primary-700'
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                     >
-                      <Video size={18} />
+                      <Video size={16} />
                       Visio
                     </button>
                     <button
                       onClick={() => setLocationType('hybrid')}
-                      className={`flex items-center justify-center gap-2 rounded-lg border p-3 transition-colors ${
+                      className={`flex items-center justify-center gap-1 sm:gap-2 rounded-lg border p-2 sm:p-3 text-xs sm:text-sm transition-colors ${
                         locationType === 'hybrid'
                           ? 'border-primary-500 bg-primary-50 text-primary-700'
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                     >
-                      <User size={18} />
+                      <User size={16} />
                       Hybride
                     </button>
                   </div>
@@ -380,14 +381,14 @@ export default function BookingPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3">
-                <button onClick={() => setStep('select')} className="btn-secondary">
+              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+                <button onClick={() => setStep('select')} className="btn-secondary w-full sm:w-auto">
                   Annuler
                 </button>
                 <button
                   onClick={handleSubmitBooking}
                   disabled={submitting || ((locationType === 'in_person' || locationType === 'hybrid') && !address)}
-                  className="btn-primary"
+                  className="btn-primary w-full sm:w-auto"
                 >
                   {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirmer le rendez-vous'}
                 </button>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';

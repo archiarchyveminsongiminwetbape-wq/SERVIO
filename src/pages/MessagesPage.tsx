@@ -219,12 +219,12 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
       <h1 className="mb-4 text-2xl font-bold text-neutral-900">Messagerie</h1>
 
-      <div className="card flex h-[calc(100vh-200px)] overflow-hidden">
+      <div className="card flex h-[calc(100vh-180px)] min-h-[500px] overflow-hidden flex-col md:flex-row">
         {/* Conversations list */}
-        <div className={`w-full border-r border-neutral-200 md:w-80 ${selectedConv ? 'hidden md:block' : ''}`}>
+        <div className={`w-full border-b border-neutral-200 md:border-b-0 md:border-r md:w-80 ${selectedConv ? 'hidden md:flex' : 'flex'} flex-col`}>
           <div className="border-b border-neutral-200 p-3">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -238,14 +238,14 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          <div className="overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
             {filteredConversations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                 <MessageSquare size={40} className="text-neutral-300" />
                 <p className="mt-3 text-sm text-neutral-500">
                   {searchQuery ? 'Aucun résultat' : 'Aucune conversation'}
                 </p>
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-neutral-400 mt-1">
                   {searchQuery ? 'Essayez une autre recherche' : 'Contactez un prestataire pour commencer'}
                 </p>
               </div>
@@ -262,7 +262,7 @@ export default function MessagesPage() {
                       selectedConv?.id === conv.id ? 'bg-primary-50' : ''
                     }`}
                   >
-                    <div className="relative">
+                    <div className="relative flex-shrink-0">
                       {conv.other_user?.avatar_url ? (
                         <img src={conv.other_user.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
                       ) : (
@@ -280,7 +280,7 @@ export default function MessagesPage() {
                           {conv.other_provider?.business_name ?? conv.other_user?.full_name ?? 'Utilisateur'}
                         </p>
                         {conv.last_message_at && (
-                          <span className="text-xs text-neutral-400">{formatRelativeTime(conv.last_message_at)}</span>
+                          <span className="text-xs text-neutral-400 flex-shrink-0 ml-2">{formatRelativeTime(conv.last_message_at)}</span>
                         )}
                       </div>
                       <p className="truncate text-xs text-neutral-500">
@@ -296,27 +296,27 @@ export default function MessagesPage() {
 
         {/* Chat area */}
         {selectedConv ? (
-          <div className="flex flex-1 flex-col">
-            <div className="flex items-center gap-3 border-b border-neutral-200 p-4">
+          <div className="flex flex-1 flex-col min-w-0">
+            <div className="flex items-center gap-3 border-b border-neutral-200 p-4 flex-shrink-0">
               <button
                 onClick={() => setSelectedConv(null)}
-                className="text-neutral-400 hover:text-neutral-600 md:hidden"
+                className="text-neutral-400 hover:text-neutral-600 md:hidden flex-shrink-0"
               >
                 <ArrowLeft size={20} />
               </button>
               {selectedConv.other_user?.avatar_url ? (
-                <img src={selectedConv.other_user.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                <img src={selectedConv.other_user.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover flex-shrink-0" />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700 flex-shrink-0">
                   {selectedConv.other_user?.full_name?.[0]?.toUpperCase() ?? '?'}
                 </div>
               )}
-              <div>
-                <p className="font-semibold text-neutral-900">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-neutral-900 truncate">
                   {selectedConv.other_provider?.business_name ?? selectedConv.other_user?.full_name}
                 </p>
                 {selectedConv.other_provider?.headline && (
-                  <p className="text-xs text-neutral-500">{selectedConv.other_provider.headline}</p>
+                  <p className="text-xs text-neutral-500 truncate">{selectedConv.other_provider.headline}</p>
                 )}
               </div>
             </div>
@@ -331,13 +331,13 @@ export default function MessagesPage() {
                       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                           isOwn
                             ? 'bg-primary-600 text-white'
                             : 'bg-white text-neutral-900 shadow-sm'
                         }`}
                       >
-                        <p>{msg.content}</p>
+                        <p className="break-words">{msg.content}</p>
                         <p className={`mt-1 text-xs ${isOwn ? 'text-primary-200' : 'text-neutral-400'}`}>
                           {formatRelativeTime(msg.created_at)}
                         </p>
@@ -349,7 +349,7 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            <div className="border-t border-neutral-200 p-4">
+            <div className="border-t border-neutral-200 p-4 flex-shrink-0">
               <div className="mb-2 flex flex-wrap gap-2">
                 <button
                   onClick={() => setShowQuickReplies(!showQuickReplies)}
@@ -358,15 +358,19 @@ export default function MessagesPage() {
                   <Zap size={12} />
                   Réponses rapides
                 </button>
-                {showQuickReplies && quickReplies.map((qr, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setNewMessage(qr); setShowQuickReplies(false); }}
-                    className="rounded-lg bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600 transition-colors hover:bg-neutral-200"
-                  >
-                    {qr.length > 40 ? qr.slice(0, 40) + '...' : qr}
-                  </button>
-                ))}
+                {showQuickReplies && (
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {quickReplies.map((qr, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setNewMessage(qr); setShowQuickReplies(false); }}
+                        className="rounded-lg bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600 transition-colors hover:bg-neutral-200"
+                      >
+                        {qr.length > 40 ? qr.slice(0, 40) + '...' : qr}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -380,13 +384,13 @@ export default function MessagesPage() {
                 <button
                   onClick={sendMessage}
                   disabled={sending || !newMessage.trim()}
-                  className="btn-primary px-3 py-2.5"
+                  className="btn-primary px-3 py-2.5 flex-shrink-0"
                 >
                   {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 </button>
               </div>
               {isTyping && (
-                <div className="flex items-center gap-1 text-xs text-neutral-500">
+                <div className="flex items-center gap-1 text-xs text-neutral-500 mt-2">
                   <div className="flex gap-1">
                     <div className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                     <div className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -398,8 +402,8 @@ export default function MessagesPage() {
             </div>
           </div>
         ) : (
-          <div className="hidden flex-1 items-center justify-center md:flex">
-            <div className="text-center">
+          <div className="hidden md:flex flex-1 items-center justify-center">
+            <div className="text-center px-4">
               <MessageSquare size={48} className="mx-auto text-neutral-300" />
               <p className="mt-4 text-sm text-neutral-500">Sélectionnez une conversation</p>
             </div>
