@@ -110,4 +110,61 @@ body {
       @apply min-h-[44px] min-w-[44px];
     }
   }
+
+  /* Error states */
+  .input-error {
+    @apply border-error-500 focus:border-error-500 focus:ring-error-500/10;
+  }
+
+  .error-message {
+    @apply mt-1 text-xs text-error-600;
+  }
+
+  .success-message {
+    @apply mt-1 text-xs text-success-600;
+  }
+
+  /* Loading states */
+  .loading-overlay {
+    @apply absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm;
+  }
+
+  .skeleton-text {
+    @apply h-4 bg-neutral-200 rounded animate-pulse;
+  }
+
+  .skeleton-avatar {
+    @apply h-12 w-12 rounded-full bg-neutral-200 animate-pulse;
+  }
+
+  .skeleton-image {
+    @apply h-48 w-full bg-neutral-200 animate-pulse;
+  }
+
+  /* Focus visible for keyboard navigation */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  /* Reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .card {
+      @apply border-2;
+    }
+    
+    .btn-primary {
+      @apply border-2 border-white;
+    }
+  }
 }

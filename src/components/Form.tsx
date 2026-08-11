@@ -9,31 +9,39 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, icon, helperText, className = '', ...props }, ref) => {
+    const hasError = !!error;
     return (
       <div className="w-full">
         {label && (
-          <label className="label">
+          <label htmlFor={props.id} className="label">
             {label}
-            {props.required && <span className="text-error-500 ml-1">*</span>}
+            {props.required && <span className="text-error-500 ml-1" aria-label="Champ obligatoire">*</span>}
           </label>
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden="true">
               {icon}
             </div>
           )}
           <input
             ref={ref}
-            className={`input-field ${icon ? 'pl-10' : ''} ${error ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''} ${className}`}
+            id={props.id}
+            className={`input-field ${icon ? 'pl-10' : ''} ${hasError ? 'input-error' : ''} ${className}`}
+            aria-invalid={hasError}
+            aria-describedby={error ? `${props.id}-error` : helperText ? `${props.id}-helper` : undefined}
             {...props}
           />
         </div>
         {error && (
-          <p className="mt-1 text-sm text-error-600">{error}</p>
+          <p id={`${props.id}-error`} className="error-message" role="alert">
+            {error}
+          </p>
         )}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-neutral-500">{helperText}</p>
+          <p id={`${props.id}-helper`} className="mt-1 text-sm text-neutral-500">
+            {helperText}
+          </p>
         )}
       </div>
     );
@@ -50,24 +58,32 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ label, error, helperText, className = '', ...props }, ref) => {
+    const hasError = !!error;
     return (
       <div className="w-full">
         {label && (
-          <label className="label">
+          <label htmlFor={props.id} className="label">
             {label}
-            {props.required && <span className="text-error-500 ml-1">*</span>}
+            {props.required && <span className="text-error-500 ml-1" aria-label="Champ obligatoire">*</span>}
           </label>
         )}
         <textarea
           ref={ref}
-          className={`input-field min-h-[120px] ${error ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''} ${className}`}
+          id={props.id}
+          className={`input-field min-h-[120px] ${hasError ? 'input-error' : ''} ${className}`}
+          aria-invalid={hasError}
+          aria-describedby={error ? `${props.id}-error` : helperText ? `${props.id}-helper` : undefined}
           {...props}
         />
         {error && (
-          <p className="mt-1 text-sm text-error-600">{error}</p>
+          <p id={`${props.id}-error`} className="error-message" role="alert">
+            {error}
+          </p>
         )}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-neutral-500">{helperText}</p>
+          <p id={`${props.id}-helper`} className="mt-1 text-sm text-neutral-500">
+            {helperText}
+          </p>
         )}
       </div>
     );
@@ -85,17 +101,21 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, helperText, options, className = '', ...props }, ref) => {
+    const hasError = !!error;
     return (
       <div className="w-full">
         {label && (
-          <label className="label">
+          <label htmlFor={props.id} className="label">
             {label}
-            {props.required && <span className="text-error-500 ml-1">*</span>}
+            {props.required && <span className="text-error-500 ml-1" aria-label="Champ obligatoire">*</span>}
           </label>
         )}
         <select
           ref={ref}
-          className={`input-field ${error ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''} ${className}`}
+          id={props.id}
+          className={`input-field ${hasError ? 'input-error' : ''} ${className}`}
+          aria-invalid={hasError}
+          aria-describedby={error ? `${props.id}-error` : helperText ? `${props.id}-helper` : undefined}
           {...props}
         >
           {options.map((option) => (
@@ -105,10 +125,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && (
-          <p className="mt-1 text-sm text-error-600">{error}</p>
+          <p id={`${props.id}-error`} className="error-message" role="alert">
+            {error}
+          </p>
         )}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-neutral-500">{helperText}</p>
+          <p id={`${props.id}-helper`} className="mt-1 text-sm text-neutral-500">
+            {helperText}
+          </p>
         )}
       </div>
     );
@@ -124,19 +148,28 @@ interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, error, className = '', ...props }, ref) => {
+    const hasError = !!error;
     return (
       <div className="flex items-start gap-2">
         <input
           ref={ref}
+          id={props.id}
           type="checkbox"
-          className={`h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 ${error ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''} ${className}`}
+          className={`h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 ${hasError ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''} ${className}`}
+          aria-invalid={hasError}
+          aria-describedby={error ? `${props.id}-error` : undefined}
           {...props}
         />
         {label && (
-          <label className={`text-sm text-neutral-700 ${error ? 'text-error-700' : ''}`}>
+          <label htmlFor={props.id} className={`text-sm text-neutral-700 ${hasError ? 'text-error-700' : ''}`}>
             {label}
-            {props.required && <span className="text-error-500 ml-1">*</span>}
+            {props.required && <span className="text-error-500 ml-1" aria-label="Champ obligatoire">*</span>}
           </label>
+        )}
+        {error && (
+          <p id={`${props.id}-error`} className="error-message" role="alert">
+            {error}
+          </p>
         )}
       </div>
     );
@@ -155,8 +188,9 @@ interface RadioGroupProps {
 }
 
 export const RadioGroup = ({ label, error, options, value, onChange, name }: RadioGroupProps) => {
+  const hasError = !!error;
   return (
-    <div className="w-full">
+    <div className="w-full" role="radiogroup" aria-invalid={hasError} aria-describedby={error ? `${name}-error` : undefined}>
       {label && (
         <label className="label">
           {label}
@@ -166,6 +200,7 @@ export const RadioGroup = ({ label, error, options, value, onChange, name }: Rad
         {options.map((option) => (
           <label
             key={option.value}
+            htmlFor={`${name}-${option.value}`}
             className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
               value === option.value
                 ? 'border-primary-500 bg-primary-50'
@@ -174,19 +209,22 @@ export const RadioGroup = ({ label, error, options, value, onChange, name }: Rad
           >
             <input
               type="radio"
+              id={`${name}-${option.value}`}
               name={name}
               value={option.value}
               checked={value === option.value}
               onChange={(e) => onChange(e.target.value)}
               className="h-4 w-4 border-neutral-300 text-primary-600 focus:ring-primary-500"
             />
-            {option.icon && <span className="text-neutral-600">{option.icon}</span>}
+            {option.icon && <span className="text-neutral-600" aria-hidden="true">{option.icon}</span>}
             <span className="text-sm font-medium text-neutral-900">{option.label}</span>
           </label>
         ))}
       </div>
       {error && (
-        <p className="mt-1 text-sm text-error-600">{error}</p>
+        <p id={`${name}-error`} className="error-message" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );
