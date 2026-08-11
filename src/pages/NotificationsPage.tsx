@@ -162,10 +162,10 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Notifications</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Notifications</h1>
           <p className="mt-1 text-sm text-neutral-600">
             {unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}` : 'Toutes les notifications sont lues'}
           </p>
@@ -182,21 +182,28 @@ export default function NotificationsPage() {
             <button
               onClick={markAllAsRead}
               disabled={markingAll}
-              className="btn-secondary"
+              className="btn-secondary text-sm"
             >
-              {markingAll ? <span className="animate-spin">⏳</span> : <><CheckCheck size={18} /> Tout marquer comme lu</>}
+              {markingAll ? (
+                <span className="animate-spin">⏳</span>
+              ) : (
+                <>
+                  <CheckCheck size={16} className="sm:hidden" />
+                  <CheckCheck size={18} className="hidden sm:inline" /> Tout marquer comme lu
+                </>
+              )}
             </button>
           )}
         </div>
       </div>
 
       {/* Filter buttons */}
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-4 sm:mb-6 flex flex-wrap gap-2">
         {notificationTypes.map((type) => (
           <button
             key={type.value}
             onClick={() => setFilterType(type.value as any)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
               filterType === type.value
                 ? 'bg-primary-600 text-white'
                 : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
@@ -208,11 +215,12 @@ export default function NotificationsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-primary-500" />
+        <div className="flex items-center justify-center py-16 sm:py-20">
+          <Loader2 size={28} className="sm:hidden animate-spin text-primary-500" />
+          <Loader2 size={32} className="hidden sm:block animate-spin text-primary-500" />
         </div>
       ) : filteredNotifications.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {filteredNotifications.map((notification) => {
             const Icon = getNotificationIcon(notification.type);
             const colorClass = getNotificationColor(notification.type);
@@ -232,18 +240,20 @@ export default function NotificationsPage() {
                   }
                 }}
               >
-                <div className="flex gap-4">
-                  <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${colorClass}`}>
-                    <Icon size={20} />
+                <div className="flex gap-3 sm:gap-4">
+                  <div className={`flex h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full ${colorClass}`}>
+                    <Icon size={16} className="sm:hidden" />
+                    <Icon size={20} className="hidden sm:block" />
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className={`font-medium ${!notification.is_read ? 'text-neutral-900' : 'text-neutral-700'}`}>
+                      <h3 className={`font-medium text-sm sm:text-base ${!notification.is_read ? 'text-neutral-900' : 'text-neutral-700'}`}>
                         {notification.title}
                       </h3>
-                      <span className="flex items-center gap-1 text-xs text-neutral-500 whitespace-nowrap">
-                        <Clock size={12} />
+                      <span className="flex items-center gap-1 text-[10px] sm:text-xs text-neutral-500 whitespace-nowrap">
+                        <Clock size={10} className="sm:hidden" />
+                        <Clock size={12} className="hidden sm:block" />
                         {new Date(notification.created_at).toLocaleDateString('fr-FR', {
                           day: 'numeric',
                           month: 'short',
@@ -254,13 +264,13 @@ export default function NotificationsPage() {
                     </div>
                     
                     {notification.body && (
-                      <p className="mt-1 text-sm text-neutral-600 line-clamp-2">
+                      <p className="mt-1 text-xs sm:text-sm text-neutral-600 line-clamp-2">
                         {notification.body}
                       </p>
                     )}
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-1 sm:gap-2">
                     {!notification.is_read && (
                       <button
                         onClick={(e) => {
@@ -270,7 +280,8 @@ export default function NotificationsPage() {
                         className="p-1 text-neutral-400 hover:text-primary-600"
                         title="Marquer comme lu"
                       >
-                        <Check size={16} />
+                        <Check size={14} className="sm:hidden" />
+                        <Check size={16} className="hidden sm:block" />
                       </button>
                     )}
                     <button
@@ -281,7 +292,8 @@ export default function NotificationsPage() {
                       className="p-1 text-neutral-400 hover:text-error-600"
                       title="Supprimer"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} className="sm:hidden" />
+                      <Trash2 size={16} className="hidden sm:block" />
                     </button>
                   </div>
                 </div>
@@ -290,9 +302,10 @@ export default function NotificationsPage() {
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Bell size={48} className="text-neutral-300" />
-          <h3 className="mt-4 text-lg font-semibold text-neutral-900">
+        <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
+          <Bell size={40} className="sm:hidden text-neutral-300" />
+          <Bell size={48} className="hidden sm:block text-neutral-300" />
+          <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">
             {filterType === 'all' ? 'Aucune notification' : `Aucune notification "${notificationTypes.find(t => t.value === filterType)?.label}"`}
           </h3>
           <p className="mt-1 text-sm text-neutral-500">

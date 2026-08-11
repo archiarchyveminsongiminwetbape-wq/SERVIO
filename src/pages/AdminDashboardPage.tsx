@@ -262,14 +262,16 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
-          <Shield size={22} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Administration</h1>
-          <p className="text-sm text-neutral-600">Gestion de la plateforme SERVIO</p>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
+            <Shield size={22} />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Administration</h1>
+            <p className="text-sm text-neutral-600">Gestion de la plateforme SERVIO</p>
+          </div>
         </div>
       </div>
 
@@ -281,14 +283,15 @@ export default function AdminDashboardPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 sm:gap-2 whitespace-nowrap px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
                 tab === t.id ? 'border-b-2 border-primary-600 text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              <Icon size={16} />
+              <Icon size={14} className="sm:hidden" />
+              <Icon size={16} className="hidden sm:block" />
               {t.label}
               {t.badge !== undefined && t.badge > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1.5 text-xs font-bold text-white">
+                <span className="flex h-4 sm:h-5 min-w-4 sm:min-w-5 items-center justify-center rounded-full bg-error-500 px-1 sm:px-1.5 text-[10px] sm:text-xs font-bold text-white">
                   {t.badge}
                 </span>
               )}
@@ -299,7 +302,7 @@ export default function AdminDashboardPage() {
 
       {/* Stats */}
       {tab === 'stats' && (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { label: 'Utilisateurs inscrits', value: stats.users, icon: Users, color: 'bg-primary-50 text-primary-600' },
             { label: 'Prestataires actifs', value: stats.providers, icon: FolderOpen, color: 'bg-success-50 text-success-600' },
@@ -310,14 +313,15 @@ export default function AdminDashboardPage() {
           ].map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.label} className="card p-6">
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${stat.color}`}>
-                    <Icon size={26} />
+              <div key={stat.label} className="card p-4 sm:p-6">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className={`flex h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0 items-center justify-center rounded-lg sm:rounded-xl ${stat.color}`}>
+                    <Icon size={18} className="sm:hidden" />
+                    <Icon size={26} className="hidden sm:block" />
                   </div>
-                  <div>
-                    <p className="text-3xl font-bold text-neutral-900">{stat.value}</p>
-                    <p className="text-sm text-neutral-500">{stat.label}</p>
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-3xl font-bold text-neutral-900">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-neutral-500 truncate">{stat.label}</p>
                   </div>
                 </div>
               </div>
@@ -329,11 +333,11 @@ export default function AdminDashboardPage() {
       {/* Validation queue */}
       {tab === 'validation' && (
         <div>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex gap-2">
+          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setValidationFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   validationFilter === 'all'
                     ? 'bg-primary-600 text-white'
                     : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
@@ -343,7 +347,7 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 onClick={() => setValidationFilter('pending')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   validationFilter === 'pending'
                     ? 'bg-primary-600 text-white'
                     : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
@@ -353,7 +357,7 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 onClick={() => setValidationFilter('changes_requested')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   validationFilter === 'changes_requested'
                     ? 'bg-primary-600 text-white'
                     : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
@@ -364,8 +368,8 @@ export default function AdminDashboardPage() {
             </div>
 
             {selectedProviders.size > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-neutral-600">{selectedProviders.size} sélectionné(s)</span>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs sm:text-sm text-neutral-600">{selectedProviders.size} sélectionné(s)</span>
                 <select
                   value={bulkAction}
                   onChange={(e) => {
@@ -374,11 +378,11 @@ export default function AdminDashboardPage() {
                       bulkValidateProviders(e.target.value as 'approved' | 'rejected' | 'changes_requested');
                     }
                   }}
-                  className="input-field text-sm"
+                  className="input-field text-xs sm:text-sm"
                 >
                   <option value="">Action groupée...</option>
-                  <option value="approved">Valider tout</option>
-                  <option value="rejected">Refuser tout</option>
+                  <option value="approved">Approuver</option>
+                  <option value="rejected">Rejeter</option>
                   <option value="changes_requested">Demander corrections</option>
                 </select>
               </div>

@@ -464,13 +464,13 @@ export default function ProviderDashboardPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Espace prestataire</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Espace prestataire</h1>
           <p className="mt-1 text-sm text-neutral-600">{provider.business_name}</p>
         </div>
-        <span className={`badge ${si.color}`}>
+        <span className={`badge ${si.color} w-fit`}>
           <StatusIcon size={14} />
           {si.label}
         </span>
@@ -484,11 +484,12 @@ export default function ProviderDashboardPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 sm:gap-2 whitespace-nowrap px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
                 tab === t.id ? 'border-b-2 border-primary-600 text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              <Icon size={16} />
+              <Icon size={14} className="sm:hidden" />
+              <Icon size={16} className="hidden sm:block" />
               {t.label}
             </button>
           );
