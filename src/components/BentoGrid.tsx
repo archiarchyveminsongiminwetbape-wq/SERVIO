@@ -7,7 +7,7 @@ interface BentoGridProps {
 
 export function BentoGrid({ children, className = '' }: BentoGridProps) {
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${className}`}>
+    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 ${className}`}>
       {children}
     </div>
   );
@@ -75,15 +75,15 @@ interface BentoSectionProps {
 
 export function BentoSection({ title, description, children, className = '' }: BentoSectionProps) {
   return (
-    <section className={`py-12 ${className}`}>
+    <section className={`py-8 sm:py-12 lg:py-16 ${className}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {(title || description) && (
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             {title && (
-              <h2 className="text-3xl font-bold text-neutral-900 mb-2">{title}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-2">{title}</h2>
             )}
             {description && (
-              <p className="text-lg text-neutral-600">{description}</p>
+              <p className="text-base sm:text-lg text-neutral-600">{description}</p>
             )}
           </div>
         )}

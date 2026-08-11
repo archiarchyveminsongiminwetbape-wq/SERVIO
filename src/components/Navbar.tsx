@@ -32,12 +32,13 @@ export default function Navbar() {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 ${darkMode ? 'glass-nav-dark' : 'glass-nav'}`}>
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-3 text-2xl font-bold tracking-tight">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30">
-              <Briefcase size={24} />
+    <nav className={`sticky top-0 z-50 ${darkMode ? 'glass-nav-dark' : 'glass-nav'}`} role="navigation" aria-label="Navigation principale">
+      <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-6 sm:gap-8">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight" aria-label="SERVIO - Accueil">
+            <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30">
+              <Briefcase size={20} className="sm:hidden" />
+              <Briefcase size={24} className="hidden sm:block" />
             </span>
             <span className={darkMode ? 'text-white' : 'text-neutral-900'}>SERVIO</span>
           </Link>
@@ -45,32 +46,35 @@ export default function Navbar() {
           <div className="hidden items-center gap-1 md:flex">
             <Link
               to="/"
-              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+              className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                 isActive('/') 
                   ? 'bg-primary-50 text-primary-700' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
+              aria-current={isActive('/') ? 'page' : undefined}
             >
               Accueil
             </Link>
             <Link
               to="/search"
-              className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+              className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                 isActive('/search') 
                   ? 'bg-primary-50 text-primary-700' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
+              aria-current={isActive('/search') ? 'page' : undefined}
             >
               Explorer
             </Link>
             {profile?.role === 'provider' && (
               <Link
                 to="/provider/dashboard"
-                className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                   isActive('/provider/dashboard') 
                     ? 'bg-primary-50 text-primary-700' 
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                 }`}
+                aria-current={isActive('/provider/dashboard') ? 'page' : undefined}
               >
                 Mon espace
               </Link>
@@ -78,11 +82,12 @@ export default function Navbar() {
             {profile?.role === 'admin' && (
               <Link
                 to="/admin"
-                className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                   isActive('/admin') 
                     ? 'bg-primary-50 text-primary-700' 
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                 }`}
+                aria-current={isActive('/admin') ? 'page' : undefined}
               >
                 Administration
               </Link>
@@ -95,29 +100,47 @@ export default function Navbar() {
             <>
               <Link
                 to="/messages"
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                aria-label="Messages"
               >
-                <MessageSquare size={20} />
+                <MessageSquare size={18} className="sm:hidden" />
+                <MessageSquare size={20} className="hidden sm:block" />
               </Link>
               <Link
                 to="/favorites"
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                aria-label="Favoris"
               >
-                <Heart size={20} />
+                <Heart size={18} className="sm:hidden" />
+                <Heart size={20} className="hidden sm:block" />
               </Link>
               <NotificationBell />
               
               <button
                 onClick={toggleDarkMode}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                aria-label={darkMode ? 'Activer le mode clair' : 'Activer le mode sombre'}
               >
-                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                {darkMode ? (
+                  <>
+                    <Sun size={18} className="sm:hidden" />
+                    <Sun size={20} className="hidden sm:block" />
+                  </>
+                ) : (
+                  <>
+                    <Moon size={18} className="sm:hidden" />
+                    <Moon size={20} className="hidden sm:block" />
+                  </>
+                )}
               </button>
 
               <div className="relative">
                 <button
                   onClick={() => setLangMenuOpen(!langMenuOpen)}
                   className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-neutral-100"
+                  aria-expanded={langMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="Changer la langue"
                 >
                   <Globe size={16} />
                   <span className="text-sm font-medium text-neutral-700">
@@ -129,7 +152,7 @@ export default function Navbar() {
                 {langMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setLangMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg">
+                    <div className="absolute right-0 top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg" role="menu">
                       {supportedLanguages.map((lang) => (
                         <button
                           key={lang.code}
@@ -137,6 +160,8 @@ export default function Navbar() {
                           className={`flex w-full items-center gap-3 px-4 py-2 text-sm hover:bg-neutral-50 ${
                             language === lang.code ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'
                           }`}
+                          role="menuitem"
+                          aria-label={`Changer la langue en ${lang.name}`}
                         >
                           <span>{lang.flag}</span>
                           <span>{lang.name}</span>
@@ -151,6 +176,9 @@ export default function Navbar() {
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-colors hover:bg-neutral-100"
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="Menu utilisateur"
                 >
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
@@ -167,11 +195,12 @@ export default function Navbar() {
                 {userMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 z-20 w-56 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg">
+                    <div className="absolute right-0 top-12 z-20 w-56 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg" role="menu">
                       <Link
                         to={dashboardLink()}
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                        role="menuitem"
                       >
                         {profile?.role === 'admin' ? <Shield size={16} /> : <LayoutDashboard size={16} />}
                         Tableau de bord
@@ -180,6 +209,7 @@ export default function Navbar() {
                         to="/favorites"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                        role="menuitem"
                       >
                         <Heart size={16} />
                         Mes favoris
@@ -188,6 +218,7 @@ export default function Navbar() {
                         to="/messages"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                        role="menuitem"
                       >
                         <MessageSquare size={16} />
                         Messagerie
@@ -196,6 +227,7 @@ export default function Navbar() {
                         to="/notifications"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                        role="menuitem"
                       >
                         <MessageSquare size={16} />
                         Notifications
@@ -204,6 +236,7 @@ export default function Navbar() {
                         to="/profile"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                        role="menuitem"
                       >
                         <UserCircle size={16} />
                         Mon profil
@@ -212,6 +245,7 @@ export default function Navbar() {
                         to="/settings"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                        role="menuitem"
                       >
                         <Settings size={16} />
                         Paramètres
@@ -220,6 +254,7 @@ export default function Navbar() {
                       <button
                         onClick={handleSignOut}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm text-error-600 hover:bg-error-50"
+                        role="menuitem"
                       >
                         <LogOut size={16} />
                         Déconnexion
@@ -235,6 +270,9 @@ export default function Navbar() {
                 <button
                   onClick={() => setLangMenuOpen(!langMenuOpen)}
                   className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-neutral-100"
+                  aria-expanded={langMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="Changer la langue"
                 >
                   <Globe size={16} />
                   <span className="text-sm font-medium text-neutral-700">
@@ -246,7 +284,7 @@ export default function Navbar() {
                 {langMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setLangMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg">
+                    <div className="absolute right-0 top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg" role="menu">
                       {supportedLanguages.map((lang) => (
                         <button
                           key={lang.code}
@@ -254,6 +292,8 @@ export default function Navbar() {
                           className={`flex w-full items-center gap-3 px-4 py-2 text-sm hover:bg-neutral-50 ${
                             language === lang.code ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'
                           }`}
+                          role="menuitem"
+                          aria-label={`Changer la langue en ${lang.name}`}
                         >
                           <span>{lang.flag}</span>
                           <span>{lang.name}</span>
@@ -263,7 +303,7 @@ export default function Navbar() {
                   </>
                 )}
               </div>
-              <Link to="/login" className="btn-ghost">
+              <Link to="/login" className="btn-ghost" aria-label="Connexion">
                 <User size={18} />
                 Connexion
               </Link>
@@ -275,28 +315,40 @@ export default function Navbar() {
         </div>
 
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 md:hidden"
+          className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-neutral-600 md:hidden"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-expanded={mobileOpen}
         >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          {mobileOpen ? (
+            <>
+              <X size={20} className="sm:hidden" />
+              <X size={22} className="hidden sm:block" />
+            </>
+          ) : (
+            <>
+              <Menu size={20} className="sm:hidden" />
+              <Menu size={22} className="hidden sm:block" />
+            </>
+          )}
         </button>
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-neutral-200 bg-white px-4 py-3 md:hidden">
-          <Link to="/" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Accueil</Link>
-          <Link to="/search" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Explorer</Link>
+        <div className="border-t border-neutral-200 bg-white px-4 py-3 md:hidden" role="menu">
+          <Link to="/" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Accueil</Link>
+          <Link to="/search" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Explorer</Link>
           {user ? (
             <>
-              <Link to="/messages" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Messagerie</Link>
-              <Link to="/favorites" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Favoris</Link>
-              <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700">Tableau de bord</Link>
-              <button onClick={handleSignOut} className="block w-full py-2 text-left text-sm font-medium text-error-600">Déconnexion</button>
+              <Link to="/messages" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Messagerie</Link>
+              <Link to="/favorites" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Favoris</Link>
+              <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Tableau de bord</Link>
+              <button onClick={handleSignOut} className="block w-full py-2 text-left text-sm font-medium text-error-600" role="menuitem">Déconnexion</button>
             </>
           ) : (
             <>
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600">Connexion</Link>
-              <Link to="/signup" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600">S'inscrire</Link>
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600" role="menuitem">Connexion</Link>
+              <Link to="/signup" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600" role="menuitem">S'inscrire</Link>
             </>
           )}
         </div>

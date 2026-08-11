@@ -176,15 +176,15 @@ export default function SearchPage() {
   const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
         <p className="mt-1 text-sm text-neutral-600">
           {loading ? 'Recherche en cours...' : `${providers.length} prestataire${providers.length > 1 ? 's' : ''} trouvé${providers.length > 1 ? 's' : ''}`}
         </p>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row">
         {/* Filters sidebar */}
         <aside className="lg:w-72 lg:flex-shrink-0">
           <div className="lg:sticky lg:top-20">
@@ -193,13 +193,14 @@ export default function SearchPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className="btn-secondary w-full"
               >
-                <SlidersHorizontal size={18} />
+                <SlidersHorizontal size={16} className="sm:hidden" />
+                <SlidersHorizontal size={18} className="hidden sm:block" />
                 Filtres
               </button>
             </div>
 
-            <div className={`card p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-              <div className="mb-4 flex items-center justify-between">
+            <div className={`card p-4 sm:p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+              <div className="mb-3 sm:mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-neutral-900">Filtres</h3>
                 {hasFilters && (
                   <button onClick={clearFilters} className="text-xs font-medium text-primary-600 hover:text-primary-700">
@@ -208,13 +209,13 @@ export default function SearchPage() {
                 )}
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 <div>
                   <label className="label">Secteur</label>
                   <select
                     value={categorySlug}
                     onChange={(e) => { setCategorySlug(e.target.value); setSelectedSubCat(''); }}
-                    className="input-field"
+                    className="input-field text-sm"
                   >
                     <option value="">Tous les secteurs</option>
                     {categoryTaxonomy.map((cat) => (
@@ -396,22 +397,23 @@ export default function SearchPage() {
         {/* Results - Bento Grid */}
         <div className="flex-1">
           <BentoGrid>
-            <BentoCard colSpan={3} className="p-4">
+            <BentoCard colSpan={3} className="p-3 sm:p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative flex-1 sm:max-w-md">
-                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <Search size={16} className="sm:hidden absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <Search size={18} className="hidden sm:block absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="input-field pl-10"
+                    className="input-field pl-10 text-sm"
                     placeholder="Rechercher par nom, métier, compétence..."
                   />
                 </div>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="input-field sm:w-48"
+                  className="input-field sm:w-48 text-sm"
                 >
                   <option value="featured">En vedette</option>
                   <option value="rating">Meilleures notes</option>
@@ -424,15 +426,17 @@ export default function SearchPage() {
             </BentoCard>
 
             {loading ? (
-              <BentoCard colSpan={3} className="flex items-center justify-center py-20">
-                <Loader2 size={32} className="animate-spin text-primary-500" />
+              <BentoCard colSpan={3} className="flex items-center justify-center py-16 sm:py-20">
+                <Loader2 size={28} className="sm:hidden animate-spin text-primary-500" />
+                <Loader2 size={32} className="hidden sm:block animate-spin text-primary-500" />
               </BentoCard>
             ) : error ? (
-              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-20 text-center">
-                <AlertCircle size={48} className="text-error-500" />
-                <h3 className="mt-4 text-lg font-semibold text-neutral-900">Erreur de recherche</h3>
+              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
+                <AlertCircle size={40} className="sm:hidden text-error-500" />
+                <AlertCircle size={48} className="hidden sm:block text-error-500" />
+                <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">Erreur de recherche</h3>
                 <p className="mt-1 text-sm text-neutral-500">{error}</p>
-                <button onClick={doSearch} className="btn-primary mt-4">
+                <button onClick={doSearch} className="btn-primary mt-3 sm:mt-4">
                   Réessayer
                 </button>
               </BentoCard>
@@ -443,9 +447,10 @@ export default function SearchPage() {
                 </BentoCard>
               ))
             ) : (
-              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-20 text-center">
-                <Frown size={48} className="text-neutral-300" />
-                <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun résultat</h3>
+              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
+                <Frown size={40} className="sm:hidden text-neutral-300" />
+                <Frown size={48} className="hidden sm:block text-neutral-300" />
+                <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">Aucun résultat</h3>
                 <p className="mt-1 text-sm text-neutral-500">
                   Essayez de modifier vos critères de recherche.
                 </p>
