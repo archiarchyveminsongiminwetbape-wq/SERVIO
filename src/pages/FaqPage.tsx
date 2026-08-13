@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, HelpCircle, MessageCircle, Mail, Phone } from 'lucide-react';
+import { useI18n } from '@/context/I18nContext';
 
 const faqCategories = [
   {
@@ -97,6 +98,7 @@ const faqCategories = [
 ];
 
 export default function FaqPage() {
+  const { t } = useI18n();
   const [activeCategory, setActiveCategory] = useState('general');
   const [openQuestions, setOpenQuestions] = useState<Set<string>>(new Set());
 

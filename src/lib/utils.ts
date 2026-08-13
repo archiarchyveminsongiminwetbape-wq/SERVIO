@@ -11,29 +11,8 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHrs = Math.floor(diffMin / 60);
-  const diffDays = Math.floor(diffHrs / 24);
-
-  if (diffMin < 1) return "À l'instant";
-  if (diffMin < 60) return `Il y a ${diffMin} min`;
-  if (diffHrs < 24) return `Il y a ${diffHrs}h`;
-  if (diffDays < 7) return `Il y a ${diffDays}j`;
-  return formatDate(dateString);
-}
+// Re-export locale formatters for backward compatibility
+export { formatDate, formatRelativeTime, getLocaleFromLanguage } from './locale-formatters';
 
 export function starRating(rating: number): string {
   const full = Math.floor(rating);

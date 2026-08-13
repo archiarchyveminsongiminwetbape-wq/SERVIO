@@ -1,0 +1,17 @@
+-- MANUAL SETUP ONLY - DO NOT EXECUTE AS A MIGRATION
+-- =================================================
+--
+-- This file intentionally contains no executable SQL.
+-- The bucket creation and storage.objects policy setup must be performed manually
+-- in the Supabase Dashboard SQL Editor by a user with owner privileges.
+--
+-- Required steps:
+-- 1) Create the buckets "portfolio-photos" and "portfolio-videos" in Storage > Buckets.
+-- 2) In SQL Editor, run the setup commands with an owner/admin role.
+-- 3) Enable RLS on storage.objects and create the policies for each bucket.
+--
+-- This migration is intentionally left as a documentation stub so it does not fail
+-- during automated Supabase migration runs on projects without owner permissions.
+--
+-- If you need the exact SQL, use the dashboard or keep the last working SQL snippet
+-- in a separate manual setup note outside the migration folder.

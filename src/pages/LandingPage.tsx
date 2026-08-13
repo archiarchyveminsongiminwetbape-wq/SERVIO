@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, TrendingUp, Users, Award, Clock, Quote, Check, Play, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { useI18n } from '@/context/I18nContext';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
 import CategoryIcon from '@/components/CategoryIcon';
@@ -12,6 +13,7 @@ import { GlassCard, GlassInput } from '@/components/GlassCard';
 import { categoryTaxonomy } from '@/data/categories';
 
 export default function LandingPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { darkMode } = useDarkMode();
   const [featured, setFeatured] = useState<ProviderProfile[]>([]);
@@ -66,15 +68,14 @@ export default function LandingPage() {
           <div className="mx-auto max-w-4xl text-center">
             <div className="mb-6 sm:mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
               <Sparkles size={16} className="text-primary-200" />
-              La plateforme des prestataires de services
+              {t.landing.platformBadge}
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight tracking-tight text-white animate-slide-up">
-              Trouvez le bon professionnel,
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-primary-100">au bon moment</span>
+              {t.landing.heroTitle}
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-primary-100">{t.landing.heroSubtitle}</span>
             </h1>
             <p className="mx-auto mt-4 sm:mt-6 lg:mt-8 max-w-2xl text-base sm:text-lg lg:text-xl leading-relaxed text-primary-100 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              Des artisans, créatifs, consultants et prestataires de tous secteurs.
-              Consultez leurs portfolios et contactez-les directement.
+              {t.landing.heroDescription}
             </p>
 
             <form onSubmit={handleSearch} className="mx-auto mt-6 sm:mt-8 lg:mt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
@@ -83,22 +84,22 @@ export default function LandingPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Quel service recherchez-vous ?"
+                  placeholder={t.search.placeholder}
                   variant={darkMode ? 'dark' : 'default'}
                   icon={<Search size={20} className="text-neutral-400" />}
                   className="flex-1"
                 />
                 <button type="submit" className="btn-primary rounded-xl sm:rounded-2xl px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto">
-                  Rechercher
+                  {t.common.search}
                   <ArrowRight size={18} className="hidden sm:inline" />
                 </button>
               </GlassCard>
             </form>
 
             <div className="mt-6 sm:mt-8 lg:mt-10 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-6 sm:gap-y-3 gap-y-2 text-xs sm:text-sm text-primary-100 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><ShieldCheck size={14} className="sm:hidden" /><ShieldCheck size={18} className="hidden sm:inline" /> Profils vérifiés</span>
-              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><MessageSquare size={14} className="sm:hidden" /><MessageSquare size={18} className="hidden sm:inline" /> Messagerie intégrée</span>
-              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><Star size={14} className="sm:hidden" /><Star size={18} className="hidden sm:inline" /> Avis clients réels</span>
+              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><ShieldCheck size={14} className="sm:hidden" /><ShieldCheck size={18} className="hidden sm:inline" /> {t.landing.verifiedProfiles}</span>
+              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><MessageSquare size={14} className="sm:hidden" /><MessageSquare size={18} className="hidden sm:inline" /> {t.landing.integratedMessaging}</span>
+              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><Star size={14} className="sm:hidden" /><Star size={18} className="hidden sm:inline" /> {t.landing.realReviews}</span>
             </div>
           </div>
         </div>
@@ -108,8 +109,8 @@ export default function LandingPage() {
       <section className="py-12 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Explorez par secteur</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">Trouvez le professionnel adapté à votre besoin</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.exploreBySector}</h2>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.findRightProfessional}</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -125,7 +126,7 @@ export default function LandingPage() {
                 </div>
                 <div className="min-w-0 mt-2 sm:mt-3 text-center">
                   <p className="truncate text-xs sm:text-sm font-bold text-neutral-900 group-hover:text-primary-700">{cat.name}</p>
-                  <p className="truncate text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1">{cat.subcategories.length} spécialités</p>
+                  <p className="truncate text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1">{cat.subcategories.length} {t.landing.specialties}</p>
                 </div>
               </Link>
             ))}
@@ -137,7 +138,7 @@ export default function LandingPage() {
                 onClick={() => setShowAllCategories(!showAllCategories)}
                 className="btn-secondary text-sm sm:text-base"
               >
-                {showAllCategories ? 'Voir moins' : `Voir tous les ${categoryTaxonomy.length} secteurs`}
+                {showAllCategories ? t.landing.seeLess : t.landing.seeAllSectors.replace('{count}', categoryTaxonomy.length.toString())}
               </button>
             </div>
           )}
@@ -148,8 +149,8 @@ export default function LandingPage() {
       <section className="bg-gradient-to-b from-neutral-50 to-white py-12 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Prestataires en vedette</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">Des professionnels de qualité, prêts à vous accompagner</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.featuredProviders}</h2>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.featuredProvidersSubtitle}</p>
           </div>
 
           {loading ? (
@@ -178,7 +179,7 @@ export default function LandingPage() {
                 <Search size={28} className="sm:hidden text-neutral-400" />
                 <Search size={32} className="hidden sm:block text-neutral-400" />
               </div>
-              <p className="text-base sm:text-lg text-neutral-600">Aucun prestataire disponible pour le moment.</p>
+              <p className="text-base sm:text-lg text-neutral-600">{t.search.noResults}</p>
             </div>
           )}
         </div>
@@ -190,27 +191,27 @@ export default function LandingPage() {
           <BentoStatCard 
             icon={Users} 
             value="10K+" 
-            label="Prestataires" 
+            label={t.landing.statsProviders} 
             trend="+15%" 
             variant="dark"
           />
           <BentoStatCard 
             icon={Award} 
             value="50K+" 
-            label="Projets réalisés" 
+            label={t.landing.statsProjects} 
             trend="+23%" 
             variant="dark"
           />
           <BentoStatCard 
             icon={Star} 
             value="4.8" 
-            label="Note moyenne" 
+            label={t.landing.statsRating} 
             variant="dark"
           />
           <BentoStatCard 
             icon={Clock} 
             value="24h" 
-            label="Temps de réponse" 
+            label={t.landing.statsResponseTime} 
             variant="dark"
           />
         </BentoGrid>
@@ -220,8 +221,8 @@ export default function LandingPage() {
       <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white to-neutral-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Ce que disent nos utilisateurs</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">Des témoignages authentiques de notre communauté</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.testimonialsTitle}</h2>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.testimonialsSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
@@ -234,18 +235,18 @@ export default function LandingPage() {
                   <Star key={`desktop-${star}`} size={16} className="hidden sm:block fill-warning-400 text-warning-400" />
                 ))}
               </div>
-              <Quote className="text-primary-300 mb-3 sm:mb-4" size={24} className="sm:hidden" />
-              <Quote className="text-primary-300 mb-4" size={32} className="hidden sm:block" />
+              <Quote className="text-primary-300 mb-3 sm:mb-4 sm:hidden" size={24} />
+              <Quote className="text-primary-300 mb-4 hidden sm:block" size={32} />
               <p className="text-sm sm:text-base text-neutral-700 mb-3 sm:mb-4">
-                "J'ai trouvé un photographe professionnel en moins de 24h. Le processus était simple et la qualité du travail exceptionnelle."
+                {t.landing.testimonial1}
               </p>
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">
                   ML
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">Marie Laurent</p>
-                  <p className="text-xs sm:text-sm text-neutral-500">Entrepreneure</p>
+                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">{t.landing.testimonial1Name}</p>
+                  <p className="text-xs sm:text-sm text-neutral-500">{t.landing.testimonial1Role}</p>
                 </div>
               </div>
             </div>
@@ -259,18 +260,18 @@ export default function LandingPage() {
                   <Star key={`desktop-${star}`} size={16} className="hidden sm:block fill-warning-400 text-warning-400" />
                 ))}
               </div>
-              <Quote className="text-primary-300 mb-3 sm:mb-4" size={24} className="sm:hidden" />
-              <Quote className="text-primary-300 mb-4" size={32} className="hidden sm:block" />
+              <Quote className="text-primary-300 mb-3 sm:mb-4 sm:hidden" size={24} />
+              <Quote className="text-primary-300 mb-4 hidden sm:block" size={32} />
               <p className="text-sm sm:text-base text-neutral-700 mb-3 sm:mb-4">
-                "En tant que développeur freelance, cette plateforme m'a permis de trouver des clients sérieux et de construire mon portfolio."
+                {t.landing.testimonial2}
               </p>
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">
                   TD
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">Thomas Dubois</p>
-                  <p className="text-xs sm:text-sm text-neutral-500">Développeur Web</p>
+                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">{t.landing.testimonial2Name}</p>
+                  <p className="text-xs sm:text-sm text-neutral-500">{t.landing.testimonial2Role}</p>
                 </div>
               </div>
             </div>
@@ -284,18 +285,18 @@ export default function LandingPage() {
                   <Star key={`desktop-${star}`} size={16} className="hidden sm:block fill-warning-400 text-warning-400" />
                 ))}
               </div>
-              <Quote className="text-primary-300 mb-3 sm:mb-4" size={24} className="sm:hidden" />
-              <Quote className="text-primary-300 mb-4" size={32} className="hidden sm:block" />
+              <Quote className="text-primary-300 mb-3 sm:mb-4 sm:hidden" size={24} />
+              <Quote className="text-primary-300 mb-4 hidden sm:block" size={32} />
               <p className="text-sm sm:text-base text-neutral-700 mb-3 sm:mb-4">
-                "La messagerie intégrée facilite vraiment la communication. J'ai pu échanger avec plusieurs prestataires avant de choisir."
+                {t.landing.testimonial3}
               </p>
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">
                   SM
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">Sophie Martin</p>
-                  <p className="text-xs sm:text-sm text-neutral-500">Chef de projet</p>
+                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">{t.landing.testimonial3Name}</p>
+                  <p className="text-xs sm:text-sm text-neutral-500">{t.landing.testimonial3Role}</p>
                 </div>
               </div>
             </div>
@@ -307,8 +308,8 @@ export default function LandingPage() {
       <section className="py-12 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Pourquoi choisir SERVIO ?</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">Une plateforme pensée pour simplifier vos collaborations</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.whyChooseTitle}</h2>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.whyChooseSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -317,8 +318,8 @@ export default function LandingPage() {
                 <ShieldCheck size={24} className="sm:hidden" />
                 <ShieldCheck size={32} className="hidden sm:block" />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">Profils vérifiés</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">Tous nos prestataires sont vérifiés pour garantir leur professionnalisme.</p>
+              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit1Title}</h3>
+              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit1Description}</p>
             </div>
 
             <div className="card p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
@@ -326,8 +327,8 @@ export default function LandingPage() {
                 <MessageSquare size={24} className="sm:hidden" />
                 <MessageSquare size={32} className="hidden sm:block" />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">Messagerie intégrée</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">Communiquez directement avec les prestataires sans quitter la plateforme.</p>
+              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit2Title}</h3>
+              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit2Description}</p>
             </div>
 
             <div className="card p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
@@ -335,8 +336,8 @@ export default function LandingPage() {
                 <Star size={24} className="sm:hidden" />
                 <Star size={32} className="hidden sm:block" />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">Avis authentiques</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">Consultez les avis clients réels pour faire le meilleur choix.</p>
+              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit3Title}</h3>
+              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit3Description}</p>
             </div>
 
             <div className="card p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
@@ -344,8 +345,8 @@ export default function LandingPage() {
                 <Clock size={24} className="sm:hidden" />
                 <Clock size={32} className="hidden sm:block" />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">Réponse rapide</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">Nos prestataires s'engagent à répondre dans les 24 heures.</p>
+              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit4Title}</h3>
+              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit4Description}</p>
             </div>
           </div>
         </div>
@@ -355,8 +356,8 @@ export default function LandingPage() {
       <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-primary-50 to-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">Commencez en 3 étapes</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">Simple et rapide, pas besoin d'expérience technique</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.quickStartTitle}</h2>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.quickStartSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
@@ -365,23 +366,23 @@ export default function LandingPage() {
                 <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary-600 text-white text-base sm:text-xl font-bold mb-3 sm:mb-4">
                   1
                 </div>
-                <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">Créez votre compte</h3>
-                <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">Inscription gratuite en 2 minutes. Juste votre email et quelques informations de base.</p>
+                <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.step1Title}</h3>
+                <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">{t.landing.step1Description}</p>
                 <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-neutral-600">
                   <li className="flex items-center gap-2">
                     <Check size={12} className="sm:hidden text-success-500" />
                     <Check size={16} className="hidden sm:block text-success-500" />
-                    Inscription gratuite
+                    {t.landing.step1Feature1}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={12} className="sm:hidden text-success-500" />
                     <Check size={16} className="hidden sm:block text-success-500" />
-                    Vérification email
+                    {t.landing.step1Feature2}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={12} className="sm:hidden text-success-500" />
                     <Check size={16} className="hidden sm:block text-success-500" />
-                    Profil personnalisable
+                    {t.landing.step1Feature3}
                   </li>
                 </ul>
               </div>
@@ -395,23 +396,23 @@ export default function LandingPage() {
                 <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary-600 text-white text-base sm:text-xl font-bold mb-3 sm:mb-4">
                   2
                 </div>
-                <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">Complétez votre profil</h3>
-                <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">Ajoutez vos compétences, portfolio et disponibilités pour attirer les clients.</p>
+                <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.step2Title}</h3>
+                <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">{t.landing.step2Description}</p>
                 <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-neutral-600">
                   <li className="flex items-center gap-2">
                     <Check size={12} className="sm:hidden text-success-500" />
                     <Check size={16} className="hidden sm:block text-success-500" />
-                    Portfolio photo
+                    {t.landing.step2Feature1}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={12} className="sm:hidden text-success-500" />
                     <Check size={16} className="hidden sm:block text-success-500" />
-                    Compétences et certifications
+                    {t.landing.step2Feature2}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={12} className="sm:hidden text-success-500" />
                     <Check size={16} className="hidden sm:block text-success-500" />
-                    Calendrier de disponibilité
+                    {t.landing.step2Feature3}
                   </li>
                 </ul>
               </div>
@@ -424,23 +425,23 @@ export default function LandingPage() {
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary-600 text-white text-base sm:text-xl font-bold mb-3 sm:mb-4">
                 3
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">Recevez des demandes</h3>
-              <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">Les clients vous contactent directement via la messagerie intégrée.</p>
+              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.step3Title}</h3>
+              <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">{t.landing.step3Description}</p>
               <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-neutral-600">
                 <li className="flex items-center gap-2">
                   <Check size={12} className="sm:hidden text-success-500" />
                   <Check size={16} className="hidden sm:block text-success-500" />
-                  Notifications en temps réel
+                  {t.landing.step3Feature1}
                 </li>
                 <li className="flex items-center gap-2">
                   <Check size={12} className="sm:hidden text-success-500" />
                   <Check size={16} className="hidden sm:block text-success-500" />
-                  Messagerie sécurisée
+                  {t.landing.step3Feature2}
                 </li>
                 <li className="flex items-center gap-2">
                   <Check size={12} className="sm:hidden text-success-500" />
                   <Check size={16} className="hidden sm:block text-success-500" />
-                  Gestion des devis
+                  {t.landing.step3Feature3}
                 </li>
               </ul>
             </div>
@@ -455,19 +456,18 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-sm mb-4 sm:mb-6 mx-auto w-fit">
               <Sparkles size={14} className="sm:hidden" />
               <Sparkles size={16} className="hidden sm:block" />
-              Rejoignez notre communauté
+              {t.landing.ctaBadge}
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white">Vous êtes prestataire de services ?</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white">{t.landing.ctaTitle}</h2>
             <p className="mx-auto mt-3 sm:mt-4 lg:mt-6 max-w-2xl text-base sm:text-lg lg:text-xl text-primary-100">
-              Créez votre portfolio professionnel gratuitement et faites-vous contacter
-              par des clients qui ont besoin de vos services.
+              {t.landing.ctaDescription}
             </p>
           </BentoCard>
           <BentoActionCard 
             icon={ArrowRight}
-            title="Commencer maintenant"
-            description="Inscription gratuite en 2 minutes"
-            action="Créer mon compte"
+            title={t.landing.ctaButton}
+            description={t.landing.ctaButtonSubtitle}
+            action={t.auth.signup}
             onClick={() => navigate('/signup')}
             variant="gradient"
           />

@@ -1,8 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle, ArrowRight, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useI18n } from '@/context/I18nContext';
 
 export default function SignupConfirmationPage() {
+  const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const email = location.state?.email || '';
@@ -16,7 +18,7 @@ export default function SignupConfirmationPage() {
     // Simulation de renvoi - en production, appeler Supabase
     setTimeout(() => {
       setResending(false);
-      setMessage({ type: 'success', text: 'Email de confirmation renvoyé avec succès !' });
+      setMessage({ type: 'success', text: t.auth.confirmationSent });
     }, 2000);
   };
 
@@ -28,31 +30,31 @@ export default function SignupConfirmationPage() {
             <Mail size={40} className="text-primary-600" />
           </div>
 
-          <h1 className="text-2xl font-bold text-neutral-900">Vérifiez votre email</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">{t.auth.checkEmail}</h1>
           <p className="mt-3 text-sm text-neutral-600">
             {email ? (
               <>
-                Nous avons envoyé un email de confirmation à <strong>{email}</strong>.
+                {t.auth.confirmationSentTo} <strong>{email}</strong>.
               </>
             ) : (
-              'Nous avons envoyé un email de confirmation à votre adresse.'
+              t.auth.confirmationSent
             )}
           </p>
 
           <div className="mt-6 rounded-lg bg-primary-50 p-4 text-left">
-            <h3 className="text-sm font-semibold text-primary-900">Prochaines étapes :</h3>
+            <h3 className="text-sm font-semibold text-primary-900">{t.auth.nextSteps}</h3>
             <ol className="mt-2 space-y-2 text-sm text-primary-800">
               <li className="flex items-start gap-2">
                 <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary-200 text-xs font-bold text-primary-700">1</span>
-                <span>Ouvrez votre boîte de réception email</span>
+                <span>{t.auth.openInbox}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary-200 text-xs font-bold text-primary-700">2</span>
-                <span>Cherchez l'email de confirmation de SERVIO</span>
+                <span>{t.auth.findConfirmationEmail}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary-200 text-xs font-bold text-primary-700">3</span>
-                <span>Cliquez sur le lien de confirmation</span>
+                <span>{t.auth.clickConfirmationLink}</span>
               </li>
             </ol>
           </div>
@@ -72,14 +74,14 @@ export default function SignupConfirmationPage() {
               disabled={resending}
               className="btn-secondary w-full"
             >
-              {resending ? 'Envoi en cours...' : 'Renvoyer l\'email'}
+              {resending ? t.auth.sending : t.auth.resendEmail}
             </button>
 
             <button
               onClick={() => navigate('/login')}
               className="btn-primary w-full"
             >
-              Aller à la connexion
+              {t.auth.goToLogin}
               <ArrowRight size={18} />
             </button>
           </div>
@@ -88,10 +90,9 @@ export default function SignupConfirmationPage() {
             <div className="flex items-start gap-2">
               <AlertCircle size={18} className="mt-0.5 text-warning-600 flex-shrink-0" />
               <div className="text-sm text-warning-800">
-                <p className="font-semibold">Email non reçu ?</p>
+                <p className="font-semibold">{t.auth.emailNotReceived}</p>
                 <p className="mt-1">
-                  Vérifiez vos spams ou dossier courrier indésirable. Si vous ne recevez toujours pas l'email,
-                  contactez le support.
+                  {t.auth.checkSpam}
                 </p>
               </div>
             </div>
@@ -99,12 +100,12 @@ export default function SignupConfirmationPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-neutral-600">
-          Mauvaise adresse email ?{' '}
+          {t.auth.wrongEmail}{' '}
           <button
             onClick={() => navigate('/signup')}
             className="font-semibold text-primary-600 hover:text-primary-700"
           >
-            Réessayer avec une autre adresse
+            {t.auth.tryAnotherEmail}
           </button>
         </p>
       </div>

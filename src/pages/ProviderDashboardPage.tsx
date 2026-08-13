@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
-  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin
+  CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin,
+  Play, Code, FileText, ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
@@ -19,6 +21,7 @@ type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability';
 
 export default function ProviderDashboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('overview');
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
@@ -40,10 +43,11 @@ export default function ProviderDashboardPage() {
   const [itemForm, setItemForm] = useState({
     title: '',
     description: '',
-    photos: [''],
-    videos: [''],
-    video_thumbnails: [''],
+    photos: [] as string[],
+    videos: [] as string[],
+    video_thumbnails: [] as string[],
     tags: '',
+    project_links: [] as { label: string; url: string; type?: 'demo' | 'repo' | 'case-study' | 'other' }[],
     client_name: '',
     project_date: '',
     budget: '',
@@ -51,9 +55,25 @@ export default function ProviderDashboardPage() {
     featured: false,
     technologies_used: '',
     duration: '',
-    team_size: ''
+    team_size: '',
+    // ===== PROFESSIONAL PORTFOLIO ELEMENTS =====
+    context: '',
+    objective: '',
+    role: '',
+    process: '',
+    result: ''
   });
+
+  // Normalize/validate URLs
+  function ensureUrl(raw: string): string {
+    if (!raw) return '';
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  }
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   // Availability form state
   const [availabilitySchedule, setAvailabilitySchedule] = useState<Record<string, { start: string; end: string; available: boolean }>>({
@@ -162,7 +182,7 @@ export default function ProviderDashboardPage() {
     if (error) {
       setSaveMsg({ type: 'error', text: error.message });
     } else {
-      setSaveMsg({ type: 'success', text: 'Profil mis à jour avec succès.' });
+      setSaveMsg({ type: 'success', text: t.auth.loginSuccess });
       await loadData();
       await refreshProfile();
     }
@@ -225,8 +245,92 @@ export default function ProviderDashboardPage() {
     const videoThumbnails = itemForm.video_thumbnails.filter((t) => t.trim());
     const tags = itemForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
     const technologiesUsed = itemForm.technologies_used.split(',').map((t) => t.trim()).filter(Boolean);
+    const projectLinks = (itemForm.project_links as { label: string; url: string; type?: string }[])
+      .map(l => ({ label: l.label?.trim() || '', url: ensureUrl(l.url || ''), type: (l.type as any) || 'other' }))
+      .filter(l => l.url);
+
+    // Validate URLs
+    for (const l of projectLinks) {
+      try {
+        // eslint-disable-next-line no-new
+        new URL(l.url);
+      } catch (e) {
+        setSaveMsg({ type: 'error', text: `URL invalide : ${l.url}` });
+        setSaving(false);
+        return;
+      }
+    }
+
+    // Ensure we have a valid provider profile for the current user
+    let targetProviderId = provider?.id;
+    
+    if (!targetProviderId && user) {
+      console.log('No provider found, attempting to create one...');
+      
+      // Try to find existing provider profile
+      const { data: existingProvider, error: findError } = await supabase
+        .from('provider_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (findError) {
+        console.error('Error finding provider profile:', findError);
+        setSaveMsg({ type: 'error', text: `Erreur lors de la recherche du profil: ${findError.message}` });
+        setSaving(false);
+        return;
+      }
+      
+      if (existingProvider) {
+        console.log('Found existing provider:', existingProvider.id);
+        targetProviderId = existingProvider.id;
+      } else {
+        // Create a new provider profile
+        console.log('Creating new provider profile...');
+        const slug = slugify((profile as any)?.full_name || 'prestataire') + '-' + Date.now().toString().slice(-4);
+        const { data: newProvider, error: newProviderError } = await supabase
+          .from('provider_profiles')
+          .insert({
+            user_id: user.id,
+            business_name: (profile as any)?.full_name || 'Mon entreprise',
+            slug,
+            validation_status: 'pending'
+          })
+          .select('id')
+          .single();
+        
+        if (newProviderError) {
+          console.error('Error creating provider profile:', newProviderError);
+          setSaveMsg({ type: 'error', text: `Erreur lors de la création du profil prestataire: ${newProviderError.message}` });
+          setSaving(false);
+          return;
+        }
+        
+        console.log('Created new provider:', newProvider.id);
+        targetProviderId = newProvider.id;
+      }
+      
+      // Refresh data to reflect the provider profile
+      await loadData();
+    }
+    
+    // Double-check we have a valid provider_id
+    if (!targetProviderId) {
+      console.error('No provider_id available after all attempts');
+      setSaveMsg({ type: 'error', text: 'Aucun profil prestataire trouvé. Veuillez créer votre profil prestataire d\'abord.' });
+      setSaving(false);
+      return;
+    }
+    
+    console.log('Using provider_id:', targetProviderId);
 
     if (editingItem) {
+      // Prevent updating items that don't belong to this user's provider
+      if (editingItem.provider_id !== targetProviderId) {
+        setSaveMsg({ type: 'error', text: 'Impossible de modifier : cette réalisation n\'appartient pas à votre profil.' });
+        setSaving(false);
+        return;
+      }
       const { error } = await supabase
         .from('portfolio_items')
         .update({
@@ -236,6 +340,7 @@ export default function ProviderDashboardPage() {
           videos,
           video_thumbnails: videoThumbnails,
           tags,
+          project_links: projectLinks,
           client_name: itemForm.client_name || null,
           project_date: itemForm.project_date || null,
           budget: itemForm.budget || null,
@@ -244,24 +349,31 @@ export default function ProviderDashboardPage() {
           technologies_used: technologiesUsed,
           duration: itemForm.duration || null,
           team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
+          // ===== PROFESSIONAL PORTFOLIO FIELDS =====
+          context: itemForm.context || null,
+          objective: itemForm.objective || null,
+          role: itemForm.role || null,
+          process: itemForm.process || null,
+          result: itemForm.result || null,
         })
         .eq('id', editingItem.id);
       if (error) setSaveMsg({ type: 'error', text: error.message });
       else {
-        setSaveMsg({ type: 'success', text: 'Élément mis à jour avec succès.' });
+        setSaveMsg({ type: 'success', text: t.auth.signupSuccess });
         await loadData();
       }
     } else {
       const { error } = await supabase
         .from('portfolio_items')
         .insert({
-          provider_id: provider.id,
+          provider_id: targetProviderId,
           title: itemForm.title,
           description: itemForm.description,
           photos,
           videos,
           video_thumbnails: videoThumbnails,
           tags,
+          project_links: projectLinks,
           client_name: itemForm.client_name || null,
           project_date: itemForm.project_date || null,
           budget: itemForm.budget || null,
@@ -270,11 +382,17 @@ export default function ProviderDashboardPage() {
           technologies_used: technologiesUsed,
           duration: itemForm.duration || null,
           team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
+          // ===== PROFESSIONAL PORTFOLIO FIELDS =====
+          context: itemForm.context || null,
+          objective: itemForm.objective || null,
+          role: itemForm.role || null,
+          process: itemForm.process || null,
+          result: itemForm.result || null,
         })
         .select();
       if (error) setSaveMsg({ type: 'error', text: error.message });
       else {
-        setSaveMsg({ type: 'success', text: 'Élément ajouté avec succès.' });
+        setSaveMsg({ type: 'success', text: t.auth.signupSuccess });
         await loadData();
       }
     }
@@ -284,9 +402,9 @@ export default function ProviderDashboardPage() {
     setItemForm({
       title: '',
       description: '',
-      photos: [''],
-      videos: [''],
-      video_thumbnails: [''],
+      photos: [],
+      videos: [],
+      video_thumbnails: [],
       tags: '',
       client_name: '',
       project_date: '',
@@ -295,7 +413,12 @@ export default function ProviderDashboardPage() {
       featured: false,
       technologies_used: '',
       duration: '',
-      team_size: ''
+      team_size: '',
+      context: '',
+      objective: '',
+      role: '',
+      process: '',
+      result: ''
     });
     setTimeout(() => setSaveMsg(null), 4000);
   }
@@ -304,11 +427,14 @@ export default function ProviderDashboardPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log('Starting video upload:', file.name, file.size);
+
     // Validate video duration (max 20 seconds)
     const video = document.createElement('video');
     video.preload = 'metadata';
     
     video.onloadedmetadata = async () => {
+      console.log('Video duration:', video.duration);
       if (video.duration > 20) {
         setSaveMsg({ type: 'error', text: 'La vidéo ne doit pas dépasser 20 secondes.' });
         setTimeout(() => setSaveMsg(null), 4000);
@@ -318,20 +444,27 @@ export default function ProviderDashboardPage() {
       setUploadingVideo(true);
       try {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileName = `${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
         const filePath = `${user?.id}/portfolio-videos/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('portfolio-videos')
+        console.log('Uploading video to portfolio-demo-videos:', filePath);
+
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('portfolio-demo-videos')
           .upload(filePath, file);
 
         if (uploadError) {
+          console.error('Upload error:', uploadError);
           throw uploadError;
         }
 
+        console.log('Upload successful:', uploadData);
+
         const { data: { publicUrl } } = supabase.storage
-          .from('portfolio-videos')
+          .from('portfolio-demo-videos')
           .getPublicUrl(filePath);
+
+        console.log('Public URL:', publicUrl);
 
         setItemForm(prev => ({
           ...prev,
@@ -343,7 +476,12 @@ export default function ProviderDashboardPage() {
         setTimeout(() => setSaveMsg(null), 4000);
       } catch (error) {
         console.error('Error uploading video:', error);
-        setSaveMsg({ type: 'error', text: 'Erreur lors du téléchargement de la vidéo.' });
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        if (errorMessage.includes('Bucket not found') || errorMessage.includes('bucket')) {
+          setSaveMsg({ type: 'error', text: 'Le bucket portfolio-demo-videos n\'existe pas. Veuillez le créer dans le dashboard Supabase.' });
+        } else {
+          setSaveMsg({ type: 'error', text: `Erreur lors du téléchargement de la vidéo: ${errorMessage}` });
+        }
         setTimeout(() => setSaveMsg(null), 4000);
       } finally {
         setUploadingVideo(false);
@@ -351,12 +489,72 @@ export default function ProviderDashboardPage() {
     };
 
     video.onerror = () => {
-      setSaveMsg({ type: 'error', text: 'Erreur lors de la lecture de la vidéo.' });
+      console.error('Video load error');
+      setSaveMsg({ type: 'error', text: 'Erreur lors du chargement de la vidéo.' });
       setTimeout(() => setSaveMsg(null), 4000);
       setUploadingVideo(false);
     };
 
     video.src = URL.createObjectURL(file);
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length || !user) return;
+
+    console.log('Starting photo upload:', files.length, 'files');
+    setUploadingPhotos(true);
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of files) {
+        console.log('Uploading photo:', file.name, file.size);
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
+        const filePath = `${user.id}/portfolio-photos/${fileName}`;
+
+        console.log('Uploading to portfolio-media:', filePath);
+
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('portfolio-media')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error('Upload error for file:', file.name, uploadError);
+          throw uploadError;
+        }
+
+        console.log('Upload successful for:', file.name, uploadData);
+
+        const { data } = supabase.storage
+          .from('portfolio-media')
+          .getPublicUrl(filePath);
+
+        console.log('Public URL:', data.publicUrl);
+        uploadedUrls.push(data.publicUrl);
+      }
+
+      console.log('All photos uploaded successfully:', uploadedUrls.length);
+
+      setItemForm((prev) => ({
+        ...prev,
+        photos: [...prev.photos.filter((p) => p), ...uploadedUrls],
+      }));
+      setSaveMsg({ type: 'success', text: `${uploadedUrls.length} photo${uploadedUrls.length > 1 ? 's' : ''} ajoutée${uploadedUrls.length > 1 ? 's' : ''} avec succès.` });
+      setTimeout(() => setSaveMsg(null), 4000);
+    } catch (error) {
+      console.error('Error uploading photos:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      if (errorMessage.includes('Bucket not found') || errorMessage.includes('bucket')) {
+        setSaveMsg({ type: 'error', text: 'Le bucket portfolio-media n\'existe pas. Veuillez le créer dans le dashboard Supabase.' });
+      } else {
+        setSaveMsg({ type: 'error', text: `Erreur lors du téléchargement des photos: ${errorMessage}` });
+      }
+      setTimeout(() => setSaveMsg(null), 4000);
+    } finally {
+      setUploadingPhotos(false);
+    }
   }
 
   async function saveAvailabilitySchedule() {
@@ -374,7 +572,7 @@ export default function ProviderDashboardPage() {
     if (error) {
       setSaveMsg({ type: 'error', text: error.message });
     } else {
-      setSaveMsg({ type: 'success', text: 'Horaires mis à jour avec succès.' });
+      setSaveMsg({ type: 'success', text: t.auth.loginSuccess });
       await loadData();
     }
     setSaving(false);
@@ -415,14 +613,14 @@ export default function ProviderDashboardPage() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-primary-600">
             <Settings size={28} />
           </div>
-          <h2 className="mt-4 text-xl font-bold text-neutral-900">Créez votre profil prestataire</h2>
+          <h2 className="mt-4 text-xl font-bold text-neutral-900">{t.provider.createProfile}</h2>
           <p className="mt-2 text-sm text-neutral-600">
             Pour commencer à recevoir des demandes, créez votre profil professionnel.
             Il sera soumis à validation par notre équipe.
           </p>
           <button onClick={createProfile} disabled={saving} className="btn-primary mt-6">
             {saving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-            Créer mon profil
+            {t.provider.createProfile}
           </button>
         </div>
       </div>
@@ -430,10 +628,10 @@ export default function ProviderDashboardPage() {
   }
 
   const statusInfo: Record<string, { label: string; icon: typeof Clock; color: string }> = {
-    pending: { label: 'En attente de validation', icon: Clock, color: 'text-accent-600 bg-accent-50' },
-    approved: { label: 'Profil validé', icon: CheckCircle2, color: 'text-success-600 bg-success-50' },
-    rejected: { label: 'Profil refusé', icon: XCircle, color: 'text-error-600 bg-error-50' },
-    changes_requested: { label: 'Modifications demandées', icon: AlertCircle, color: 'text-warning-600 bg-warning-50' },
+    pending: { label: t.provider.validationStatus.pending, icon: Clock, color: 'text-accent-600 bg-accent-50' },
+    approved: { label: t.provider.validationStatus.approved, icon: CheckCircle2, color: 'text-success-600 bg-success-50' },
+    rejected: { label: t.provider.validationStatus.rejected, icon: XCircle, color: 'text-error-600 bg-error-50' },
+    changes_requested: { label: t.provider.validationStatus.changesRequested, icon: AlertCircle, color: 'text-warning-600 bg-warning-50' },
   };
   const si = statusInfo[provider.validation_status] ?? statusInfo.pending;
   const StatusIcon = si.icon;
@@ -605,10 +803,11 @@ export default function ProviderDashboardPage() {
                 setItemForm({ 
                   title: '', 
                   description: '', 
-                  photos: [''], 
-                  videos: [''],
-                  video_thumbnails: [''],
+                  photos: [], 
+                  videos: [],
+                  video_thumbnails: [],
                   tags: '',
+                  project_links: [],
                   client_name: '',
                   project_date: '',
                   budget: '',
@@ -659,37 +858,34 @@ export default function ProviderDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">URLs des photos (une par ligne)</label>
-                  {itemForm.photos.map((photo, i) => (
-                    <div key={i} className="mb-2 flex gap-2">
-                      <input
-                        type="url"
-                        value={photo}
-                        onChange={(e) => {
-                          const photos = [...itemForm.photos];
-                          photos[i] = e.target.value;
-                          setItemForm({ ...itemForm, photos });
-                        }}
-                        className="input-field"
-                        placeholder="https://..."
-                      />
-                      {itemForm.photos.length > 1 && (
-                        <button
-                          onClick={() => setItemForm({ ...itemForm, photos: itemForm.photos.filter((_, j) => j !== i) })}
-                          className="btn-secondary px-3"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
+                  <label className="label">Photos du projet</label>
+                  <div className="mb-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhotos}
+                      className="input-field"
+                    />
+                    <p className="mt-1 text-xs text-neutral-500">Sélectionnez une ou plusieurs images depuis votre ordinateur.</p>
+                  </div>
+                  {itemForm.photos.length > 0 && (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {itemForm.photos.map((photo, i) => (
+                        <div key={photo + i} className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+                          <img src={photo} alt={`Portfolio ${i + 1}`} className="h-28 w-full object-cover" />
+                          <button
+                            onClick={() => setItemForm({ ...itemForm, photos: itemForm.photos.filter((_, j) => j !== i) })}
+                            className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-neutral-700 shadow-sm transition hover:bg-white"
+                            type="button"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <button
-                    onClick={() => setItemForm({ ...itemForm, photos: [...itemForm.photos, ''] })}
-                    className="btn-ghost text-sm"
-                  >
-                    <Plus size={14} />
-                    Ajouter une photo
-                  </button>
+                  )}
                 </div>
 
                 <div>
@@ -740,6 +936,67 @@ export default function ProviderDashboardPage() {
                     className="input-field"
                     placeholder="portrait, studio, éclairage"
                   />
+                </div>
+                <div>
+                  <label className="label">Liens du projet (ex: Démo, Repo)</label>
+                  <div className="space-y-2">
+                    {(itemForm.project_links as { label: string; url: string; type?: string }[]).map((link, idx) => (
+                      <div key={idx} className="grid grid-cols-12 gap-2">
+                        <select
+                          value={link.type || 'other'}
+                          onChange={(e) => {
+                            const links = [...(itemForm.project_links as any[])];
+                            links[idx] = { ...links[idx], type: e.target.value };
+                            setItemForm({ ...itemForm, project_links: links });
+                          }}
+                          className="col-span-2 input-field"
+                        >
+                          <option value="demo">Démo</option>
+                          <option value="repo">Repo</option>
+                          <option value="case-study">Cas d'étude</option>
+                          <option value="other">Autre</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={link.label}
+                          onChange={(e) => {
+                            const links = [...(itemForm.project_links as any[])];
+                            links[idx] = { ...links[idx], label: e.target.value };
+                            setItemForm({ ...itemForm, project_links: links });
+                          }}
+                          className="col-span-4 input-field"
+                          placeholder="Label (ex: Démo)"
+                        />
+                        <input
+                          type="url"
+                          value={link.url}
+                          onChange={(e) => {
+                            const links = [...(itemForm.project_links as any[])];
+                            links[idx] = { ...links[idx], url: e.target.value };
+                            setItemForm({ ...itemForm, project_links: links });
+                          }}
+                          className="col-span-5 input-field"
+                          placeholder="https://..."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setItemForm({ ...itemForm, project_links: (itemForm.project_links as any[]).filter((_, j) => j !== idx) })}
+                          className="col-span-1 btn-ghost text-error-600"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setItemForm({ ...itemForm, project_links: [ ...(itemForm.project_links as any[]), { label: '', url: '' } ] })}
+                        className="btn-secondary"
+                      >
+                        <Plus size={14} /> Ajouter un lien
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
@@ -828,6 +1085,87 @@ export default function ProviderDashboardPage() {
                     <span className="text-sm text-neutral-700">Mettre en avant cette réalisation</span>
                   </label>
                 </div>
+
+                {/* ===== PROFESSIONAL PORTFOLIO ELEMENTS ===== */}
+                <div className="border-t-2 border-primary-200 pt-6 mt-6">
+                  <h5 className="text-sm font-bold text-primary-700 mb-4 uppercase tracking-wider">
+                    📋 Éléments professionnel du portfolio
+                  </h5>
+                  <p className="text-xs text-neutral-500 mb-4">
+                    Complétez ces informations pour créer un portfolio 100% professionnel qui impressionnera vos clients.
+                  </p>
+
+                  <div>
+                    <label className="label">
+                      🎯 Contexte & Problématique
+                      <span className="text-xs font-normal text-neutral-500 ml-2">(Brief, contraintes)</span>
+                    </label>
+                    <textarea
+                      value={itemForm.context}
+                      onChange={(e) => setItemForm({ ...itemForm, context: e.target.value })}
+                      className="input-field resize-none"
+                      rows={3}
+                      placeholder="Décrivez la problématique, le brief et les contraintes du projet..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">
+                      🎯 Objectif
+                      <span className="text-xs font-normal text-neutral-500 ml-2">(Ce qu'il fallait accomplir)</span>
+                    </label>
+                    <textarea
+                      value={itemForm.objective}
+                      onChange={(e) => setItemForm({ ...itemForm, objective: e.target.value })}
+                      className="input-field resize-none"
+                      rows={2}
+                      placeholder="Quel était l'objectif principal du projet ?"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">
+                      👤 Rôle & Contribution
+                      <span className="text-xs font-normal text-neutral-500 ml-2">(Votre contribution exacte)</span>
+                    </label>
+                    <textarea
+                      value={itemForm.role}
+                      onChange={(e) => setItemForm({ ...itemForm, role: e.target.value })}
+                      className="input-field resize-none"
+                      rows={2}
+                      placeholder="Décrivez votre rôle : seul(e), en équipe, responsable de quels aspects ?"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">
+                      ⚙️ Processus & Méthodologie
+                      <span className="text-xs font-normal text-neutral-500 ml-2">(Outils, étapes, approche)</span>
+                    </label>
+                    <textarea
+                      value={itemForm.process}
+                      onChange={(e) => setItemForm({ ...itemForm, process: e.target.value })}
+                      className="input-field resize-none"
+                      rows={3}
+                      placeholder="Méthodologie utilisée, outils, étapes clés et approche du projet..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">
+                      ✓ Résultat & Impact
+                      <span className="text-xs font-normal text-neutral-500 ml-2">(Livrable, chiffres, KPIs)</span>
+                    </label>
+                    <textarea
+                      value={itemForm.result}
+                      onChange={(e) => setItemForm({ ...itemForm, result: e.target.value })}
+                      className="input-field resize-none"
+                      rows={3}
+                      placeholder="Livrable final, résultats mesurables, impact, retours clients, KPIs..."
+                    />
+                  </div>
+                </div>
+
                 <div className="flex justify-end gap-2">
                   <button onClick={() => setShowItemForm(false)} className="btn-secondary">Annuler</button>
                   <button onClick={savePortfolioItem} disabled={saving || !itemForm.title} className="btn-primary">
@@ -851,6 +1189,20 @@ export default function ProviderDashboardPage() {
                   <div className="p-4">
                     <h4 className="font-semibold text-neutral-900">{item.title}</h4>
                     {item.description && <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>}
+                    {item.project_links && item.project_links.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2 items-center">
+                        {(item.project_links as { label: string; url: string; type?: string }[]).map((l, i) => {
+                          const type = (l.type || 'other') as string;
+                          const Icon = type === 'demo' ? Play : type === 'repo' ? Code : type === 'case-study' ? FileText : ExternalLink;
+                          return l.url ? (
+                            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-md bg-neutral-50 px-2 py-1 text-xs text-primary-600 hover:underline">
+                              <Icon size={14} />
+                              <span>{l.label || l.url}</span>
+                            </a>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
                     <div className="mt-3 flex gap-2">
                       <button
                         onClick={() => {
@@ -862,6 +1214,7 @@ export default function ProviderDashboardPage() {
                             videos: item.videos?.length ? item.videos : [''],
                             video_thumbnails: item.video_thumbnails?.length ? item.video_thumbnails : [''],
                             tags: item.tags.join(', '),
+                            project_links: item.project_links?.length ? item.project_links : [],
                             client_name: item.client_name ?? '',
                             project_date: item.project_date ?? '',
                             budget: item.budget ?? '',
@@ -869,7 +1222,13 @@ export default function ProviderDashboardPage() {
                             featured: item.featured,
                             technologies_used: item.technologies_used.join(', '),
                             duration: item.duration ?? '',
-                            team_size: item.team_size?.toString() ?? ''
+                            team_size: item.team_size?.toString() ?? '',
+                            // ===== PROFESSIONAL PORTFOLIO FIELDS =====
+                            context: item.context ?? '',
+                            objective: item.objective ?? '',
+                            role: item.role ?? '',
+                            process: item.process ?? '',
+                            result: item.result ?? ''
                           });
                           setShowItemForm(true);
                         }}

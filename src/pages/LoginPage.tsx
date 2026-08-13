@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 
 export default function LoginPage() {
   const { signIn, profile } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,8 +43,8 @@ export default function LoginPage() {
             </span>
             <span className="text-neutral-900">SERVIO</span>
           </Link>
-          <h1 className="mt-6 text-2xl font-bold text-neutral-900">Connexion</h1>
-          <p className="mt-2 text-sm text-neutral-600">Connectez-vous à votre compte SERVIO</p>
+          <h1 className="mt-6 text-2xl font-bold text-neutral-900">{t.auth.login}</h1>
+          <p className="mt-2 text-sm text-neutral-600">{t.auth.hasAccount}</p>
         </div>
 
         <div className="card p-6 sm:p-8">
@@ -55,7 +57,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Email</label>
+              <label className="label">{t.auth.email}</label>
               <div className="relative">
                 <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -70,7 +72,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="label">Mot de passe</label>
+              <label className="label">{t.auth.password}</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -85,21 +87,21 @@ export default function LoginPage() {
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? <Loader2 size={18} className="animate-spin" /> : 'Se connecter'}
+              {loading ? <Loader2 size={18} className="animate-spin" /> : t.auth.login}
             </button>
           </form>
 
           <div className="mt-4 text-center">
             <Link to="/reset-password" className="text-sm text-primary-600 hover:text-primary-700">
-              Mot de passe oublié ?
+              {t.auth.forgotPassword}
             </Link>
           </div>
         </div>
 
         <p className="mt-6 text-center text-sm text-neutral-600">
-          Pas encore de compte ?{' '}
+          {t.auth.noAccount}{' '}
           <Link to="/signup" className="font-semibold text-primary-600 hover:text-primary-700">
-            Créer un compte
+            {t.auth.signup}
           </Link>
         </p>
       </div>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MapPin, BadgeCheck, Zap, Clock } from 'lucide-react';
+import { memo, useState, useEffect } from 'react';
 import type { ProviderProfile } from '@/types';
 import StarRating from './StarRating';
 
@@ -15,7 +16,42 @@ const availabilityLabels: Record<string, { label: string; color: string }> = {
   unavailable: { label: 'Indisponible', color: 'bg-neutral-400' },
 };
 
-export default function ProviderCard({ provider }: { provider: ProviderProfile }) {
+// ===== IMAGE OPTIMIZATION =====
+interface ImageProps {
+  src: string | undefined | null;
+  alt: string;
+  className: string;
+  loading?: 'lazy' | 'eager';
+}
+
+const OptimizedImage = memo(({ src, alt, className, loading = 'lazy' }: ImageProps) => {
+  const [imageSrc, setImageSrc] = useState<string | undefined>();
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (src) {
+      setImageSrc(src);
+    }
+  }, [src]);
+
+  return (
+    <img
+      src={imageSrc}
+      alt={alt}
+      className={`${className} ${!isLoaded ? 'blur-sm' : ''} transition-all duration-300`}
+      loading={loading}
+      onLoad={() => setIsLoaded(true)}
+      onError={() => {
+        // Fallback if image fails to load
+        setImageSrc(undefined);
+      }}
+    />
+  );
+});
+
+OptimizedImage.displayName = 'OptimizedImage';
+
+function ProviderCard({ provider }: { provider: ProviderProfile }) {
   const avail = availabilityLabels[provider.availability] ?? availabilityLabels.available;
 
   return (
@@ -25,7 +61,7 @@ export default function ProviderCard({ provider }: { provider: ProviderProfile }
     >
       <div className="relative h-40 sm:h-48 md:h-52 overflow-hidden bg-neutral-100">
         {provider.banner_url ? (
-          <img
+          <OptimizedImage
             src={provider.banner_url}
             alt={provider.business_name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -59,9 +95,9 @@ export default function ProviderCard({ provider }: { provider: ProviderProfile }
       <div className="p-4 sm:p-5 md:p-6">
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="flex-shrink-0 -mt-8 sm:-mt-10 md:-mt-12">
-            {provider.avatar_url ? (
-              <img
-                src={provider.avatar_url}
+            {provider.avatar_url || provider.owner_avatar_url ? (
+              <OptimizedImage
+                src={provider.avatar_url || provider.owner_avatar_url}
                 alt={provider.business_name}
                 className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
                 loading="lazy"
@@ -111,3 +147,5 @@ export default function ProviderCard({ provider }: { provider: ProviderProfile }
     </Link>
   );
 }
+
+export default memo(ProviderCard);

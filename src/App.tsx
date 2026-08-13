@@ -1,27 +1,30 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { DarkModeProvider } from '@/context/DarkModeContext';
 import { I18nProvider } from '@/context/I18nContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import LandingPage from '@/pages/LandingPage';
-import SearchPage from '@/pages/SearchPage';
-import ProviderProfilePage from '@/pages/ProviderProfilePage';
-import LoginPage from '@/pages/LoginPage';
-import SignupPage from '@/pages/SignupPage';
-import SignupConfirmationPage from '@/pages/SignupConfirmationPage';
-import MessagesPage from '@/pages/MessagesPage';
-import FavoritesPage from '@/pages/FavoritesPage';
-import ProviderDashboardPage from '@/pages/ProviderDashboardPage';
-import AdminDashboardPage from '@/pages/AdminDashboardPage';
-import UserProfilePage from '@/pages/UserProfilePage';
-import ProviderProfileEditPage from '@/pages/ProviderProfileEditPage';
-import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import SettingsPage from '@/pages/SettingsPage';
-import FaqPage from '@/pages/FaqPage';
-import NotificationsPage from '@/pages/NotificationsPage';
 import CategorySeeder from '@/components/CategorySeeder';
-import BookingPage from '@/pages/BookingPage';
+
+const LandingPage = lazy(() => import('@/pages/LandingPage'));
+const SearchPage = lazy(() => import('@/pages/SearchPage'));
+const ProviderProfilePage = lazy(() => import('@/pages/ProviderProfilePage'));
+const PortfolioItemDetailPage = lazy(() => import('@/pages/PortfolioItemDetailPage'));
+const BookingPage = lazy(() => import('@/pages/BookingPage'));
+const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
+const FavoritesPage = lazy(() => import('@/pages/FavoritesPage'));
+const ProviderDashboardPage = lazy(() => import('@/pages/ProviderDashboardPage'));
+const AdminDashboardPage = lazy(() => import('@/pages/AdminDashboardPage'));
+const UserProfilePage = lazy(() => import('@/pages/UserProfilePage'));
+const ProviderProfileEditPage = lazy(() => import('@/pages/ProviderProfileEditPage'));
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const SignupPage = lazy(() => import('@/pages/SignupPage'));
+const SignupConfirmationPage = lazy(() => import('@/pages/SignupConfirmationPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const FaqPage = lazy(() => import('@/pages/FaqPage'));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -39,36 +42,39 @@ function App() {
       <DarkModeProvider>
         <AuthProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/signup/confirmation" element={<SignupConfirmationPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/admin/seed-categories" element={<CategorySeeder />} />
-              <Route
-                path="*"
-                element={
-                  <Layout>
-                    <Routes>
-                      <Route path="/" element={<LandingPage />} />
-                      <Route path="/search" element={<SearchPage />} />
-                      <Route path="/provider/:slug" element={<ProviderProfilePage />} />
-                      <Route path="/provider/:slug/book" element={<BookingPage />} />
-                      <Route path="/messages" element={<MessagesPage />} />
-                      <Route path="/favorites" element={<FavoritesPage />} />
-                      <Route path="/profile" element={<UserProfilePage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/faq" element={<FaqPage />} />
-                      <Route path="/notifications" element={<NotificationsPage />} />
-                      <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
-                      <Route path="/provider/edit" element={<ProviderProfileEditPage />} />
-                      <Route path="/admin" element={<AdminDashboardPage />} />
-                      <Route path="*" element={<LandingPage />} />
-                    </Routes>
-                  </Layout>
-                }
-              />
-            </Routes>
+            <Suspense fallback={<div className="min-h-screen bg-white text-center py-24">Loading...</div>}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/signup/confirmation" element={<SignupConfirmationPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/admin/seed-categories" element={<CategorySeeder />} />
+                <Route
+                  path="*"
+                  element={
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/search" element={<SearchPage />} />
+                        <Route path="/provider/:slug" element={<ProviderProfilePage />} />
+                        <Route path="/portfolio/:itemId" element={<PortfolioItemDetailPage />} />
+                        <Route path="/provider/:slug/book" element={<BookingPage />} />
+                        <Route path="/messages" element={<MessagesPage />} />
+                        <Route path="/favorites" element={<FavoritesPage />} />
+                        <Route path="/profile" element={<UserProfilePage />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/faq" element={<FaqPage />} />
+                        <Route path="/notifications" element={<NotificationsPage />} />
+                        <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
+                        <Route path="/provider/edit" element={<ProviderProfileEditPage />} />
+                        <Route path="/admin" element={<AdminDashboardPage />} />
+                        <Route path="*" element={<LandingPage />} />
+                      </Routes>
+                    </Layout>
+                  }
+                />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </AuthProvider>
       </DarkModeProvider>

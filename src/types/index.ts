@@ -39,6 +39,7 @@ export interface ProviderProfile {
   headline: string | null;
   description: string | null;
   avatar_url: string | null;
+  owner_avatar_url?: string | null;
   banner_url: string | null;
   category_id: string | null;
   skills: string[];
@@ -68,27 +69,46 @@ export interface ProviderProfile {
 }
 
 export interface PortfolioItem {
+  // ===== BASIC INFO =====
   id: string;
   provider_id: string;
   title: string;
-  description: string | null;
-  photos: string[];
-  videos: string[];
-  video_thumbnails: string[];
-  video_url: string | null;
-  category_id: string | null;
-  tags: string[];
+  description: string | null; // Short description
   sort_order: number;
+  featured: boolean;
+  created_at: string;
+  updated_at: string;
+
+  // ===== PROJECT CONTEXT (Élément obligatoire) =====
+  context: string | null; // Problématique, brief, contraintes
+  objective: string | null; // Ce qu'il fallait accomplir
+  role: string | null; // Votre contribution exacte (seul ou en équipe)
+  process: string | null; // Méthodologie, outils utilisés, étapes clés
+  result: string | null; // Livrable final, impact mesurable (chiffres, KPIs, retours)
+
+  // ===== PROJECT DETAILS =====
   client_name: string | null;
   project_date: string | null;
   budget: string | null;
   location: string | null;
-  featured: boolean;
-  technologies_used: string[];
   duration: string | null;
   team_size: number | null;
-  created_at: string;
-  updated_at: string;
+
+  // ===== MEDIA & VISUALS =====
+  photos: string[]; // Array of image URLs
+  videos: string[]; // Array of video URLs
+  video_thumbnails: string[]; // Thumbnails for videos
+  video_url: string | null; // Primary video URL (deprecated, use videos array)
+  project_links: {
+    label: string;
+    url: string;
+    type?: 'demo' | 'repo' | 'case-study' | 'live' | 'other';
+  }[];
+
+  // ===== SKILLS & TAGS =====
+  category_id: string | null;
+  tags: string[]; // Project tags
+  technologies_used: string[]; // Tech stack used
 }
 
 export interface Review {

@@ -5,10 +5,13 @@ import {
   Lock, Mail, Phone, MapPin, CreditCard, AlertCircle 
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
+import type { Language } from '@/i18n/translations';
 import { supabase } from '@/lib/supabase';
 
 export default function SettingsPage() {
   const { user, profile, signOut } = useAuth();
+  const { t, locale, language, setLanguage, supportedLanguages } = useI18n();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,20 +81,20 @@ export default function SettingsPage() {
 
     if (error) {
       console.error('Error saving settings:', error);
-      alert('Erreur lors de la sauvegarde des paramètres');
+      alert(t.common.error);
     }
     setSaving(false);
   };
 
   const handleDeleteAccount = async () => {
-    if (!user || deleteConfirmation !== 'SUPPRIMER') return;
+    if (!user || deleteConfirmation !== t.user.deleteAccountConfirm) return;
 
-    if (confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
+    if (confirm(t.user.deleteAccountWarning)) {
       const { error } = await supabase.auth.admin.deleteUser(user.id);
       
       if (error) {
         console.error('Error deleting account:', error);
-        alert('Erreur lors de la suppression du compte');
+        alert(t.common.error);
       } else {
         await signOut();
         navigate('/');
@@ -100,17 +103,17 @@ export default function SettingsPage() {
   };
 
   const tabs = [
-    { id: 'account', label: 'Compte', icon: Settings },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'privacy', label: 'Confidentialité', icon: Shield },
-    { id: 'preferences', label: 'Préférences', icon: Globe },
+    { id: 'account', label: t.user.settings, icon: Settings },
+    { id: 'notifications', label: t.user.notifications, icon: Bell },
+    { id: 'privacy', label: t.user.privacy, icon: Shield },
+    { id: 'preferences', label: t.user.settings, icon: Globe },
   ];
 
   if (!user || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-neutral-600">Chargement...</p>
+          <p className="text-neutral-600">{t.common.loading}</p>
         </div>
       </div>
     );
@@ -119,8 +122,8 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-neutral-900">Paramètres</h1>
-        <p className="mt-1 text-sm text-neutral-600">Gérez vos paramètres de compte et préférences</p>
+        <h1 className="text-2xl font-bold text-neutral-900">{t.user.settings}</h1>
+        <p className="mt-1 text-sm text-neutral-600">{t.user.settingsSubtitle}</p>
       </div>
 
       <div className="flex gap-6">
@@ -149,7 +152,7 @@ export default function SettingsPage() {
               className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-error-600 hover:bg-error-50"
             >
               <Trash2 size={18} />
-              Supprimer le compte
+              {t.user.deleteAccount}
             </button>
           </div>
         </div>
@@ -177,7 +180,7 @@ export default function SettingsPage() {
           {activeTab === 'account' && (
             <div className="space-y-6">
               <div className="card">
-                <h3 className="mb-4 font-semibold text-neutral-900">Informations du compte</h3>
+                <h3 className="mb-4 font-semibold text-neutral-900">{t.user.accountInformation}</h3>
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center">
@@ -194,7 +197,7 @@ export default function SettingsPage() {
                   <div className="flex items-start gap-3">
                     <Mail size={20} className="mt-0.5 text-neutral-400" />
                     <div className="flex-1">
-                      <p className="text-sm text-neutral-500">Email</p>
+                      <p className="text-sm text-neutral-500">{t.auth.email}</p>
                       <p className="text-sm font-medium text-neutral-900">{profile.email}</p>
                     </div>
                   </div>
@@ -202,9 +205,9 @@ export default function SettingsPage() {
                   <div className="flex items-start gap-3">
                     <Shield size={20} className="mt-0.5 text-neutral-400" />
                     <div className="flex-1">
-                      <p className="text-sm text-neutral-500">Rôle</p>
+                      <p className="text-sm text-neutral-500">{t.user.roleLabel}</p>
                       <p className="text-sm font-medium text-neutral-900">
-                        {profile.role === 'admin' ? 'Administrateur' : profile.role === 'provider' ? 'Prestataire' : 'Client'}
+                        {profile.role === 'admin' ? t.user.role.admin : profile.role === 'provider' ? t.user.role.provider : t.user.role.visitor}
                       </p>
                     </div>
                   </div>
@@ -212,9 +215,9 @@ export default function SettingsPage() {
                   <div className="flex items-start gap-3">
                     <MapPin size={20} className="mt-0.5 text-neutral-400" />
                     <div className="flex-1">
-                      <p className="text-sm text-neutral-500">Membre depuis</p>
+                      <p className="text-sm text-neutral-500">{t.user.memberSince}</p>
                       <p className="text-sm font-medium text-neutral-900">
-                        {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                        {new Date(profile.created_at).toLocaleDateString(locale)}
                       </p>
                     </div>
                   </div>
@@ -225,14 +228,14 @@ export default function SettingsPage() {
                     onClick={() => navigate('/profile')}
                     className="btn-secondary flex-1"
                   >
-                    Modifier le profil
+                    {t.provider.editProfile}
                   </button>
                   <button
                     onClick={() => navigate('/reset-password')}
                     className="btn-secondary flex-1"
                   >
                     <Lock size={16} />
-                    Changer le mot de passe
+                    {t.user.changePassword}
                   </button>
                 </div>
               </div>
@@ -243,12 +246,12 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && (
             <div className="space-y-6">
               <div className="card">
-                <h3 className="mb-4 font-semibold text-neutral-900">Préférences de notification</h3>
+                <h3 className="mb-4 font-semibold text-neutral-900">{t.user.notifications}</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900">Notifications par email</p>
-                      <p className="text-sm text-neutral-600">Recevoir des notifications par email</p>
+                      <p className="font-medium text-neutral-900">{t.user.emailNotifications}</p>
+                      <p className="text-sm text-neutral-600">{t.user.emailNotificationsDescription}</p>
                     </div>
                     <button
                       onClick={() => setSettings({ ...settings, emailNotifications: !settings.emailNotifications })}
@@ -266,8 +269,8 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900">Notifications push</p>
-                      <p className="text-sm text-neutral-600">Recevoir des notifications push dans le navigateur</p>
+                      <p className="font-medium text-neutral-900">{t.user.pushNotifications}</p>
+                      <p className="text-sm text-neutral-600">{t.user.pushNotificationsDescription}</p>
                     </div>
                     <button
                       onClick={() => setSettings({ ...settings, pushNotifications: !settings.pushNotifications })}
@@ -287,8 +290,8 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900">Messages</p>
-                      <p className="text-sm text-neutral-600">Notifications pour les nouveaux messages</p>
+                      <p className="font-medium text-neutral-900">{t.user.messages}</p>
+                      <p className="text-sm text-neutral-600">{t.user.messagesNotificationsDescription}</p>
                     </div>
                     <button
                       onClick={() => setSettings({ ...settings, emailMessages: !settings.emailMessages })}
@@ -306,8 +309,8 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900">Avis</p>
-                      <p className="text-sm text-neutral-600">Notifications pour les nouveaux avis</p>
+                      <p className="font-medium text-neutral-900">{t.user.reviews}</p>
+                      <p className="text-sm text-neutral-600">{t.user.reviewsNotificationsDescription}</p>
                     </div>
                     <button
                       onClick={() => setSettings({ ...settings, emailReviews: !settings.emailReviews })}
@@ -325,8 +328,8 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-neutral-900">Mises à jour</p>
-                      <p className="text-sm text-neutral-600">Nouvelles fonctionnalités et mises à jour</p>
+                      <p className="font-medium text-neutral-900">{t.user.updates}</p>
+                      <p className="text-sm text-neutral-600">{t.user.updatesNotificationsDescription}</p>
                     </div>
                     <button
                       onClick={() => setSettings({ ...settings, emailUpdates: !settings.emailUpdates })}
@@ -349,7 +352,7 @@ export default function SettingsPage() {
                     disabled={saving}
                     className="btn-primary"
                   >
-                    {saving ? <span className="animate-spin">⏳</span> : <><Save size={18} /> Enregistrer</>}
+                    {saving ? <span className="animate-spin">⏳</span> : <><Save size={18} /> {t.common.save}</>}
                   </button>
                 </div>
               </div>
@@ -360,14 +363,14 @@ export default function SettingsPage() {
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               <div className="card">
-                <h3 className="mb-4 font-semibold text-neutral-900">Confidentialité des données</h3>
+                <h3 className="mb-4 font-semibold text-neutral-900">{t.user.privacy}</h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <Eye size={20} className="mt-0.5 text-neutral-400" />
                     <div className="flex-1">
-                      <p className="font-medium text-neutral-900">Visibilité du profil</p>
+                      <p className="font-medium text-neutral-900">{t.user.profileVisibility}</p>
                       <p className="text-sm text-neutral-600">
-                        Votre profil est visible par les autres utilisateurs de la plateforme
+                        {t.user.profileVisibilityDescription}
                       </p>
                     </div>
                   </div>
@@ -375,9 +378,9 @@ export default function SettingsPage() {
                   <div className="flex items-start gap-3">
                     <Shield size={20} className="mt-0.5 text-neutral-400" />
                     <div className="flex-1">
-                      <p className="font-medium text-neutral-900">Protection des données</p>
+                      <p className="font-medium text-neutral-900">{t.user.dataProtection}</p>
                       <p className="text-sm text-neutral-600">
-                        Vos données sont protégées conformément au RGPD
+                        {t.user.dataProtectionDescription}
                       </p>
                     </div>
                   </div>
@@ -385,9 +388,9 @@ export default function SettingsPage() {
                   <div className="flex items-start gap-3">
                     <Globe size={20} className="mt-0.5 text-neutral-400" />
                     <div className="flex-1">
-                      <p className="font-medium text-neutral-900">Partage de données</p>
+                      <p className="font-medium text-neutral-900">{t.user.dataSharing}</p>
                       <p className="text-sm text-neutral-600">
-                        Nous ne partageons vos données personnelles avec des tiers
+                        {t.user.dataSharingDescription}
                       </p>
                     </div>
                   </div>
@@ -395,7 +398,7 @@ export default function SettingsPage() {
 
                 <div className="mt-6">
                   <button className="btn-secondary">
-                    Télécharger mes données
+                    {t.user.downloadData}
                   </button>
                 </div>
               </div>
@@ -406,24 +409,25 @@ export default function SettingsPage() {
           {activeTab === 'preferences' && (
             <div className="space-y-6">
               <div className="card">
-                <h3 className="mb-4 font-semibold text-neutral-900">Préférences générales</h3>
+                <h3 className="mb-4 font-semibold text-neutral-900">{t.user.generalPreferences}</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="label">Langue</label>
+                    <label className="label">{t.user.language}</label>
                     <select
                       value={settings.language}
-                      onChange={(e) => setSettings({ ...settings, language: e.target.value })}
+                      onChange={(e) => setSettings({ ...settings, language: e.target.value as Language })}
                       className="input-field"
                     >
-                      <option value="fr">Français</option>
-                      <option value="en">English</option>
-                      <option value="es">Español</option>
-                      <option value="de">Deutsch</option>
+                      {supportedLanguages.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="label">Devise</label>
+                    <label className="label">{t.user.currency}</label>
                     <select
                       value={settings.currency}
                       onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
@@ -437,7 +441,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="label">Fuseau horaire</label>
+                    <label className="label">{t.user.timezone}</label>
                     <select
                       value={settings.timezone}
                       onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
@@ -457,7 +461,7 @@ export default function SettingsPage() {
                     disabled={saving}
                     className="btn-primary"
                   >
-                    {saving ? <span className="animate-spin">⏳</span> : <><Save size={18} /> Enregistrer</>}
+                    {saving ? <span className="animate-spin">⏳</span> : <><Save size={18} /> {t.common.save}</>}
                   </button>
                 </div>
               </div>
@@ -470,19 +474,19 @@ export default function SettingsPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle size={24} className="mt-0.5 text-error-600" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-error-900">Supprimer le compte</h3>
+                  <h3 className="font-semibold text-error-900">{t.user.deleteAccount}</h3>
                   <p className="mt-2 text-sm text-error-700">
-                    Cette action est irréversible. Toutes vos données seront définitivement supprimées.
+                    {t.user.deleteAccountWarning}
                   </p>
                   
                   <div className="mt-4">
-                    <label className="label">Tapez "SUPPRIMER" pour confirmer</label>
+                    <label className="label">{t.user.deleteAccountConfirmPrompt}</label>
                     <input
                       type="text"
                       value={deleteConfirmation}
                       onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())}
                       className="input-field"
-                      placeholder="SUPPRIMER"
+                      placeholder={t.user.deleteAccountPlaceholder}
                     />
                   </div>
 
@@ -491,15 +495,15 @@ export default function SettingsPage() {
                       onClick={() => setDeleteAccountOpen(false)}
                       className="btn-secondary"
                     >
-                      Annuler
+                      {t.common.cancel}
                     </button>
                     <button
                       onClick={handleDeleteAccount}
-                      disabled={deleteConfirmation !== 'SUPPRIMER'}
+                      disabled={deleteConfirmation !== t.user.deleteAccountConfirm}
                       className="btn-error"
                     >
                       <Trash2 size={18} />
-                      Supprimer définitivement
+                      {t.user.deleteAccountPermanently}
                     </button>
                   </div>
                 </div>

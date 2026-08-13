@@ -1,14 +1,17 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MessageSquare, Send, Loader2, ArrowLeft, Search, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import type { Conversation, Message, Profile, ProviderProfile } from '@/types';
 import { formatRelativeTime } from '@/lib/utils';
 
 export default function MessagesPage() {
   const { user, profile, loading: authLoading } = useAuth();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -21,10 +24,10 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const quickReplies = [
-    'Bonjour, merci pour votre message. Je vous réponds rapidement.',
-    'Bonjour ! Je suis disponible pour en discuter. Pouvez-vous me donner plus de détails ?',
-    'Merci pour votre intérêt. Je peux vous proposer un devis, pourriez-vous me préciser vos besoins ?',
-    'Bonjour, je suis actuellement sur mission mais je vous réponds dès que possible.',
+    t.provider.message.quickReplies.reply1,
+    t.provider.message.quickReplies.reply2,
+    t.provider.message.quickReplies.reply3,
+    t.provider.message.quickReplies.reply4,
   ];
 
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -39,6 +42,16 @@ export default function MessagesPage() {
     if (!user) return;
     loadConversations();
   }, [user]);
+
+  useEffect(() => {
+    const conversationId = searchParams.get('conversationId');
+    if (!conversationId || !conversations.length || selectedConv) return;
+
+    const conversation = conversations.find((conv) => conv.id === conversationId);
+    if (conversation) {
+      loadMessages(conversation);
+    }
+  }, [searchParams, conversations, selectedConv]);
 
   // Real-time subscription for new messages
   useEffect(() => {
@@ -114,8 +127,10 @@ export default function MessagesPage() {
     const { data } = await supabase
       .from('conversations')
       .select('*')
-      .or(`participant_a.eq.${user.id},participant_b.eq.${user.id}`)
-      .order('last_message_at', { ascending: false, nullsFirst: false });
+      .or(
+        `participant_a.eq.${user.id},participant_b.eq.${user.id}`
+      )
+      .order('last_message_at', { ascending: false });
 
     const convs = data as Conversation[] ?? [];
 
@@ -232,7 +247,7 @@ export default function MessagesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher..."
+                placeholder={t.common.search}
                 className="input-field pl-9 py-2"
               />
             </div>
@@ -243,7 +258,7 @@ export default function MessagesPage() {
               <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                 <MessageSquare size={40} className="text-neutral-300" />
                 <p className="mt-3 text-sm text-neutral-500">
-                  {searchQuery ? 'Aucun résultat' : 'Aucune conversation'}
+                  {searchQuery ? t.search.noResults : 'Aucune conversation'}
                 </p>
                 <p className="text-xs text-neutral-400 mt-1">
                   {searchQuery ? 'Essayez une autre recherche' : 'Contactez un prestataire pour commencer'}
@@ -280,11 +295,11 @@ export default function MessagesPage() {
                           {conv.other_provider?.business_name ?? conv.other_user?.full_name ?? 'Utilisateur'}
                         </p>
                         {conv.last_message_at && (
-                          <span className="text-xs text-neutral-400 flex-shrink-0 ml-2">{formatRelativeTime(conv.last_message_at)}</span>
+                          <span className="text-xs text-neutral-400 flex-shrink-0 ml-2">{formatRelativeTime(conv.last_message_at, locale)}</span>
                         )}
                       </div>
                       <p className="truncate text-xs text-neutral-500">
-                        {conv.last_message_preview ?? 'Nouvelle conversation'}
+                        {conv.last_message_preview ?? t.provider.message.newConversation}
                       </p>
                     </div>
                   </button>
@@ -339,7 +354,7 @@ export default function MessagesPage() {
                       >
                         <p className="break-words">{msg.content}</p>
                         <p className={`mt-1 text-xs ${isOwn ? 'text-primary-200' : 'text-neutral-400'}`}>
-                          {formatRelativeTime(msg.created_at)}
+                          {formatRelativeTime(msg.created_at, locale)}
                         </p>
                       </div>
                     </div>
@@ -379,7 +394,7 @@ export default function MessagesPage() {
                   onChange={(e) => handleTyping(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                   className="input-field flex-1"
-                  placeholder="Écrivez votre message..."
+                  placeholder={t.provider.message.writeMessage}
                 />
                 <button
                   onClick={sendMessage}

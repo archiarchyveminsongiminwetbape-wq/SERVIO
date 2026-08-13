@@ -8,13 +8,8 @@ export const messagesApi = {
     try {
       const { data, error } = await supabase
         .from('conversations')
-        .select(`
-          *,
-          provider:provider_id(business_name, avatar_url),
-          client:client_id(full_name, avatar_url),
-          last_message:messages(content, created_at, sender_id)
-        `)
-        .or(`client_id.eq.${userId},provider_id.eq.${userId}`)
+        .select('*')
+        .or(`participant_a.eq.${userId},participant_b.eq.${userId}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -61,15 +56,16 @@ export const messagesApi = {
   },
 
   // Get or create conversation between users
-  async getOrCreateConversation(clientId: string, providerId: string): Promise<ApiResponse<Conversation>> {
+  async getOrCreateConversation(userAId: string, userBId: string): Promise<ApiResponse<Conversation>> {
     try {
       // First try to find existing conversation
       const { data: existing, error: findError } = await supabase
         .from('conversations')
         .select('*')
-        .eq('client_id', clientId)
-        .eq('provider_id', providerId)
-        .single();
+        .or(
+          `and(participant_a.eq.${userAId},participant_b.eq.${userBId}),and(participant_a.eq.${userBId},participant_b.eq.${userAId})`
+        )
+        .maybeSingle();
 
       if (existing && !findError) {
         return handleApiSuccess(existing);
@@ -79,10 +75,9 @@ export const messagesApi = {
       const { data, error } = await supabase
         .from('conversations')
         .insert({
-          client_id: clientId,
-          provider_id: providerId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          participant_a: userAId,
+          participant_b: userBId,
+          created_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -224,7 +219,7 @@ export const messagesApi = {
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id')
-        .or(`client_id.eq.${userId},provider_id.eq.${userId}`);
+        .or(`participant_a.eq.${userId},participant_b.eq.${userId}`);
 
       if (convError) throw convError;
 

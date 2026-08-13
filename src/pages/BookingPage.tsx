@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Video, User, Check, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import type { ProviderProfile, Booking, AvailabilitySlot } from '@/types';
-import { formatCurrency } from '@/data/currencies';
 
 export default function BookingPage() {
   const { slug } = useParams<{ slug: string }>();
   const { user, profile } = useAuth();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
@@ -102,7 +103,7 @@ export default function BookingPage() {
 
     if (error) {
       console.error('Error creating booking:', error);
-      alert('Erreur lors de la création du rendez-vous');
+      alert(t.common.error);
       setSubmitting(false);
     } else {
       setStep('success');
@@ -121,7 +122,7 @@ export default function BookingPage() {
   if (!provider) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <p className="text-neutral-600">Prestataire non trouvé</p>
+        <p className="text-neutral-600">{t.search.noResults}</p>
       </div>
     );
   }
@@ -133,7 +134,7 @@ export default function BookingPage() {
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success-100 text-success-600">
             <Check size={40} />
           </div>
-          <h2 className="mt-6 text-2xl font-bold text-neutral-900">Rendez-vous demandé</h2>
+          <h2 className="mt-6 text-2xl font-bold text-neutral-900">{t.auth.signupSuccess}</h2>
           <p className="mt-2 text-neutral-600">
             Votre demande de rendez-vous a été envoyée à {provider.business_name}.
             Vous recevrez une confirmation une fois le rendez-vous accepté.
@@ -143,7 +144,7 @@ export default function BookingPage() {
               Voir mes messages
             </button>
             <button onClick={() => navigate('/')} className="btn-secondary w-full">
-              Retour à l'accueil
+              {t.common.back}
             </button>
           </div>
         </div>
@@ -237,7 +238,7 @@ export default function BookingPage() {
                               : 'border-neutral-200 hover:border-neutral-300'
                           }`}
                         >
-                          {new Date(date).toLocaleDateString('fr-FR', {
+                          {new Date(date).toLocaleDateString(locale, {
                             day: 'numeric',
                             month: 'short',
                           })}
@@ -303,7 +304,7 @@ export default function BookingPage() {
                   <div className="mt-1 text-sm text-neutral-600">
                     {selectedSlot && (
                       <>
-                        {new Date(selectedSlot.date).toLocaleDateString('fr-FR', {
+                        {new Date(selectedSlot.date).toLocaleDateString(locale, {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',

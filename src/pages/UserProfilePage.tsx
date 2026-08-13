@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, LogOut, Save, X, Camera, Globe, CreditCard, Bell, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
+import { formatDate } from '@/lib/utils';
 import type { Profile } from '@/types';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 
 export default function UserProfilePage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { t, locale, supportedLanguages } = useI18n();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,11 +45,14 @@ export default function UserProfilePage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-neutral-600">Chargement...</p>
+          <p className="text-neutral-600">{t.common.loading}</p>
         </div>
       </div>
     );
   }
+
+  const selectedCountry = countries.find((country) => country.code === formData.country);
+  const selectedCurrency = currencies.find((currency) => currency.code === formData.currency);
 
   const handleSave = async () => {
     setLoading(true);
@@ -67,7 +73,7 @@ export default function UserProfilePage() {
 
     if (error) {
       console.error('Error updating profile:', error);
-      alert('Erreur lors de la mise à jour du profil');
+      alert(t.common.error);
     } else {
       await refreshProfile();
       setEditing(false);
@@ -97,7 +103,7 @@ export default function UserProfilePage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-neutral-900">Mon Profil</h1>
+        <h1 className="text-2xl font-bold text-neutral-900">{t.user.profile}</h1>
         <div className="flex gap-2">
           {editing ? (
             <>
@@ -107,14 +113,14 @@ export default function UserProfilePage() {
                 className="btn-secondary"
               >
                 <X size={18} />
-                Annuler
+                {t.common.cancel}
               </button>
               <button
                 onClick={handleSave}
                 disabled={loading}
                 className="btn-primary"
               >
-                {loading ? <span className="animate-spin">⏳</span> : <><Save size={18} /> Enregistrer</>}
+                {loading ? <span className="animate-spin">⏳</span> : <><Save size={18} /> {t.common.save}</>}
               </button>
             </>
           ) : (
@@ -123,7 +129,7 @@ export default function UserProfilePage() {
               className="btn-secondary"
             >
               <Edit2 size={18} />
-              Modifier
+              {t.common.edit}
             </button>
           )}
         </div>
@@ -158,11 +164,11 @@ export default function UserProfilePage() {
                 </div>
               </div>
               <div className="text-center">
-                <h2 className="text-xl font-semibold text-neutral-900">{profile.full_name || 'Utilisateur'}</h2>
+                <h2 className="text-xl font-semibold text-neutral-900">{profile.full_name || t.common.notAvailable}</h2>
                 <p className="text-sm text-neutral-600">{profile.email}</p>
                 <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
                   <Shield size={12} />
-                  {profile.role === 'admin' ? 'Administrateur' : profile.role === 'provider' ? 'Prestataire' : 'Client'}
+                  {profile.role === 'admin' ? t.user.role.admin : profile.role === 'provider' ? t.user.role.provider : t.user.role.visitor}
                 </div>
               </div>
             </div>
@@ -170,21 +176,21 @@ export default function UserProfilePage() {
 
           {/* Quick Actions */}
           <div className="mt-6 card">
-            <h3 className="mb-4 font-semibold text-neutral-900">Actions rapides</h3>
+            <h3 className="mb-4 font-semibold text-neutral-900">{t.user.quickActions}</h3>
             <div className="space-y-2">
               <button
                 onClick={() => navigate('/favorites')}
                 className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50"
               >
                 <span className="text-lg">⭐</span>
-                Mes favoris
+                {t.user.favorites}
               </button>
               <button
                 onClick={() => navigate('/messages')}
                 className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50"
               >
                 <span className="text-lg">💬</span>
-                Mes messages
+                {t.user.messages}
               </button>
               {profile.role === 'provider' && (
                 <button
@@ -192,7 +198,7 @@ export default function UserProfilePage() {
                   className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50"
                 >
                   <span className="text-lg">📊</span>
-                  Dashboard prestataire
+                  {t.provider.dashboard}
                 </button>
               )}
               {profile.role === 'admin' && (
@@ -201,7 +207,7 @@ export default function UserProfilePage() {
                   className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-50"
                 >
                   <span className="text-lg">🔧</span>
-                  Administration
+                  {t.user.adminPanel}
                 </button>
               )}
               <hr className="my-2 border-neutral-200" />
@@ -210,7 +216,7 @@ export default function UserProfilePage() {
                 className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-error-600 hover:bg-error-50"
               >
                 <LogOut size={16} />
-                Déconnexion
+                {t.nav.logout}
               </button>
             </div>
           </div>
@@ -219,12 +225,12 @@ export default function UserProfilePage() {
         {/* Profile Details */}
         <div className="md:col-span-2 space-y-6">
           <div className="card">
-            <h3 className="mb-4 font-semibold text-neutral-900">Informations personnelles</h3>
+            <h3 className="mb-4 font-semibold text-neutral-900">{t.user.personalInformation}</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <User size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Nom complet</p>
+                  <p className="text-sm text-neutral-500">{t.auth.fullName}</p>
                   {editing ? (
                     <input
                       type="text"
@@ -241,7 +247,7 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <Mail size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Email</p>
+                  <p className="text-sm text-neutral-500">{t.auth.email}</p>
                   <p className="text-sm font-medium text-neutral-900">{profile.email}</p>
                 </div>
               </div>
@@ -249,7 +255,7 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <Phone size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Téléphone</p>
+                  <p className="text-sm text-neutral-500">{t.provider.fields.phone}</p>
                   {editing ? (
                     <input
                       type="tel"
@@ -267,7 +273,7 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <Globe size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Pays</p>
+                  <p className="text-sm text-neutral-500">{t.provider.fields.country}</p>
                   {editing ? (
                     <select
                       value={formData.country}
@@ -282,7 +288,7 @@ export default function UserProfilePage() {
                     </select>
                   ) : (
                     <p className="text-sm font-medium text-neutral-900">
-                      {countries.find(c => c.code === formData.country)?.name || 'Non renseigné'}
+                      {selectedCountry?.name || t.common.notAvailable}
                     </p>
                   )}
                 </div>
@@ -291,7 +297,7 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <CreditCard size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Devise préférée</p>
+                  <p className="text-sm text-neutral-500">{t.user.preferredCurrency}</p>
                   {editing ? (
                     <select
                       value={formData.currency}
@@ -306,7 +312,7 @@ export default function UserProfilePage() {
                     </select>
                   ) : (
                     <p className="text-sm font-medium text-neutral-900">
-                      {currencies.find(c => c.code === formData.currency)?.symbol} {currencies.find(c => c.code === formData.currency)?.name || 'Non renseigné'}
+                      {selectedCurrency ? `${selectedCurrency.symbol} ${selectedCurrency.name}` : t.common.notAvailable}
                     </p>
                   )}
                 </div>
@@ -315,36 +321,22 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <Globe size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Langue</p>
+                  <p className="text-sm text-neutral-500">{t.user.language}</p>
                   {editing ? (
                     <select
                       value={formData.language}
                       onChange={(e) => setFormData({ ...formData, language: e.target.value })}
                       className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                     >
-                      <option value="fr">Français</option>
-                      <option value="en">English</option>
-                      <option value="es">Español</option>
-                      <option value="de">Deutsch</option>
-                      <option value="it">Italiano</option>
-                      <option value="pt">Português</option>
-                      <option value="ar">العربية</option>
-                      <option value="zh">中文</option>
-                      <option value="ja">日本語</option>
-                      <option value="ko">한국어</option>
+                      {supportedLanguages.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </option>
+                      ))}
                     </select>
                   ) : (
                     <p className="text-sm font-medium text-neutral-900">
-                      {formData.language === 'fr' ? 'Français' : 
-                       formData.language === 'en' ? 'English' :
-                       formData.language === 'es' ? 'Español' :
-                       formData.language === 'de' ? 'Deutsch' :
-                       formData.language === 'it' ? 'Italiano' :
-                       formData.language === 'pt' ? 'Português' :
-                       formData.language === 'ar' ? 'العربية' :
-                       formData.language === 'zh' ? '中文' :
-                       formData.language === 'ja' ? '日本語' :
-                       formData.language === 'ko' ? '한국어' : 'Français'}
+                      {supportedLanguages.find((lang) => lang.code === formData.language)?.name || supportedLanguages[0].name}
                     </p>
                   )}
                 </div>
@@ -353,13 +345,9 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <Calendar size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Membre depuis</p>
+                  <p className="text-sm text-neutral-500">{t.user.memberSince}</p>
                   <p className="text-sm font-medium text-neutral-900">
-                    {new Date(profile.created_at).toLocaleDateString('fr-FR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {formatDate(profile.created_at, locale)}
                   </p>
                 </div>
               </div>
@@ -367,7 +355,7 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <Shield size={20} className="mt-0.5 text-neutral-400" />
                 <div className="flex-1">
-                  <p className="text-sm text-neutral-500">Statut du compte</p>
+                  <p className="text-sm text-neutral-500">{t.user.accountStatusLabel}</p>
                   <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
                     profile.status === 'active' 
                       ? 'bg-success-50 text-success-700' 
@@ -375,7 +363,7 @@ export default function UserProfilePage() {
                       ? 'bg-warning-50 text-warning-700'
                       : 'bg-error-50 text-error-700'
                   }`}>
-                    {profile.status === 'active' ? 'Actif' : profile.status === 'suspended' ? 'Suspendu' : 'Banni'}
+                    {profile.status === 'active' ? t.user.accountStatus.active : profile.status === 'suspended' ? t.user.accountStatus.suspended : t.user.accountStatus.banned}
                   </span>
                 </div>
               </div>

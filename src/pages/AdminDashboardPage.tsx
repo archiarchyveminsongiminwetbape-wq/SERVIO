@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import type { ProviderProfile, Profile, Report, Category, AdminAction } from '@/types';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import CategoryIcon from '@/components/CategoryIcon';
@@ -14,6 +15,7 @@ import CategoryIcon from '@/components/CategoryIcon';
 type Tab = 'stats' | 'validation' | 'users' | 'reports' | 'categories' | 'audit';
 
 export default function AdminDashboardPage() {
+  const { t } = useI18n();
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('stats');
@@ -231,7 +233,7 @@ export default function AdminDashboardPage() {
   }
 
   async function deleteCategory(id: string) {
-    if (!confirm('Supprimer cette catégorie ? Les sous-catégories seront également supprimées.')) return;
+    if (!confirm(`${t.admin.deleteCategoryConfirm} ${t.admin.deleteCategorySubtext}`)) return;
     setActionLoading(true);
     await supabase.from('categories').delete().eq('id', id);
     await logAdminAction('delete_category', 'category', id, '');
@@ -253,12 +255,12 @@ export default function AdminDashboardPage() {
   );
 
   const tabs: { id: Tab; label: string; icon: typeof Shield; badge?: number }[] = [
-    { id: 'stats', label: 'Statistiques', icon: BarChart3 },
-    { id: 'validation', label: 'Validation', icon: CheckCircle2, badge: pendingProviders.length },
-    { id: 'users', label: 'Utilisateurs', icon: Users },
-    { id: 'categories', label: 'Catégories', icon: FolderOpen },
-    { id: 'reports', label: 'Signalements', icon: Flag, badge: reports.filter((r) => r.status === 'open').length },
-    { id: 'audit', label: 'Journal', icon: FileText },
+    { id: 'stats', label: t.admin.stats, icon: BarChart3 },
+    { id: 'validation', label: t.admin.validation, icon: CheckCircle2, badge: pendingProviders.length },
+    { id: 'users', label: t.admin.users, icon: Users },
+    { id: 'categories', label: t.admin.categories, icon: FolderOpen },
+    { id: 'reports', label: t.admin.reports, icon: Flag, badge: reports.filter((r) => r.status === 'open').length },
+    { id: 'audit', label: t.admin.journal, icon: FileText },
   ];
 
   return (
@@ -269,7 +271,7 @@ export default function AdminDashboardPage() {
             <Shield size={22} />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Administration</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{t.admin.dashboard}</h1>
             <p className="text-sm text-neutral-600">Gestion de la plateforme SERVIO</p>
           </div>
         </div>
@@ -304,12 +306,12 @@ export default function AdminDashboardPage() {
       {tab === 'stats' && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { label: 'Utilisateurs inscrits', value: stats.users, icon: Users, color: 'bg-primary-50 text-primary-600' },
-            { label: 'Prestataires actifs', value: stats.providers, icon: FolderOpen, color: 'bg-success-50 text-success-600' },
-            { label: 'En attente de validation', value: stats.pending, icon: Clock, color: 'bg-accent-50 text-accent-600' },
-            { label: 'Profils validés', value: stats.approved, icon: CheckCircle2, color: 'bg-success-50 text-success-600' },
-            { label: 'Signalements ouverts', value: stats.reports, icon: Flag, color: 'bg-error-50 text-error-600' },
-            { label: 'Messages échangés', value: stats.messages, icon: TrendingUp, color: 'bg-primary-50 text-primary-600' },
+            { label: t.admin.registeredUsers, value: stats.users, icon: Users, color: 'bg-primary-50 text-primary-600' },
+            { label: t.admin.activeProviders, value: stats.providers, icon: FolderOpen, color: 'bg-success-50 text-success-600' },
+            { label: t.admin.pendingValidation, value: stats.pending, icon: Clock, color: 'bg-accent-50 text-accent-600' },
+            { label: t.admin.approvedProfiles, value: stats.approved, icon: CheckCircle2, color: 'bg-success-50 text-success-600' },
+            { label: t.admin.openReports, value: stats.reports, icon: Flag, color: 'bg-error-50 text-error-600' },
+            { label: t.admin.messagesExchanged, value: stats.messages, icon: TrendingUp, color: 'bg-primary-50 text-primary-600' },
           ].map((stat) => {
             const Icon = stat.icon;
             return (
@@ -343,7 +345,7 @@ export default function AdminDashboardPage() {
                     : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                 }`}
               >
-                Tous ({pendingProviders.length})
+                {t.admin.all} ({pendingProviders.length})
               </button>
               <button
                 onClick={() => setValidationFilter('pending')}
@@ -353,7 +355,7 @@ export default function AdminDashboardPage() {
                     : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                 }`}
               >
-                En attente ({pendingProviders.filter(p => p.validation_status === 'pending').length})
+                {t.admin.pending} ({pendingProviders.filter(p => p.validation_status === 'pending').length})
               </button>
               <button
                 onClick={() => setValidationFilter('changes_requested')}
@@ -363,7 +365,7 @@ export default function AdminDashboardPage() {
                     : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                 }`}
               >
-                Corrections demandées ({pendingProviders.filter(p => p.validation_status === 'changes_requested').length})
+                {t.admin.correctionsRequested} ({pendingProviders.filter(p => p.validation_status === 'changes_requested').length})
               </button>
             </div>
 
@@ -380,10 +382,10 @@ export default function AdminDashboardPage() {
                   }}
                   className="input-field text-xs sm:text-sm"
                 >
-                  <option value="">Action groupée...</option>
-                  <option value="approved">Approuver</option>
-                  <option value="rejected">Rejeter</option>
-                  <option value="changes_requested">Demander corrections</option>
+                  <option value="">{t.admin.bulkAction}</option>
+                  <option value="approved">{t.admin.approve}</option>
+                  <option value="rejected">{t.admin.reject}</option>
+                  <option value="changes_requested">{t.admin.requestCorrections}</option>
                 </select>
               </div>
             )}
@@ -392,7 +394,7 @@ export default function AdminDashboardPage() {
           {getFilteredProviders().length === 0 ? (
             <div className="card flex flex-col items-center justify-center py-16 text-center">
               <CheckCircle2 size={48} className="text-success-300" />
-              <p className="mt-3 text-sm text-neutral-500">Aucun profil à valider</p>
+              <p className="mt-3 text-sm text-neutral-500">{t.admin.noProfilesToValidate}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -420,9 +422,9 @@ export default function AdminDashboardPage() {
                           prov.validation_status === 'changes_requested' ? 'bg-accent-50 text-accent-700' :
                           'bg-success-50 text-success-700'
                         }`}>
-                          {prov.validation_status === 'pending' ? 'En attente' :
-                           prov.validation_status === 'changes_requested' ? 'Corrections' :
-                           'Validé'}
+                          {prov.validation_status === 'pending' ? t.admin.pending :
+                           prov.validation_status === 'changes_requested' ? t.admin.correctionsRequested :
+                           t.admin.approvedProfiles}
                         </span>
                       </div>
                       <p className="text-sm text-neutral-500">{prov.headline}</p>
@@ -446,7 +448,7 @@ export default function AdminDashboardPage() {
                         className="btn-secondary text-sm"
                       >
                         <Eye size={16} />
-                        Examiner
+                        {t.admin.review}
                       </button>
                     </div>
                   </div>
@@ -455,13 +457,13 @@ export default function AdminDashboardPage() {
                     <div className="mt-4 border-t border-neutral-100 pt-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                          <p className="text-xs font-semibold text-neutral-500 mb-2">Informations de contact</p>
+                          <p className="text-xs font-semibold text-neutral-500 mb-2">{t.admin.contactInfo}</p>
                           <p className="text-sm text-neutral-700">Email: {prov.contact_email || 'Non renseigné'}</p>
                           <p className="text-sm text-neutral-700">Téléphone: {prov.contact_phone || 'Non renseigné'}</p>
                           <p className="text-sm text-neutral-700">Site web: {prov.website || 'Non renseigné'}</p>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-neutral-500 mb-2">Tarifs</p>
+                          <p className="text-xs font-semibold text-neutral-500 mb-2">{t.admin.pricing}</p>
                           <p className="text-sm text-neutral-700">Gamme: {prov.price_range || 'Non renseigné'}</p>
                           <p className="text-sm text-neutral-700">Min: {prov.price_min ? `${prov.price_min}€` : 'Non renseigné'}</p>
                           <p className="text-sm text-neutral-700">Max: {prov.price_max ? `${prov.price_max}€` : 'Non renseigné'}</p>
@@ -470,19 +472,19 @@ export default function AdminDashboardPage() {
 
                       {prov.description && (
                         <div className="mb-3">
-                          <p className="text-xs font-semibold text-neutral-500">Description complète</p>
+                          <p className="text-xs font-semibold text-neutral-500">{t.admin.fullDescription}</p>
                           <p className="mt-1 text-sm text-neutral-700">{prov.description}</p>
                         </div>
                       )}
 
                       <div className="mb-3">
-                        <label className="label">Note de validation (optionnelle)</label>
+                        <label className="label">{t.admin.validationNote}</label>
                         <textarea
                           value={validationNote}
                           onChange={(e) => setValidationNote(e.target.value)}
                           className="input-field resize-none"
                           rows={2}
-                          placeholder="Motif du refus ou demande de correction..."
+                          placeholder={t.admin.validationNotePlaceholder}
                         />
                       </div>
                       <div className="flex gap-2">
@@ -492,7 +494,7 @@ export default function AdminDashboardPage() {
                           className="btn-primary text-sm"
                         >
                           <CheckCircle2 size={16} />
-                          Valider
+                          {t.admin.validate}
                         </button>
                         <button
                           onClick={() => validateProvider('changes_requested')}
@@ -500,7 +502,7 @@ export default function AdminDashboardPage() {
                           className="btn-secondary text-sm"
                         >
                           <AlertCircle size={16} />
-                          Demander correction
+                          {t.admin.requestCorrection}
                         </button>
                         <button
                           onClick={() => validateProvider('rejected')}
@@ -508,7 +510,7 @@ export default function AdminDashboardPage() {
                           className="btn-secondary text-sm text-error-600 hover:bg-error-50"
                         >
                           <XCircle size={16} />
-                          Refuser
+                          {t.admin.reject}
                         </button>
                       </div>
                     </div>
@@ -531,7 +533,7 @@ export default function AdminDashboardPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="input-field pl-9"
-                placeholder="Rechercher par nom ou email..."
+                placeholder={t.admin.searchByNameOrEmail}
               />
             </div>
           </div>
@@ -540,11 +542,11 @@ export default function AdminDashboardPage() {
             <table className="w-full">
               <thead className="border-b border-neutral-200 bg-neutral-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Utilisateur</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Rôle</th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold text-neutral-600 sm:table-cell">Statut</th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold text-neutral-600 sm:table-cell">Inscription</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">{t.admin.user}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">{t.admin.role}</th>
+                  <th className="hidden px-4 py-3 text-left text-xs font-semibold text-neutral-600 sm:table-cell">{t.admin.status}</th>
+                  <th className="hidden px-4 py-3 text-left text-xs font-semibold text-neutral-600 sm:table-cell">{t.admin.registration}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600">{t.admin.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
@@ -571,7 +573,7 @@ export default function AdminDashboardPage() {
                         p.role === 'provider' ? 'bg-accent-50 text-accent-700' :
                         'bg-neutral-100 text-neutral-600'
                       }`}>
-                        {p.role === 'admin' ? 'Admin' : p.role === 'provider' ? 'Prestataire' : 'Client'}
+                        {p.role === 'admin' ? t.admin.adminRole : p.role === 'provider' ? t.admin.providerRole : t.admin.clientRole}
                       </span>
                     </td>
                     <td className="hidden px-4 py-3 sm:table-cell">
@@ -580,7 +582,7 @@ export default function AdminDashboardPage() {
                         p.status === 'suspended' ? 'bg-warning-50 text-warning-700' :
                         'bg-error-50 text-error-700'
                       }`}>
-                        {p.status === 'active' ? 'Actif' : p.status === 'suspended' ? 'Suspendu' : 'Banni'}
+                        {p.status === 'active' ? t.admin.activeStatus : p.status === 'suspended' ? t.admin.suspendedStatus : t.admin.bannedStatus}
                       </span>
                     </td>
                     <td className="hidden px-4 py-3 text-sm text-neutral-500 sm:table-cell">{formatDate(p.created_at)}</td>
@@ -592,9 +594,9 @@ export default function AdminDashboardPage() {
                           disabled={actionLoading}
                           className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-700 focus:border-primary-500 focus:outline-none"
                         >
-                          <option value="active">Actif</option>
-                          <option value="suspended">Suspendre</option>
-                          <option value="banned">Bannir</option>
+                          <option value="active">{t.admin.activeStatus}</option>
+                          <option value="suspended">{t.admin.suspendedStatus}</option>
+                          <option value="banned">{t.admin.bannedStatus}</option>
                         </select>
                       )}
                     </td>
@@ -610,7 +612,7 @@ export default function AdminDashboardPage() {
       {tab === 'categories' && (
         <div>
           <div className="mb-4 flex justify-between">
-            <h3 className="text-lg font-semibold text-neutral-900">Catégories ({categories.length})</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">{t.admin.categories} ({categories.length})</h3>
             <button
               onClick={() => {
                 setEditingCat(null);
@@ -620,21 +622,21 @@ export default function AdminDashboardPage() {
               className="btn-primary"
             >
               <Plus size={18} />
-              Ajouter
+              {t.admin.add}
             </button>
           </div>
 
           {showCatForm && (
             <div className="card mb-6 p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h4 className="font-semibold text-neutral-900">{editingCat ? 'Modifier' : 'Nouvelle'} catégorie</h4>
+                <h4 className="font-semibold text-neutral-900">{editingCat ? t.admin.edit : t.admin.newCategory}</h4>
                 <button onClick={() => setShowCatForm(false)} className="text-neutral-400 hover:text-neutral-600">
                   <X size={20} />
                 </button>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">Nom</label>
+                  <label className="label">{t.admin.name}</label>
                   <input
                     type="text"
                     value={catForm.name}
@@ -644,7 +646,7 @@ export default function AdminDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">Icône (nom Lucide)</label>
+                  <label className="label">{t.admin.iconName}</label>
                   <input
                     type="text"
                     value={catForm.icon}
@@ -654,34 +656,34 @@ export default function AdminDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">Catégorie parent (optionnel)</label>
+                  <label className="label">{t.admin.parentCategory}</label>
                   <select
                     value={catForm.parent_id}
                     onChange={(e) => setCatForm({ ...catForm, parent_id: e.target.value })}
                     className="input-field"
                   >
-                    <option value="">Aucune (secteur principal)</option>
+                    <option value="">{t.admin.none} ({t.admin.mainSector})</option>
                     {categories.filter((c) => !c.parent_id).map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Description</label>
+                  <label className="label">{t.admin.description}</label>
                   <input
                     type="text"
                     value={catForm.description}
                     onChange={(e) => setCatForm({ ...catForm, description: e.target.value })}
                     className="input-field"
-                    placeholder="Description courte"
+                    placeholder={t.admin.shortDescription}
                   />
                 </div>
               </div>
               <div className="mt-4 flex justify-end gap-2">
-                <button onClick={() => setShowCatForm(false)} className="btn-secondary">Annuler</button>
+                <button onClick={() => setShowCatForm(false)} className="btn-secondary">{t.admin.cancel}</button>
                 <button onClick={saveCategory} disabled={actionLoading || !catForm.name} className="btn-primary">
                   {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  Enregistrer
+                  {t.admin.save}
                 </button>
               </div>
             </div>
@@ -702,7 +704,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-neutral-400">
-                      {categories.filter((c) => c.parent_id === parent.id).length} sous-cat.
+                      {categories.filter((c) => c.parent_id === parent.id).length} {t.admin.subcategories}
                     </span>
                     <button
                       onClick={() => {

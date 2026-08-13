@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, Trash2, MessageCircle, Star, Shield, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
 import type { Notification } from '@/types';
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +154,7 @@ export default function NotificationsPage() {
   });
 
   const notificationTypes = [
-    { value: 'all', label: 'Toutes' },
+    { value: 'all', label: t.common.all },
     { value: 'unread', label: 'Non lues' },
     { value: 'message', label: 'Messages' },
     { value: 'review', label: 'Avis' },
@@ -165,7 +167,7 @@ export default function NotificationsPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Notifications</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{t.user.notifications}</h1>
           <p className="mt-1 text-sm text-neutral-600">
             {unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}` : 'Toutes les notifications sont lues'}
           </p>
@@ -254,7 +256,7 @@ export default function NotificationsPage() {
                       <span className="flex items-center gap-1 text-[10px] sm:text-xs text-neutral-500 whitespace-nowrap">
                         <Clock size={10} className="sm:hidden" />
                         <Clock size={12} className="hidden sm:block" />
-                        {new Date(notification.created_at).toLocaleDateString('fr-FR', {
+                        {new Date(notification.created_at).toLocaleDateString(locale, {
                           day: 'numeric',
                           month: 'short',
                           hour: '2-digit',

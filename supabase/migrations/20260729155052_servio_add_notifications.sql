@@ -73,18 +73,26 @@ BEGIN
   SELECT CASE
     WHEN c.participant_a = NEW.sender_id THEN c.participant_b
     ELSE c.participant_a
-  END INTO recipient_id
-  FROM public.conversations c WHERE c.id = NEW.conversation_id;
+  END
+    INTO recipient_id
+    FROM public.conversations c
+    WHERE c.id = NEW.conversation_id;
 
-  SELECT full_name INTO sender_name FROM public.profiles WHERE id = NEW.sender_id;
+  SELECT full_name
+    INTO sender_name
+    FROM public.profiles
+    WHERE id = NEW.sender_id;
 
-  PERFORM public.create_notification(
-    recipient_id,
-    'message',
-    'Nouveau message',
-    COALESCE(sender_name, 'Un utilisateur') || ' vous a envoyé un message',
-    '/messages'
-  );
+  IF recipient_id IS NOT NULL THEN
+    PERFORM public.create_notification(
+      recipient_id,
+      'message',
+      'Nouveau message',
+      COALESCE(sender_name, 'Un utilisateur') || ' vous a envoyé un message',
+      '/messages?conversationId=' || NEW.conversation_id::text
+    );
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -104,15 +112,19 @@ AS $$
 DECLARE
   provider_user_id uuid;
 BEGIN
-  SELECT user_id INTO provider_user_id FROM public.provider_profiles WHERE id = NEW.provider_id;
+  SELECT user_id
+    INTO provider_user_id
+    FROM public.provider_profiles
+    WHERE id = NEW.provider_id;
 
   PERFORM public.create_notification(
     provider_user_id,
     'review',
     'Nouvel avis reçu',
-    'Vous avez reçu un nouvel avis de ' || NEW.rating || ' étoile(s)',
+    'Vous avez reçu un nouvel avis de ' || NEW.rating::text || ' étoile(s)',
     '/provider/dashboard'
   );
+
   RETURN NEW;
 END;
 $$;

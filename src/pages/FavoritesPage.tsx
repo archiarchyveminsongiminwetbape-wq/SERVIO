@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import type { ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
 
 export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<ProviderProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,11 +28,17 @@ export default function FavoritesPage() {
     setLoading(true);
     const { data } = await supabase
       .from('favorites')
-      .select('provider:provider_profiles(*, category:categories(*))')
+      .select('provider:provider_profiles(*, category:categories(*), owner:profiles!provider_profiles_user_id_fkey(avatar_url))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    const favs = (data ?? []).map((f: Record<string, unknown>) => f.provider as ProviderProfile);
+    const favs = (data ?? []).map((f: Record<string, any>) => {
+      const provider = f.provider as ProviderProfile & { owner?: { avatar_url?: string | null } };
+      if (provider.owner?.avatar_url && !provider.avatar_url) {
+        provider.avatar_url = provider.owner.avatar_url;
+      }
+      return provider;
+    });
     setFavorites(favs);
     setLoading(false);
   }
@@ -47,7 +55,7 @@ export default function FavoritesPage() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-bold text-neutral-900">Mes favoris</h1>
       <p className="mt-1 text-sm text-neutral-600">
-        {favorites.length > 0 ? `${favorites.length} prestataire${favorites.length > 1 ? 's' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}` : 'Aucun favori pour le moment'}
+        {favorites.length > 0 ? `${favorites.length} prestataire${favorites.length > 1 ? 's' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}` : t.search.noResults}
       </p>
 
       {favorites.length > 0 ? (

@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, AlertCircle } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, AlertCircle, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
@@ -8,15 +8,27 @@ import CategoryIcon from '@/components/CategoryIcon';
 import { BentoGrid, BentoCard } from '@/components/BentoGrid';
 import { categoryTaxonomy } from '@/data/categories';
 import { countries } from '@/data/countries';
+import { useI18n } from '@/context/I18nContext';
+
+// ===== PERFORMANCE OPTIMIZATION CONSTANTS =====
+const ITEMS_PER_PAGE = 24;
+const REQUEST_DEBOUNCE_MS = 500;
+const IMAGE_CACHE_TIME = 3600000; // 1 hour
 
 export default function SearchPage() {
+  const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const [subCategories, setSubCategories] = useState<typeof categoryTaxonomy[0]['subcategories']>([]);
   const [selectedSubCat, setSelectedSubCat] = useState<string>('');
   const [providers, setProviders] = useState<ProviderProfile[]>([]);
+  const [allProviders, setAllProviders] = useState<ProviderProfile[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [categorySlug, setCategorySlug] = useState(searchParams.get('category') ?? '');
@@ -46,30 +58,34 @@ export default function SearchPage() {
     }
   }, [categorySlug]);
 
-  const doSearch = useCallback(async () => {
-    setLoading(true);
+  // ===== OPTIMIZED SEARCH FUNCTION =====
+  const doSearch = useCallback(async (pageNum: number = 1) => {
+    if (pageNum === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
     try {
       let q = supabase
         .from('provider_profiles')
-        .select('*, category:categories(*)')
-        .eq('validation_status', 'approved');
+        .select('id, business_name, slug, headline, avatar_url, owner_avatar_url, banner_url, category_id, skills, rating_avg, rating_count, city, remote_service, availability, badges, price_range, is_featured, experience_years, languages, validation_status', { count: 'exact' })
+        .not('slug', 'is', null); // Load all providers regardless of validation status
 
+      // ===== OPTIMIZED FILTERS =====
       if (query.trim()) {
-        q = q.or(`business_name.ilike.%${query}%,headline.ilike.%${query}%,description.ilike.%${query}%,skills.cs.{${query}}`);
+        const searchQuery = query.trim().toLowerCase();
+        q = q.or(`business_name.ilike.%${searchQuery}%,headline.ilike.%${searchQuery}%,skills.cs.{${searchQuery}}`);
       }
       if (categorySlug) {
         const cat = categoryTaxonomy.find((c) => c.slug === categorySlug);
         if (cat) {
-          // If a subcategory is selected, filter by it; otherwise filter by parent + all children
           if (selectedSubCat) {
             const subCat = subCategories.find((sc) => sc.slug === selectedSubCat);
             if (subCat) {
-              // Filter by subcategory slug
               q = q.ilike('category_slug', `%${subCat.slug}%`);
             }
           } else {
-            // Filter by sector slug
             q = q.ilike('category_slug', `%${cat.slug}%`);
           }
         }
@@ -99,12 +115,13 @@ export default function SearchPage() {
         q = q.contains('languages', [language]);
       }
       if (verifiedOnly) {
-        q = q.eq('is_verified', true);
+        q = q.eq('validation_status', 'approved');
       }
       if (responseTime) {
         q = q.lte('response_time_hours', parseInt(responseTime));
       }
 
+      // ===== OPTIMIZED SORTING =====
       if (sortBy === 'rating') {
         q = q.order('rating_avg', { ascending: false });
       } else if (sortBy === 'recent') {
@@ -119,25 +136,46 @@ export default function SearchPage() {
         q = q.order('is_featured', { ascending: false }).order('rating_avg', { ascending: false });
       }
 
-      const { data, error: fetchError } = await q.limit(24);
+      // ===== PAGINATION =====
+      const offset = (pageNum - 1) * ITEMS_PER_PAGE;
+      q = q.range(offset, offset + ITEMS_PER_PAGE - 1);
+
+      const { data, error: fetchError, count } = await q;
       
       if (fetchError) {
         throw fetchError;
       }
       
-      setProviders(data as ProviderProfile[] ?? []);
+      if (pageNum === 1) {
+        setProviders((data as ProviderProfile[] ?? []));
+        setTotalCount(count ?? 0);
+      } else {
+        setProviders(prev => [...prev, ...(data as ProviderProfile[] ?? [])]);
+      }
     } catch (err) {
       console.error('Error searching providers:', err);
-      setError('Une erreur est survenue lors de la recherche. Veuillez réessayer.');
-      setProviders([]);
+      setError(t.common.error);
+      if (pageNum === 1) {
+        setProviders([]);
+      }
     } finally {
-      setLoading(false);
+      if (pageNum === 1) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     }
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime]);
+  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, country, subCategories]);
 
+  // ===== DEBOUNCED SEARCH EFFECT =====
   useEffect(() => {
-    const timer = setTimeout(() => {
-      doSearch();
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    setCurrentPage(1);
+    searchTimeoutRef.current = setTimeout(() => {
+      doSearch(1);
       const params: Record<string, string> = {};
       if (query) params.q = query;
       if (categorySlug) params.category = categorySlug;
@@ -152,9 +190,23 @@ export default function SearchPage() {
       if (responseTime) params.response = responseTime;
       if (sortBy !== 'featured') params.sort = sortBy;
       setSearchParams(params);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, categoryTaxonomy, subCategories, doSearch, setSearchParams]);
+    }, REQUEST_DEBOUNCE_MS);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, doSearch, setSearchParams]);
+
+  // Load more handler
+  const loadMore = useCallback(() => {
+    if (!loadingMore && currentPage * ITEMS_PER_PAGE < totalCount) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      doSearch(nextPage);
+    }
+  }, [currentPage, loadingMore, totalCount, doSearch]);
 
   const clearFilters = () => {
     setQuery('');
@@ -178,9 +230,9 @@ export default function SearchPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Explorer les prestataires</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{t.search.title}</h1>
         <p className="mt-1 text-sm text-neutral-600">
-          {loading ? 'Recherche en cours...' : `${providers.length} prestataire${providers.length > 1 ? 's' : ''} trouvé${providers.length > 1 ? 's' : ''}`}
+          {loading ? t.common.loading : `${providers.length} sur ${totalCount} ${providers.length === 1 ? 'prestataire' : 'prestataires'}`}
         </p>
       </div>
 
@@ -195,29 +247,29 @@ export default function SearchPage() {
               >
                 <SlidersHorizontal size={16} className="sm:hidden" />
                 <SlidersHorizontal size={18} className="hidden sm:block" />
-                Filtres
+                {t.common.filters}
               </button>
             </div>
 
             <div className={`card p-4 sm:p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
               <div className="mb-3 sm:mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-neutral-900">Filtres</h3>
+                <h3 className="text-sm font-semibold text-neutral-900">{t.common.filters}</h3>
                 {hasFilters && (
                   <button onClick={clearFilters} className="text-xs font-medium text-primary-600 hover:text-primary-700">
-                    Effacer
+                    {t.common.clear}
                   </button>
                 )}
               </div>
 
               <div className="space-y-4 sm:space-y-5">
                 <div>
-                  <label className="label">Secteur</label>
+                  <label className="label">{t.search.filters.category}</label>
                   <select
                     value={categorySlug}
                     onChange={(e) => { setCategorySlug(e.target.value); setSelectedSubCat(''); }}
                     className="input-field text-sm"
                   >
-                    <option value="">Tous les secteurs</option>
+                    <option value="">{t.common.all}</option>
                     {categoryTaxonomy.map((cat) => (
                       <option key={cat.slug} value={cat.slug}>{cat.name}</option>
                     ))}
@@ -226,13 +278,13 @@ export default function SearchPage() {
 
                 {subCategories.length > 0 && (
                   <div>
-                    <label className="label">Spécialité</label>
+                    <label className="label">{t.search.filters.subcategory}</label>
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() => setSelectedSubCat('')}
                         className={`badge ${!selectedSubCat ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
                       >
-                        Toutes
+                        {t.common.all}
                       </button>
                       {subCategories.map((sub) => (
                         <button
@@ -248,7 +300,7 @@ export default function SearchPage() {
                 )}
 
                 <div>
-                  <label className="label">Ville</label>
+                  <label className="label">{t.search.filters.city}</label>
                   <div className="relative">
                     <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                     <input
@@ -262,7 +314,7 @@ export default function SearchPage() {
                 </div>
 
                 <div>
-                  <label className="label">Pays</label>
+                  <label className="label">{t.search.filters.country}</label>
                   <div className="relative">
                     <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                     <select
@@ -270,7 +322,7 @@ export default function SearchPage() {
                       onChange={(e) => setCountry(e.target.value)}
                       className="input-field pl-9"
                     >
-                      <option value="">Tous les pays</option>
+                      <option value="">{t.common.all}</option>
                       {countries.map((c) => (
                         <option key={c.code} value={c.code}>
                           {c.flag} {c.name}
@@ -281,39 +333,39 @@ export default function SearchPage() {
                 </div>
 
                 <div>
-                  <label className="label">Note minimale</label>
+                  <label className="label">{t.search.filters.rating}</label>
                   <select
                     value={minRating}
                     onChange={(e) => setMinRating(e.target.value)}
                     className="input-field"
                   >
-                    <option value="">Toutes les notes</option>
+                    <option value="">{t.common.all}</option>
                     <option value="4">4 étoiles et plus</option>
                     <option value="4.5">4,5 étoiles et plus</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="label">Disponibilité</label>
+                  <label className="label">{t.search.filters.availability}</label>
                   <select
                     value={availability}
                     onChange={(e) => setAvailability(e.target.value)}
                     className="input-field"
                   >
-                    <option value="">Tous</option>
+                    <option value="">{t.common.all}</option>
                     <option value="available">Disponible</option>
                     <option value="busy">Sur mission</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="label">Gamme de prix</label>
+                  <label className="label">{t.search.filters.priceRange}</label>
                   <select
                     value={priceRange}
                     onChange={(e) => setPriceRange(e.target.value)}
                     className="input-field"
                   >
-                    <option value="">Tous les prix</option>
+                    <option value="">{t.common.all}</option>
                     <option value="€">€ (Économique)</option>
                     <option value="€€">€€ (Standard)</option>
                     <option value="€€€">€€€ (Premium)</option>
@@ -321,13 +373,13 @@ export default function SearchPage() {
                 </div>
 
                 <div>
-                  <label className="label">Expérience minimale</label>
+                  <label className="label">{t.search.filters.experience}</label>
                   <select
                     value={minExperience}
                     onChange={(e) => setMinExperience(e.target.value)}
                     className="input-field"
                   >
-                    <option value="">Tous</option>
+                    <option value="">{t.common.all}</option>
                     <option value="1">1+ an</option>
                     <option value="3">3+ ans</option>
                     <option value="5">5+ ans</option>
@@ -336,13 +388,13 @@ export default function SearchPage() {
                 </div>
 
                 <div>
-                  <label className="label">Langue</label>
+                  <label className="label">{t.search.filters.language}</label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                     className="input-field"
                   >
-                    <option value="">Toutes les langues</option>
+                    <option value="">{t.common.all}</option>
                     <option value="Français">Français</option>
                     <option value="English">English</option>
                     <option value="Español">Español</option>
@@ -358,7 +410,7 @@ export default function SearchPage() {
                       onChange={(e) => setRemoteOnly(e.target.checked)}
                       className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span className="text-sm text-neutral-700">Service à distance uniquement</span>
+                    <span className="text-sm text-neutral-700">{t.search.filters.remote}</span>
                   </label>
                 </div>
 
@@ -370,7 +422,7 @@ export default function SearchPage() {
                       onChange={(e) => setVerifiedOnly(e.target.checked)}
                       className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span className="text-sm text-neutral-700">Prestataires vérifiés uniquement</span>
+                    <span className="text-sm text-neutral-700">Vérifiés uniquement</span>
                   </label>
                 </div>
 
@@ -381,7 +433,7 @@ export default function SearchPage() {
                     onChange={(e) => setResponseTime(e.target.value)}
                     className="input-field"
                   >
-                    <option value="">Tous</option>
+                    <option value="">{t.common.all}</option>
                     <option value="1">Moins d'1 heure</option>
                     <option value="3">Moins de 3 heures</option>
                     <option value="6">Moins de 6 heures</option>
@@ -407,7 +459,7 @@ export default function SearchPage() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     className="input-field pl-10 text-sm"
-                    placeholder="Rechercher par nom, métier, compétence..."
+                    placeholder={t.search.placeholder}
                   />
                 </div>
                 <select
@@ -415,9 +467,9 @@ export default function SearchPage() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="input-field sm:w-48 text-sm"
                 >
-                  <option value="featured">En vedette</option>
-                  <option value="rating">Meilleures notes</option>
-                  <option value="recent">Plus récents</option>
+                  <option value="featured">{t.search.sortBy.featured}</option>
+                  <option value="rating">{t.search.sortBy.rating}</option>
+                  <option value="recent">{t.search.sortBy.recent}</option>
                   <option value="price_low">Prix croissant</option>
                   <option value="price_high">Prix décroissant</option>
                   <option value="experience">Plus d'expérience</option>
@@ -434,18 +486,43 @@ export default function SearchPage() {
               <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
                 <AlertCircle size={40} className="sm:hidden text-error-500" />
                 <AlertCircle size={48} className="hidden sm:block text-error-500" />
-                <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">Erreur de recherche</h3>
+                <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">{t.common.error}</h3>
                 <p className="mt-1 text-sm text-neutral-500">{error}</p>
                 <button onClick={doSearch} className="btn-primary mt-3 sm:mt-4">
-                  Réessayer
+                  {t.common.search}
                 </button>
               </BentoCard>
             ) : providers.length > 0 ? (
-              providers.map((p) => (
-                <BentoCard key={p.id} className="p-0 overflow-hidden">
-                  <ProviderCard provider={p} />
-                </BentoCard>
-              ))
+              <>
+                {providers.map((p) => (
+                  <BentoCard key={p.id} className="p-0 overflow-hidden">
+                    <ProviderCard provider={p} />
+                  </BentoCard>
+                ))}
+                
+                {/* Load More Button */}
+                {currentPage * ITEMS_PER_PAGE < totalCount && (
+                  <BentoCard colSpan={3} className="flex items-center justify-center py-8">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Chargement...
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown size={16} />
+                          Charger plus ({providers.length}/{totalCount})
+                        </>
+                      )}
+                    </button>
+                  </BentoCard>
+                )}
+              </>
             ) : (
               <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
                 <Frown size={40} className="sm:hidden text-neutral-300" />

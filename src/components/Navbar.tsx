@@ -1,15 +1,15 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun, Globe, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useI18n } from '@/context/I18nContext';
 import NotificationBell from '@/components/NotificationBell';
 
-export default function Navbar() {
+function Navbar() {
   const { user, profile, signOut } = useAuth();
   const { darkMode, toggleDarkMode } = useDarkMode();
-  const { language, setLanguage, supportedLanguages } = useI18n();
+  const { language, setLanguage, supportedLanguages, t, isRTL } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -32,7 +32,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 ${darkMode ? 'glass-nav-dark' : 'glass-nav'}`} role="navigation" aria-label="Navigation principale">
+    <nav className={`sticky top-0 z-50 ${darkMode ? 'glass-nav-dark' : 'glass-nav'}`} role="navigation" aria-label={t.nav.home} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6 sm:gap-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight" aria-label="SERVIO - Accueil">
@@ -53,7 +53,7 @@ export default function Navbar() {
               }`}
               aria-current={isActive('/') ? 'page' : undefined}
             >
-              Accueil
+              {t.nav.home}
             </Link>
             <Link
               to="/search"
@@ -64,7 +64,7 @@ export default function Navbar() {
               }`}
               aria-current={isActive('/search') ? 'page' : undefined}
             >
-              Explorer
+              {t.nav.search}
             </Link>
             {profile?.role === 'provider' && (
               <Link
@@ -76,7 +76,7 @@ export default function Navbar() {
                 }`}
                 aria-current={isActive('/provider/dashboard') ? 'page' : undefined}
               >
-                Mon espace
+                {t.provider.dashboard}
               </Link>
             )}
             {profile?.role === 'admin' && (
@@ -89,7 +89,7 @@ export default function Navbar() {
                 }`}
                 aria-current={isActive('/admin') ? 'page' : undefined}
               >
-                Administration
+                {t.admin.dashboard}
               </Link>
             )}
           </div>
@@ -101,7 +101,7 @@ export default function Navbar() {
               <Link
                 to="/messages"
                 className="relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-                aria-label="Messages"
+                aria-label={t.user.messages}
               >
                 <MessageSquare size={18} className="sm:hidden" />
                 <MessageSquare size={20} className="hidden sm:block" />
@@ -109,7 +109,7 @@ export default function Navbar() {
               <Link
                 to="/favorites"
                 className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
-                aria-label="Favoris"
+                aria-label={t.user.favorites}
               >
                 <Heart size={18} className="sm:hidden" />
                 <Heart size={20} className="hidden sm:block" />
@@ -119,7 +119,7 @@ export default function Navbar() {
               <button
                 onClick={toggleDarkMode}
                 className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
-                aria-label={darkMode ? 'Activer le mode clair' : 'Activer le mode sombre'}
+                aria-label={darkMode ? t.common.light : t.common.dark}
               >
                 {darkMode ? (
                   <>
@@ -140,7 +140,7 @@ export default function Navbar() {
                   className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-neutral-100"
                   aria-expanded={langMenuOpen}
                   aria-haspopup="true"
-                  aria-label="Changer la langue"
+                  aria-label={t.user.language}
                 >
                   <Globe size={16} />
                   <span className="text-sm font-medium text-neutral-700">
@@ -152,7 +152,7 @@ export default function Navbar() {
                 {langMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setLangMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg" role="menu">
+                    <div className={`${isRTL ? 'left-0' : 'right-0'} top-12 z-20 w-48 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg absolute`} role="menu">
                       {supportedLanguages.map((lang) => (
                         <button
                           key={lang.code}
@@ -161,7 +161,7 @@ export default function Navbar() {
                             language === lang.code ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'
                           }`}
                           role="menuitem"
-                          aria-label={`Changer la langue en ${lang.name}`}
+                          aria-label={`${t.user.language}: ${lang.name}`}
                         >
                           <span>{lang.flag}</span>
                           <span>{lang.name}</span>
@@ -178,7 +178,7 @@ export default function Navbar() {
                   className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-colors hover:bg-neutral-100"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
-                  aria-label="Menu utilisateur"
+                  aria-label={t.user.profile}
                 >
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
@@ -195,7 +195,7 @@ export default function Navbar() {
                 {userMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 z-20 w-56 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg" role="menu">
+                    <div className={`${isRTL ? 'left-0' : 'right-0'} top-12 z-20 w-56 animate-slide-down rounded-xl border border-neutral-200 bg-white py-2 shadow-lg absolute`} role="menu">
                       <Link
                         to={dashboardLink()}
                         onClick={() => setUserMenuOpen(false)}
@@ -356,3 +356,5 @@ export default function Navbar() {
     </nav>
   );
 }
+
+export default memo(Navbar);

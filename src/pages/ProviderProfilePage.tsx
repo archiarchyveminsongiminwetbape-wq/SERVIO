@@ -3,12 +3,14 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Users, Clock, Search, Filter, Play, Video, 
   Share2, Flag, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Plus, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart
+  BadgeCheck, Zap, MessageSquare, Heart, Code, FileText, ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import type { ProviderProfile, PortfolioItem, Review } from '@/types';
 import StarRating from '@/components/StarRating';
+import Lightbox from '@/components/Lightbox';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 
 const badgeLabels: Record<string, { label: string; icon: typeof BadgeCheck; color: string }> = {
@@ -27,29 +29,52 @@ export default function ProviderProfilePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { t, locale, isRTL } = useI18n();
+
+  // Update badge labels with translations
+  const getBadgeLabel = (badgeKey: string) => {
+    if (badgeKey === 'profil-verifie') return t.provider.badges.verified;
+    if (badgeKey === 'reponse-rapide') return t.provider.badges.fastResponse;
+    if (badgeKey === 'nouveau') return t.provider.badges.new;
+    return badgeLabels[badgeKey]?.label || badgeKey;
+  };
+
+  // Update availability info with translations
+  const getAvailabilityLabel = (status: string) => {
+    if (status === 'available') return t.provider.availability.available;
+    if (status === 'busy') return t.provider.availability.busy;
+    if (status === 'unavailable') return t.provider.availability.unavailable;
+    return availabilityInfo[status]?.label || status;
+  };
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lightbox, setLightbox] = useState<{ photos: string[]; videos: string[]; index: number; type: 'photo' | 'video' } | null>(null);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messageText, setMessageText] = useState('');
+  const [messageError, setMessageError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [respondingToReview, setRespondingToReview] = useState<string | null>(null);
   const [responseText, setResponseText] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [reviewSort, setReviewSort] = useState<'recent' | 'rating_high' | 'rating_low'>('recent');
   const [hasReviewed, setHasReviewed] = useState(false);
   const [portfolioFilter, setPortfolioFilter] = useState('');
-  const [portfolioSort, setPortfolioSort] = useState<'recent' | 'title' | 'featured'>('recent');
+  const [portfolioSort, setPortfolioSort] = useState<'recent' | 'title' | 'featured' | 'oldest'>('recent');
   const [portfolioTypeFilter, setPortfolioTypeFilter] = useState<'all' | 'photos' | 'videos'>('all');
   const [portfolioTagFilter, setPortfolioTagFilter] = useState('');
+  const [portfolioYearFilter, setPortfolioYearFilter] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -66,22 +91,66 @@ export default function ProviderProfilePage() {
         setLoading(false);
         return;
       }
-      setProvider(provData as ProviderProfile);
+
+      let ownerAvatarUrl: string | null = null;
+      if (provData.user_id) {
+        const { data: ownerData } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', provData.user_id)
+          .maybeSingle();
+        ownerAvatarUrl = ownerData?.avatar_url ?? null;
+      }
+
+      setProvider({
+        ...(provData as ProviderProfile),
+        avatar_url: provData.avatar_url || ownerAvatarUrl,
+      });
 
       // Increment view count
       await supabase.rpc('increment_profile_views', { profile_id: provData.id }).then(() => {});
 
-      const [portRes, revRes] = await Promise.all([
-        supabase.from('portfolio_items').select('*').eq('provider_id', provData.id).order('sort_order'),
-        supabase
-          .from('reviews')
-          .select('*, author:profiles!reviews_author_id_fkey(id, full_name, avatar_url)')
-          .eq('provider_id', provData.id)
-          .order('created_at', { ascending: false }),
-      ]);
+      // Track portfolio views if available
+      const portRes = await supabase
+        .from('portfolio_items')
+        .select('*')
+        .eq('provider_id', provData.id)
+        .order('sort_order');
 
       setPortfolio(portRes.data as PortfolioItem[] ?? []);
-      setReviews(revRes.data as Review[] ?? []);
+
+      // Increment portfolio item views in background
+      if (portRes.data && portRes.data.length > 0) {
+        portRes.data.forEach(async (item) => {
+          await supabase.rpc('increment_portfolio_views', { item_id: item.id }).then(() => {});
+        });
+      }
+
+      const revRes = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('provider_id', provData.id)
+        .order('created_at', { ascending: false });
+
+      const reviewsData = revRes.data ?? [];
+      const authorIds = Array.from(new Set(reviewsData.map((review) => review.author_id)));
+      let authorProfiles: Array<{ id: string; full_name: string | null; avatar_url: string | null }> = [];
+      if (authorIds.length > 0) {
+        const { data: authorRes } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', authorIds);
+        authorProfiles = authorRes ?? [];
+      }
+
+      const authorMap = new Map(authorProfiles.map((author) => [author.id, author]));
+      const reviewsWithAuthors = reviewsData.map((review) => ({
+        ...review,
+        author: authorMap.get(review.author_id) ?? null,
+      }));
+
+      setPortfolio(portRes.data as PortfolioItem[] ?? []);
+      setReviews(reviewsWithAuthors as Review[]);
       setLoading(false);
 
       // Check if current user already left a review
@@ -128,40 +197,68 @@ export default function ProviderProfilePage() {
       navigate('/login');
       return;
     }
-    if (!messageText.trim()) return;
+    if (!messageText.trim()) {
+      setMessageError('Le message est requis.');
+      return;
+    }
 
+    setMessageError(null);
     setSending(true);
     const otherUserId = provider.user_id;
 
-    // Find or create conversation
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select('id')
-      .or(`and(participant_a.eq.${user.id},participant_b.eq.${otherUserId}),and(participant_a.eq.${otherUserId},participant_b.eq.${user.id})`)
-      .maybeSingle();
-
-    let convId = existing?.id;
-
-    if (!convId) {
-      const { data: newConv } = await supabase
+    try {
+      // Find or create conversation
+      const { data: existing, error: existingError } = await supabase
         .from('conversations')
-        .insert({ participant_a: user.id, participant_b: otherUserId })
         .select('id')
-        .single();
-      convId = newConv?.id;
-    }
+        .or(
+          `and(participant_a.eq.${user.id},participant_b.eq.${otherUserId}),and(participant_a.eq.${otherUserId},participant_b.eq.${user.id})`
+        )
+        .maybeSingle();
 
-    if (convId) {
-      await supabase.from('messages').insert({
+      if (existingError) {
+        throw existingError;
+      }
+
+      let convId = existing?.id;
+
+      if (!convId) {
+        const { data: newConv, error: newConvError } = await supabase
+          .from('conversations')
+          .insert({ participant_a: user.id, participant_b: otherUserId })
+          .select('id')
+          .single();
+
+        if (newConvError) {
+          throw newConvError;
+        }
+
+        convId = newConv?.id;
+      }
+
+      if (!convId) {
+        throw new Error('Impossible de créer la conversation.');
+      }
+
+      const { error: messageErrorInsert } = await supabase.from('messages').insert({
         conversation_id: convId,
         sender_id: user.id,
         content: messageText.trim(),
       });
+
+      if (messageErrorInsert) {
+        throw messageErrorInsert;
+      }
+
       setMessageText('');
       setShowMessageModal(false);
-      navigate('/messages');
+      navigate(`/messages?conversationId=${convId}`);
+    } catch (error: any) {
+      console.error('Message send error:', error);
+      setMessageError(error?.message || 'Une erreur est survenue lors de l’envoi du message.');
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   const submitReview = async () => {
@@ -169,8 +266,12 @@ export default function ProviderProfilePage() {
       navigate('/login');
       return;
     }
-    if (!reviewComment.trim()) return;
+    if (!reviewComment.trim()) {
+      setReviewError(t.provider.reviewCommentRequired || 'Veuillez saisir un avis.');
+      return;
+    }
 
+    setReviewError(null);
     setSubmittingReview(true);
     const { data, error } = await supabase
       .from('reviews')
@@ -180,21 +281,28 @@ export default function ProviderProfilePage() {
         rating: reviewRating,
         comment: reviewComment.trim(),
       })
-      .select('*, author:profiles!reviews_author_id_fkey(id, full_name, avatar_url)')
+      .select('*')
       .single();
 
     if (!error && data) {
-      setReviews([data as Review, ...reviews]);
+      const newReview = {
+        ...data,
+        author: profile ?? null,
+      } as Review;
+      setReviews([newReview, ...reviews]);
       setHasReviewed(true);
       setShowReviewForm(false);
       setReviewComment('');
       setReviewRating(5);
+      setReviewError(null);
       // Update provider's rating display
       setProvider({
         ...provider,
         rating_count: provider.rating_count + 1,
         rating_avg: ((provider.rating_avg * provider.rating_count) + reviewRating) / (provider.rating_count + 1),
       });
+    } else {
+      setReviewError(error?.message ?? t.common.error ?? 'Une erreur est survenue lors de la publication de l’avis.');
     }
     setSubmittingReview(false);
   };
@@ -262,9 +370,20 @@ export default function ProviderProfilePage() {
       );
     }
     
+    // Filter by year
+    if (portfolioYearFilter.trim()) {
+      filtered = filtered.filter(item => {
+        if (!item.project_date) return false;
+        const itemYear = new Date(item.project_date).getFullYear().toString();
+        return itemYear === portfolioYearFilter;
+      });
+    }
+    
     // Sort
     if (portfolioSort === 'recent') {
       return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (portfolioSort === 'oldest') {
+      return filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     } else if (portfolioSort === 'title') {
       return filtered.sort((a, b) => a.title.localeCompare(b.title));
     } else if (portfolioSort === 'featured') {
@@ -276,6 +395,16 @@ export default function ProviderProfilePage() {
     }
     
     return filtered;
+  };
+
+  const getAvailableYears = () => {
+    const years = new Set<number>();
+    portfolio.forEach(item => {
+      if (item.project_date) {
+        years.add(new Date(item.project_date).getFullYear());
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a);
   };
 
   const shareProfile = async () => {
@@ -303,9 +432,9 @@ export default function ProviderProfilePage() {
   if (!provider) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-        <h2 className="text-xl font-semibold text-neutral-900">Profil introuvable</h2>
-        <p className="mt-2 text-sm text-neutral-500">Ce prestataire n'existe pas ou n'est plus disponible.</p>
-        <Link to="/search" className="btn-primary mt-6">Explorer les prestataires</Link>
+        <h2 className="text-xl font-semibold text-neutral-900">{t.provider.profileNotFound}</h2>
+        <p className="mt-2 text-sm text-neutral-500">{t.provider.profileNotFoundSubtext}</p>
+        <Link to="/search" className="btn-primary mt-6">{t.provider.exploreProviders}</Link>
       </div>
     );
   }
@@ -314,9 +443,9 @@ export default function ProviderProfilePage() {
   const isOwnProfile = user?.id === provider.user_id;
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Banner */}
-      <div className="relative h-64 overflow-hidden bg-neutral-200 sm:h-80">
+      <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden bg-neutral-200">
         {provider.banner_url && (
           <img src={provider.banner_url} alt="" className="h-full w-full object-cover" />
         )}
@@ -325,16 +454,16 @@ export default function ProviderProfilePage() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Profile header */}
-        <div className="relative -mt-20 flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="relative -mt-16 sm:-mt-20 flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="flex-shrink-0">
             {provider.avatar_url ? (
               <img
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-32 w-32 rounded-2xl object-cover ring-4 ring-white shadow-lg sm:h-36 sm:w-36"
+                className="h-24 w-24 sm:h-32 sm:w-32 rounded-2xl object-cover ring-4 ring-white shadow-lg"
               />
             ) : (
-              <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-primary-100 text-4xl font-bold text-primary-700 ring-4 ring-white shadow-lg sm:h-36 sm:w-36">
+              <div className="flex h-24 w-24 sm:h-32 sm:w-32 items-center justify-center rounded-2xl bg-primary-100 text-3xl sm:text-4xl font-bold text-primary-700 ring-4 ring-white shadow-lg">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
@@ -342,19 +471,19 @@ export default function ProviderProfilePage() {
 
           <div className="flex-1 pb-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-neutral-900">{provider.business_name}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{provider.business_name}</h1>
               <div className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm">
                 <span className={`h-1.5 w-1.5 rounded-full ${avail.color}`} />
-                {avail.label}
+                {getAvailabilityLabel(provider.availability)}
               </div>
             </div>
-            <p className="mt-1 text-neutral-600">{provider.headline}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
+            <p className="mt-1 text-sm sm:text-base text-neutral-600">{provider.headline}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-neutral-500">
               {provider.city && (
                 <span className="flex items-center gap-1"><MapPin size={14} /> {provider.city}</span>
               )}
               {provider.experience_years && (
-                <span className="flex items-center gap-1"><Briefcase size={14} /> {provider.experience_years} ans d'expérience</span>
+                <span className="flex items-center gap-1"><Briefcase size={14} /> {provider.experience_years} {t.provider.yearsOfExperienceLabel}</span>
               )}
               <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
             </div>
@@ -364,19 +493,22 @@ export default function ProviderProfilePage() {
             <div className="flex flex-wrap gap-2 pb-2">
               <button
                 onClick={() => setShowMessageModal(true)}
-                className="btn-primary"
+                className="btn-primary text-sm sm:text-base"
               >
-                <MessageSquare size={18} />
-                Envoyer un message
+                <MessageSquare size={16} className="sm:hidden" />
+                <MessageSquare size={18} className="hidden sm:block" />
+                <span className="hidden sm:inline">{t.provider.sendMessage}</span>
               </button>
               <button
                 onClick={toggleFavorite}
                 className={`btn-secondary ${isFavorited ? 'text-error-600' : ''}`}
               >
-                <Heart size={18} className={isFavorited ? 'fill-error-500' : ''} />
+                <Heart size={16} className="sm:hidden" />
+                <Heart size={18} className="hidden sm:block" />
               </button>
               <button onClick={shareProfile} className="btn-secondary">
-                <Share2 size={18} />
+                <Share2 size={16} className="sm:hidden" />
+                <Share2 size={18} className="hidden sm:block" />
               </button>
             </div>
           )}
@@ -390,9 +522,12 @@ export default function ProviderProfilePage() {
               if (!info) return null;
               const Icon = info.icon;
               return (
-                <span key={badge} className={`badge ${info.color}`}>
-                  <Icon size={14} />
-                  {info.label}
+                <span
+                  key={badge}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 sm:px-3 py-1 text-xs font-medium ${info.color}`}
+                >
+                  <Icon size={12} />
+                  {getBadgeLabel(badge)}
                 </span>
               );
             })}
@@ -400,8 +535,8 @@ export default function ProviderProfilePage() {
         )}
 
         {/* Tabs */}
-        <div className="mt-8 border-b border-neutral-200">
-          <div className="flex gap-1">
+        <div className="mt-6 sm:mt-8 border-b border-neutral-200 overflow-x-auto">
+          <div className="flex gap-1 min-w-max">
             {(['portfolio', 'reviews', 'about'] as const).map((tab) => (
               <button
                 key={tab}
@@ -410,9 +545,9 @@ export default function ProviderProfilePage() {
                   activeTab === tab ? 'text-primary-600' : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                {tab === 'portfolio' && `Portfolio (${portfolio.length})`}
-                {tab === 'reviews' && `Avis (${reviews.length})`}
-                {tab === 'about' && 'À propos'}
+                {tab === 'portfolio' && `${t.provider.portfolio} (${portfolio.length})`}
+                {tab === 'reviews' && `${t.provider.reviews} (${reviews.length})`}
+                {tab === 'about' && t.provider.aboutTab}
                 {activeTab === tab && (
                   <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary-600" />
                 )}
@@ -436,7 +571,7 @@ export default function ProviderProfilePage() {
                         value={portfolioFilter}
                         onChange={(e) => setPortfolioFilter(e.target.value)}
                         className="input-field pl-10"
-                        placeholder="Rechercher dans les réalisations..."
+                        placeholder={t.provider.searchPortfolio}
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -445,31 +580,39 @@ export default function ProviderProfilePage() {
                         onChange={(e) => setPortfolioTypeFilter(e.target.value as 'all' | 'photos' | 'videos')}
                         className="input-field sm:w-40"
                       >
-                        <option value="all">Tous les médias</option>
-                        <option value="photos">Photos</option>
-                        <option value="videos">Vidéos</option>
+                        <option value="all">{t.provider.allMedia}</option>
+                        <option value="photos">{t.provider.photosLabel}</option>
+                        <option value="videos">{t.provider.videosLabel}</option>
                       </select>
                       <select
                         value={portfolioSort}
-                        onChange={(e) => setPortfolioSort(e.target.value as 'recent' | 'title' | 'featured')}
+                        onChange={(e) => setPortfolioSort(e.target.value as 'recent' | 'title' | 'featured' | 'oldest')}
                         className="input-field sm:w-40"
                       >
-                        <option value="recent">Plus récents</option>
-                        <option value="featured">En vedette</option>
-                        <option value="title">Par titre</option>
+                        <option value="recent">{t.provider.mostRecent}</option>
+                        <option value="oldest">{t.common.previous}</option>
+                        <option value="featured">{t.provider.featured}</option>
+                        <option value="title">{t.provider.byTitle}</option>
                       </select>
+                      <button
+                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                        className={`btn-secondary ${showAdvancedFilters ? 'bg-primary-100 text-primary-700' : ''}`}
+                      >
+                        <Filter size={18} />
+                        {t.common.filters}
+                      </button>
                     </div>
                   </div>
 
                   {/* Tag filter */}
                   {portfolio.length > 0 && (
                     <div className="mb-6 flex flex-wrap gap-2 items-center">
-                      <span className="text-sm font-medium text-neutral-700">Tags:</span>
+                      <span className="text-sm font-medium text-neutral-700">{t.provider.tagsLabel}:</span>
                       <button
                         onClick={() => setPortfolioTagFilter('')}
                         className={`badge ${!portfolioTagFilter ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
                       >
-                        Tous
+                        {t.provider.allLabel}
                       </button>
                       {Array.from(new Set(portfolio.flatMap(item => item.tags))).slice(0, 10).map((tag) => (
                         <button
@@ -483,144 +626,102 @@ export default function ProviderProfilePage() {
                     </div>
                   )}
 
+                  {/* Advanced filters */}
+                  {showAdvancedFilters && (
+                    <div className="mb-6 rounded-xl bg-neutral-50 p-4 space-y-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <label className="text-sm font-medium text-neutral-700">{t.common.filter} par {t.common.year}:</label>
+                        <select
+                          value={portfolioYearFilter}
+                          onChange={(e) => setPortfolioYearFilter(e.target.value)}
+                          className="input-field sm:w-40"
+                        >
+                          <option value="">{t.common.allYears}</option>
+                          {getAvailableYears().map(year => (
+                            <option key={year} value={year.toString()}>{year}</option>
+                          ))}
+                        </select>
+                        {(portfolioTagFilter || portfolioYearFilter) && (
+                          <button
+                            onClick={() => {
+                              setPortfolioTagFilter('');
+                              setPortfolioYearFilter('');
+                            }}
+                            className="btn-secondary text-sm"
+                          >
+                            {t.provider.clearFilter}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Portfolio grid */}
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {getFilteredPortfolio().map((item) => (
-                      <div key={item.id} className="card group overflow-hidden">
-                        {(item.photos[0] || (item.videos && item.videos[0])) && (
-                          <div className="relative h-56 cursor-pointer overflow-hidden bg-neutral-100">
-                            {item.videos && item.videos[0] ? (
-                              <div className="relative h-full w-full">
-                                <video
-                                  src={item.videos[0]}
-                                  className="h-full w-full object-cover"
-                                  muted
-                                  onMouseEnter={(e) => e.currentTarget.play()}
-                                  onMouseLeave={(e) => e.currentTarget.pause()}
-                                  onClick={() => setLightbox({ 
-                                    photos: item.photos, 
-                                    videos: item.videos || [], 
-                                    index: 0, 
-                                    type: 'video' 
-                                  })}
+                      <div key={item.id} className="card group overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                        <Link to={`/portfolio/${item.id}`}>
+                          {(item.photos[0] || (item.videos && item.videos[0])) && (
+                            <div className="relative h-56 overflow-hidden bg-neutral-100">
+                              {item.videos && item.videos[0] ? (
+                                <div className="relative h-full w-full">
+                                  <video
+                                    src={item.videos[0]}
+                                    className="h-full w-full object-cover"
+                                    muted
+                                    onMouseEnter={(e) => e.currentTarget.play()}
+                                    onMouseLeave={(e) => e.currentTarget.pause()}
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Play size={32} className="text-white" />
+                                  </div>
+                                  <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white flex items-center gap-1">
+                                    <Video size={12} />
+                                    {item.videos.length} {t.provider.videoCount}{item.videos.length > 1 ? 's' : ''}
+                                  </div>
+                                </div>
+                              ) : (
+                                <img
+                                  src={item.photos[0]}
+                                  alt={item.title}
+                                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setLightboxImages(item.photos);
+                                    setLightboxIndex(0);
+                                    setIsLightboxOpen(true);
+                                  }}
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Play size={32} className="text-white" />
-                                </div>
+                              )}
+                              {item.photos.length > 1 && !item.videos?.[0] && (
                                 <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white flex items-center gap-1">
-                                  <Video size={12} />
-                                  {item.videos.length} vidéo{item.videos.length > 1 ? 's' : ''}
+                                  <FolderOpen size={12} />
+                                  {item.photos.length} {t.provider.photoCount}{item.photos.length > 1 ? 's' : ''}
                                 </div>
-                              </div>
-                            ) : (
-                              <img
-                                src={item.photos[0]}
-                                alt={item.title}
-                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                loading="lazy"
-                                onClick={() => setLightbox({ 
-                                  photos: item.photos, 
-                                  videos: item.videos || [], 
-                                  index: 0, 
-                                  type: 'photo' 
-                                })}
-                              />
-                            )}
-                            {item.photos.length > 1 && !item.videos?.[0] && (
-                              <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-                                {item.photos.length} photos
-                              </div>
-                            )}
-                            {item.featured && (
-                              <div className="absolute top-2 left-2 rounded-full bg-accent-500 px-2 py-1 text-xs text-white font-semibold">
-                                En vedette
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div className="p-4">
-                          <h3 className="font-semibold text-neutral-900">{item.title}</h3>
-                          {item.description && (
-                            <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>
+                              )}
+                            </div>
                           )}
-                          
-                          {/* Additional project information */}
-                          <div className="mt-3 space-y-2">
-                            {item.client_name && (
-                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-                                <span className="font-medium">Client:</span>
-                                <span>{item.client_name}</span>
+                          <div className="p-4">
+                            <h3 className="font-semibold text-neutral-900">{item.title}</h3>
+                            <p className="mt-1 text-sm text-neutral-600 line-clamp-2">{item.description}</p>
+                            {item.tags.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-1">
+                                {item.tags.slice(0, 3).map((tag) => (
+                                  <span key={tag} className="badge text-xs">{tag}</span>
+                                ))}
                               </div>
                             )}
                             {item.project_date && (
-                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-                                <Calendar size={12} />
-                                <span>{new Date(item.project_date).toLocaleDateString('fr-FR')}</span>
+                              <div className="mt-2 text-xs text-neutral-500">
+                                {formatDate(item.project_date, locale)}
                               </div>
                             )}
-                            {item.location && (
-                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-                                <MapPin size={12} />
-                                <span>{item.location}</span>
-                              </div>
-                            )}
-                            {item.budget && (
-                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-                                <span className="font-medium">Budget:</span>
-                                <span>{item.budget}</span>
-                              </div>
-                            )}
-                            {item.duration && (
-                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-                                <Clock size={12} />
-                                <span>{item.duration}</span>
-                              </div>
-                            )}
-                            {item.team_size && (
-                              <div className="flex items-center gap-1.5 text-xs text-neutral-600">
-                                <Users size={12} />
-                                <span>{item.team_size} personne{item.team_size > 1 ? 's' : ''}</span>
-                              </div>
-                            )}
+                            <div className="mt-2 flex items-center gap-1 text-xs text-neutral-500">
+                              <Eye size={12} />
+                              <span>{item.view_count || 0} {t.common.views}</span>
+                            </div>
                           </div>
-
-                          {item.technologies_used && item.technologies_used.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                              {item.technologies_used.slice(0, 3).map((tech) => (
-                                <span key={tech} className="badge bg-accent-50 text-accent-700 border border-accent-100 text-xs">
-                                  {tech}
-                                </span>
-                              ))}
-                              {item.technologies_used.length > 3 && (
-                                <span className="badge bg-neutral-100 text-neutral-600 text-xs">
-                                  +{item.technologies_used.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {item.tags.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                              {item.tags.slice(0, 3).map((tag) => (
-                                <span key={tag} className="badge bg-primary-50 text-primary-700 border border-primary-100 text-xs">
-                                  {tag}
-                                </span>
-                              ))}
-                              {item.tags.length > 3 && (
-                                <span className="badge bg-neutral-100 text-neutral-600 text-xs">
-                                  +{item.tags.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          
-                          {item.created_at && (
-                            <div className="mt-3 flex items-center gap-1 text-xs text-neutral-500">
-                              <Clock size={12} />
-                              {formatRelativeTime(item.created_at)}
-                            </div>
-                          )}
-                        </div>
+                        </Link>
                       </div>
                     ))}
                   </div>
@@ -628,16 +729,16 @@ export default function ProviderProfilePage() {
                   {getFilteredPortfolio().length === 0 && (
                     <div className="text-center py-12">
                       <Search size={48} className="mx-auto text-neutral-300" />
-                      <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun résultat</h3>
+                      <h3 className="mt-4 text-lg font-semibold text-neutral-900">{t.provider.noResults}</h3>
                       <p className="mt-1 text-sm text-neutral-500">
-                        Essayez de modifier vos critères de recherche.
+                        {t.provider.tryDifferentFilters}
                       </p>
                       {portfolioFilter && (
                         <button
                           onClick={() => setPortfolioFilter('')}
                           className="btn-secondary mt-4"
                         >
-                          Effacer le filtre
+                          {t.provider.clearFilter}
                         </button>
                       )}
                     </div>
@@ -646,9 +747,9 @@ export default function ProviderProfilePage() {
               ) : (
                 <div className="text-center py-16">
                   <FolderOpen size={64} className="mx-auto text-neutral-300" />
-                  <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucune réalisation publiée</h3>
+                  <h3 className="mt-4 text-lg font-semibold text-neutral-900">{t.provider.noPortfolioItems}</h3>
                   <p className="mt-2 text-sm text-neutral-500">
-                    Ce prestataire n'a pas encore ajouté de réalisations à son portfolio.
+                    {t.provider.noPortfolioItemsSubtext}
                   </p>
                 </div>
               )}
@@ -662,18 +763,18 @@ export default function ProviderProfilePage() {
                   {!showReviewForm ? (
                     <button onClick={() => setShowReviewForm(true)} className="btn-primary w-full">
                       <Plus size={18} />
-                      Laisser un avis
+                      {t.provider.leaveReview}
                     </button>
                   ) : (
                     <div className="card p-6">
                       <div className="mb-4 flex items-center justify-between">
-                        <h4 className="font-semibold text-neutral-900">Votre avis</h4>
+                        <h4 className="font-semibold text-neutral-900">{t.provider.yourReview}</h4>
                         <button onClick={() => setShowReviewForm(false)} className="text-neutral-400 hover:text-neutral-600">
                           <X size={20} />
                         </button>
                       </div>
                       <div className="mb-4">
-                        <label className="label">Note</label>
+                        <label className="label">{t.provider.ratingLabel}</label>
                         <div className="flex items-center gap-2">
                           {[1, 2, 3, 4, 5].map((n) => (
                             <button
@@ -691,24 +792,27 @@ export default function ProviderProfilePage() {
                         </div>
                       </div>
                       <div className="mb-4">
-                        <label className="label">Commentaire</label>
+                        <label className="label">{t.provider.commentLabel}</label>
                         <textarea
                           value={reviewComment}
                           onChange={(e) => setReviewComment(e.target.value)}
                           className="input-field resize-none"
                           rows={4}
-                          placeholder="Partagez votre expérience..."
+                          placeholder={t.provider.shareExperience}
                         />
+                        {reviewError && (
+                          <p className="mt-2 text-sm text-error-600">{reviewError}</p>
+                        )}
                       </div>
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => setShowReviewForm(false)} className="btn-secondary">Annuler</button>
+                        <button onClick={() => setShowReviewForm(false)} className="btn-secondary">{t.common.cancel}</button>
                         <button
                           onClick={submitReview}
                           disabled={submittingReview || !reviewComment.trim()}
                           className="btn-primary"
                         >
                           {submittingReview ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                          Publier l'avis
+                          {t.provider.publishReview}
                         </button>
                       </div>
                     </div>
@@ -719,7 +823,7 @@ export default function ProviderProfilePage() {
               {!isOwnProfile && !user && (
                 <div className="mb-6 rounded-xl bg-primary-50 p-4 text-center">
                   <p className="text-sm text-primary-700">
-                    <Link to="/login" className="font-semibold underline">Connectez-vous</Link> pour laisser un avis
+                    <Link to="/login" className="font-semibold underline">{t.auth.login}</Link> {t.provider.loginToReview}
                   </p>
                 </div>
               )}
@@ -727,20 +831,20 @@ export default function ProviderProfilePage() {
               {hasReviewed && !isOwnProfile && (
                 <div className="mb-6 flex items-center gap-2 rounded-xl bg-success-50 px-4 py-3 text-sm text-success-700">
                   <Star size={18} className="fill-success-500 text-success-500" />
-                  Vous avez déjà laissé un avis sur ce prestataire
+                  {t.provider.alreadyReviewed}
                 </div>
               )}
 
               <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-neutral-900">Avis ({reviews.length})</h3>
+                <h3 className="text-lg font-semibold text-neutral-900">{t.provider.reviews} ({reviews.length})</h3>
                 <select
                   value={reviewSort}
                   onChange={(e) => setReviewSort(e.target.value as 'recent' | 'rating_high' | 'rating_low')}
                   className="input-field text-sm py-1.5"
                 >
-                  <option value="recent">Plus récents</option>
-                  <option value="rating_high">Meilleures notes</option>
-                  <option value="rating_low">Moins bonnes notes</option>
+                  <option value="recent">{t.provider.mostRecentReviews}</option>
+                  <option value="rating_high">{t.provider.highestRated}</option>
+                  <option value="rating_low">{t.provider.lowestRated}</option>
                 </select>
               </div>
 
@@ -758,7 +862,7 @@ export default function ProviderProfilePage() {
                         )}
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-neutral-900">{review.author?.full_name ?? 'Anonyme'}</p>
+                            <p className="font-semibold text-neutral-900">{review.author?.full_name ?? t.provider.anonymous}</p>
                             <span className="text-xs text-neutral-500">{formatRelativeTime(review.created_at)}</span>
                           </div>
                           <StarRating rating={review.rating} size={14} />
@@ -767,7 +871,7 @@ export default function ProviderProfilePage() {
                           )}
                           {review.provider_response && (
                             <div className="mt-3 rounded-lg bg-neutral-50 p-3">
-                              <p className="text-xs font-semibold text-neutral-700">Réponse du prestataire</p>
+                              <p className="text-xs font-semibold text-neutral-700">{t.provider.providerResponse}</p>
                               <p className="mt-1 text-sm text-neutral-600">{review.provider_response}</p>
                             </div>
                           )}
@@ -776,7 +880,7 @@ export default function ProviderProfilePage() {
                               onClick={() => setRespondingToReview(review.id)}
                               className="mt-3 text-sm font-medium text-primary-600 hover:text-primary-700"
                             >
-                              Répondre à cet avis
+                              {t.provider.respondToReview}
                             </button>
                           )}
                           {respondingToReview === review.id && (
@@ -786,21 +890,21 @@ export default function ProviderProfilePage() {
                                 onChange={(e) => setResponseText(e.target.value)}
                                 className="input-field resize-none mb-2"
                                 rows={3}
-                                placeholder="Votre réponse..."
+                                placeholder={t.provider.yourResponse}
                               />
                               <div className="flex justify-end gap-2">
                                 <button
                                   onClick={() => { setRespondingToReview(null); setResponseText(''); }}
                                   className="btn-secondary text-sm py-1.5"
                                 >
-                                  Annuler
+                                  {t.common.cancel}
                                 </button>
                                 <button
                                   onClick={() => submitResponse(review.id)}
                                   disabled={submittingResponse || !responseText.trim()}
                                   className="btn-primary text-sm py-1.5"
                                 >
-                                  {submittingResponse ? <Loader2 size={14} className="animate-spin" /> : 'Envoyer'}
+                                  {submittingResponse ? <Loader2 size={14} className="animate-spin" /> : t.provider.send}
                                 </button>
                               </div>
                             </div>
@@ -811,7 +915,7 @@ export default function ProviderProfilePage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-neutral-500">Aucun avis pour le moment.</p>
+                <p className="text-center text-neutral-500">{t.provider.noReviewsYet}</p>
               )}
             </div>
           )}
@@ -820,7 +924,7 @@ export default function ProviderProfilePage() {
             <div className="mx-auto max-w-3xl space-y-6">
               {provider.description && (
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900">Présentation</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900">{t.provider.presentation}</h3>
                   <p className="mt-2 leading-relaxed text-neutral-600">{provider.description}</p>
                 </div>
               )}
@@ -828,7 +932,7 @@ export default function ProviderProfilePage() {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
                   <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                    <Briefcase size={20} /> Compétences
+                    <Briefcase size={20} /> {t.provider.skills}
                   </h3>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {provider.skills.map((skill) => (
@@ -840,7 +944,7 @@ export default function ProviderProfilePage() {
                 {provider.certifications && (
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                      <Award size={20} /> Certifications
+                      <Award size={20} /> {t.provider.certifications}
                     </h3>
                     <p className="mt-2 text-sm text-neutral-600">{provider.certifications}</p>
                   </div>
@@ -849,7 +953,7 @@ export default function ProviderProfilePage() {
                 {provider.languages.length > 0 && (
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                      <Languages size={20} /> Langues
+                      <Languages size={20} /> {t.provider.languages}
                     </h3>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {provider.languages.map((lang) => (
@@ -860,24 +964,24 @@ export default function ProviderProfilePage() {
                 )}
 
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900">Localisation</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900">{t.provider.location}</h3>
                   <div className="mt-2 space-y-1 text-sm text-neutral-600">
                     {provider.city && <p className="flex items-center gap-1.5"><MapPin size={14} /> {provider.city}</p>}
-                    {provider.service_area && <p>Zone d'intervention : {provider.service_area}</p>}
-                    {provider.remote_service && <p className="text-success-600">Service à distance disponible</p>}
+                    {provider.service_area && <p>{t.provider.serviceArea} : {provider.service_area}</p>}
+                    {provider.remote_service && <p className="text-success-600">{t.provider.remoteServiceAvailable}</p>}
                   </div>
                 </div>
 
                 {provider.price_range && (
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900">Tarifs</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900">{t.provider.pricing}</h3>
                     <p className="mt-2 text-sm text-neutral-600">{provider.price_range}</p>
                   </div>
                 )}
 
                 {(provider.phone || provider.website) && (
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900">Contact</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900">{t.provider.contact}</h3>
                     <div className="mt-2 space-y-1 text-sm text-neutral-600">
                       {provider.phone && <p className="flex items-center gap-1.5"><Phone size={14} /> {provider.phone}</p>}
                       {provider.website && (
@@ -897,7 +1001,7 @@ export default function ProviderProfilePage() {
                 <div className="flex justify-end border-t border-neutral-100 pt-4">
                   <button className="btn-ghost text-neutral-400 hover:text-error-600">
                     <Flag size={16} />
-                    Signaler ce profil
+                    {t.provider.reportProfile}
                   </button>
                 </div>
               )}
@@ -907,105 +1011,20 @@ export default function ProviderProfilePage() {
       </div>
 
       {/* Lightbox */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <button className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white/70 hover:bg-white/20 hover:text-white transition-colors" onClick={() => setLightbox(null)}>
-            <X size={28} />
-          </button>
-          
-          {lightbox.type === 'photo' && (
-            <>
-              <button
-                className="absolute left-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.photos.length) % lightbox.photos.length });
-                }}
-              >
-                <ChevronLeft size={36} />
-              </button>
-              
-              <button
-                className="absolute right-4 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.photos.length });
-                }}
-              >
-                <ChevronRight size={36} />
-              </button>
-              
-              <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-                <img
-                  src={lightbox.photos[lightbox.index]}
-                  alt={`Photo ${lightbox.index + 1}`}
-                  className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
-                />
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-white text-sm">
-                  <span>{lightbox.index + 1} / {lightbox.photos.length}</span>
-                </div>
-              </div>
-              
-              {/* Thumbnails */}
-              {lightbox.photos.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                  {lightbox.photos.map((photo, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setLightbox({ ...lightbox, index: idx })}
-                      className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${
-                        idx === lightbox.index ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'
-                      }`}
-                    >
-                      <img src={photo} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-          
-          {lightbox.type === 'video' && (
-            <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-              <video
-                src={lightbox.videos[lightbox.index]}
-                controls
-                autoPlay
-                className="max-h-[85vh] max-w-[85vw] object-contain rounded-lg shadow-2xl"
-              />
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-white text-sm">
-                <span>{lightbox.index + 1} / {lightbox.videos.length}</span>
-              </div>
-              
-              {lightbox.videos.length > 1 && (
-                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                  {lightbox.videos.map((video, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setLightbox({ ...lightbox, index: idx })}
-                      className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${
-                        idx === lightbox.index ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'
-                      }`}
-                    >
-                      <video src={video} className="h-full w-full object-cover" muted />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <Lightbox
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        alt={provider?.business_name || 'Portfolio image'}
+      />
 
       {/* Message modal */}
       {showMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowMessageModal(false)}>
           <div className="card max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-neutral-900">Envoyer un message</h3>
+              <h3 className="text-lg font-semibold text-neutral-900">{t.provider.sendMessage}</h3>
               <button onClick={() => setShowMessageModal(false)} className="text-neutral-400 hover:text-neutral-600">
                 <X size={20} />
               </button>
@@ -1015,12 +1034,15 @@ export default function ProviderProfilePage() {
               onChange={(e) => setMessageText(e.target.value)}
               className="input-field resize-none mb-4"
               rows={4}
-              placeholder="Votre message..."
+              placeholder={t.provider.message.placeholder}
             />
+            {messageError && (
+              <p className="mb-4 text-sm text-error-600">{messageError}</p>
+            )}
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowMessageModal(false)} className="btn-secondary">Annuler</button>
+              <button onClick={() => setShowMessageModal(false)} className="btn-secondary">{t.common.cancel}</button>
               <button onClick={handleSendMessage} disabled={sending} className="btn-primary">
-                {sending ? <Loader2 size={16} className="animate-spin" /> : 'Envoyer'}
+                {sending ? <Loader2 size={16} className="animate-spin" /> : t.provider.message.send}
               </button>
             </div>
           </div>

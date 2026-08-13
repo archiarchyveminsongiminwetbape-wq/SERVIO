@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Briefcase, Mail, Lock, ArrowLeft, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useI18n } from '@/context/I18nContext';
 
 export default function ResetPasswordPage() {
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -38,12 +40,12 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères.');
+      setError(t.auth.passwordMinLength);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas.');
+      setError(t.auth.passwordMismatch);
       return;
     }
 
@@ -74,12 +76,12 @@ export default function ResetPasswordPage() {
             <span className="text-neutral-900">SERVIO</span>
           </Link>
           <h1 className="mt-6 text-2xl font-bold text-neutral-900">
-            {isResetFlow ? 'Nouveau mot de passe' : 'Réinitialiser le mot de passe'}
+            {isResetFlow ? t.auth.newPassword : t.auth.resetPassword}
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
             {isResetFlow 
-              ? 'Entrez votre nouveau mot de passe' 
-              : 'Entrez votre email pour recevoir un lien de réinitialisation'}
+              ? t.auth.enterNewPassword 
+              : t.auth.enterEmailForReset}
           </p>
         </div>
 
@@ -95,8 +97,8 @@ export default function ResetPasswordPage() {
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-success-50 px-4 py-3 text-sm text-success-700">
               <CheckCircle size={18} />
               {isResetFlow 
-                ? 'Mot de passe mis à jour avec succès. Redirection...' 
-                : 'Email de réinitialisation envoyé. Vérifiez votre boîte mail.'}
+                ? t.auth.passwordUpdated 
+              : t.auth.resetEmailSent}
             </div>
           )}
 
@@ -104,7 +106,7 @@ export default function ResetPasswordPage() {
             <form onSubmit={isResetFlow ? handleUpdatePassword : handleRequestReset} className="space-y-4">
               {!isResetFlow && (
                 <div>
-                  <label className="label">Email</label>
+                  <label className="label">{t.auth.email}</label>
                   <div className="relative">
                     <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                     <input
@@ -122,7 +124,7 @@ export default function ResetPasswordPage() {
               {isResetFlow && (
                 <>
                   <div>
-                    <label className="label">Nouveau mot de passe</label>
+                    <label className="label">{t.auth.newPassword}</label>
                     <div className="relative">
                       <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                       <input
@@ -137,7 +139,7 @@ export default function ResetPasswordPage() {
                   </div>
 
                   <div>
-                    <label className="label">Confirmer le mot de passe</label>
+                    <label className="label">{t.auth.confirmPassword}</label>
                     <div className="relative">
                       <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                       <input

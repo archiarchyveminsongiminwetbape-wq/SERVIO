@@ -118,7 +118,7 @@ export const getCurrencyByCode = (code: string): Currency | undefined => {
   return currencies.find(c => c.code === code);
 };
 
-export const formatCurrency = (amount: number, currencyCode: string, locale: string = 'fr-FR'): string => {
+export const formatCurrency = (amount: number, currencyCode: string, locale: string = navigator.language): string => {
   const currency = getCurrencyByCode(currencyCode);
   if (!currency) return amount.toString();
   

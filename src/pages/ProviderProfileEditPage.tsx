@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Save, X, Plus, Trash2, Upload, Briefcase, MapPin, Phone, Globe, Star, Calendar, Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
 import type { ProviderProfile, Category } from '@/types';
 
 export default function ProviderProfileEditPage() {
+  const { t } = useI18n();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -173,7 +175,7 @@ export default function ProviderProfileEditPage() {
       navigate('/provider/dashboard');
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Erreur lors de la sauvegarde du profil');
+      alert(t.provider.saveError);
     }
 
     setSaving(false);
@@ -205,7 +207,7 @@ export default function ProviderProfileEditPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-neutral-600">Chargement...</p>
+          <p className="text-neutral-600">{t.provider.loading}</p>
         </div>
       </div>
     );
@@ -216,10 +218,10 @@ export default function ProviderProfileEditPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">
-            {providerProfile ? 'Modifier mon profil' : 'Créer mon profil prestataire'}
+            {providerProfile ? t.provider.editProfileTitle : t.provider.createProfileTitle}
           </h1>
           <p className="mt-1 text-sm text-neutral-600">
-            {providerProfile ? 'Mettez à jour vos informations' : 'Créez votre portfolio professionnel'}
+            {providerProfile ? t.provider.editProfileSubtitle : t.provider.createProfileSubtitle}
           </p>
         </div>
         <div className="flex gap-2">
@@ -228,14 +230,14 @@ export default function ProviderProfileEditPage() {
             className="btn-secondary"
           >
             <X size={18} />
-            Annuler
+            {t.provider.cancel}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="btn-primary"
           >
-            {saving ? <span className="animate-spin">⏳</span> : <><Save size={18} /> Enregistrer</>}
+            {saving ? <span className="animate-spin">⏳</span> : <><Save size={18} /> {t.provider.save}</>}
           </button>
         </div>
       </div>
@@ -243,17 +245,17 @@ export default function ProviderProfileEditPage() {
       <div className="space-y-6">
         {/* Basic Information */}
         <div className="card">
-          <h3 className="mb-4 font-semibold text-neutral-900">Informations de base</h3>
+          <h3 className="mb-4 font-semibold text-neutral-900">{t.provider.basicInformation}</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="label">Nom de l'entreprise *</label>
+              <label className="label">{t.provider.fields.businessName} *</label>
               <input
                 type="text"
                 required
                 value={formData.business_name}
                 onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
                 className="input-field"
-                placeholder="Votre entreprise"
+                placeholder={t.provider.businessNamePlaceholder}
               />
             </div>
             <div>
@@ -264,27 +266,27 @@ export default function ProviderProfileEditPage() {
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
                 className="input-field"
-                placeholder="votre-entreprise"
+                placeholder={t.provider.slugPlaceholder}
               />
             </div>
             <div className="md:col-span-2">
-              <label className="label">Accroche</label>
+              <label className="label">{t.provider.fields.headline}</label>
               <input
                 type="text"
                 value={formData.headline}
                 onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
                 className="input-field"
-                placeholder="Une phrase qui décrit votre activité"
+                placeholder={t.provider.headlinePlaceholder}
               />
             </div>
             <div className="md:col-span-2">
-              <label className="label">Description *</label>
+              <label className="label">{t.provider.fields.description} *</label>
               <textarea
                 required
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="input-field min-h-[150px]"
-                placeholder="Décrivez vos services, votre expertise..."
+                placeholder={t.provider.descriptionPlaceholder}
               />
             </div>
           </div>
@@ -292,24 +294,24 @@ export default function ProviderProfileEditPage() {
 
         {/* Category and Skills */}
         <div className="card">
-          <h3 className="mb-4 font-semibold text-neutral-900">Catégorie et compétences</h3>
+          <h3 className="mb-4 font-semibold text-neutral-900">{t.provider.categoryAndSkills}</h3>
           <div className="space-y-4">
             <div>
-              <label className="label">Catégorie principale *</label>
+              <label className="label">{t.provider.fields.category} *</label>
               <select
                 required
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 className="input-field"
               >
-                <option value="">Sélectionnez une catégorie</option>
+                <option value="">{t.provider.selectCategory}</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="label">Compétences</label>
+              <label className="label">{t.provider.fields.skills}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -317,7 +319,7 @@ export default function ProviderProfileEditPage() {
                   onChange={(e) => setNewSkill(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                   className="input-field flex-1"
-                  placeholder="Ajouter une compétence"
+                  placeholder={t.provider.addSkill}
                 />
                 <button type="button" onClick={addSkill} className="btn-secondary">
                   <Plus size={18} />
@@ -342,7 +344,7 @@ export default function ProviderProfileEditPage() {
               </div>
             </div>
             <div>
-              <label className="label">Années d'expérience</label>
+              <label className="label">{t.provider.yearsOfExperience}</label>
               <input
                 type="number"
                 min="0"
@@ -353,7 +355,7 @@ export default function ProviderProfileEditPage() {
               />
             </div>
             <div>
-              <label className="label">Langues parlées</label>
+              <label className="label">{t.provider.fields.languages}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -361,7 +363,7 @@ export default function ProviderProfileEditPage() {
                   onChange={(e) => setNewLanguage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLanguage())}
                   className="input-field flex-1"
-                  placeholder="Ajouter une langue"
+                  placeholder={t.provider.addLanguage}
                 />
                 <button type="button" onClick={addLanguage} className="btn-secondary">
                   <Plus size={18} />
@@ -386,12 +388,12 @@ export default function ProviderProfileEditPage() {
               </div>
             </div>
             <div>
-              <label className="label">Certifications</label>
+              <label className="label">{t.provider.fields.certifications}</label>
               <textarea
                 value={formData.certifications}
                 onChange={(e) => setFormData({ ...formData, certifications: e.target.value })}
                 className="input-field min-h-[80px]"
-                placeholder="Listez vos certifications et diplômes"
+                placeholder={t.provider.certificationsPlaceholder}
               />
             </div>
           </div>
@@ -399,10 +401,10 @@ export default function ProviderProfileEditPage() {
 
         {/* Location and Contact */}
         <div className="card">
-          <h3 className="mb-4 font-semibold text-neutral-900">Localisation et contact</h3>
+          <h3 className="mb-4 font-semibold text-neutral-900">{t.provider.contactInformation}</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="label">Ville</label>
+              <label className="label">{t.provider.fields.city}</label>
               <input
                 type="text"
                 value={formData.city}
@@ -412,33 +414,33 @@ export default function ProviderProfileEditPage() {
               />
             </div>
             <div>
-              <label className="label">Zone de service</label>
+              <label className="label">{t.provider.fields.serviceArea}</label>
               <input
                 type="text"
                 value={formData.service_area}
                 onChange={(e) => setFormData({ ...formData, service_area: e.target.value })}
                 className="input-field"
-                placeholder="Île-de-France (50km)"
+                placeholder={t.provider.serviceAreaPlaceholder}
               />
             </div>
             <div>
-              <label className="label">Téléphone</label>
+              <label className="label">{t.provider.fields.phone}</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="input-field"
-                placeholder="+33 6 12 34 56 78"
+                placeholder={t.provider.phonePlaceholder}
               />
             </div>
             <div>
-              <label className="label">Site web</label>
+              <label className="label">{t.provider.fields.website}</label>
               <input
                 type="url"
                 value={formData.website}
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                 className="input-field"
-                placeholder="https://votre-site.com"
+                placeholder={t.provider.websitePlaceholder}
               />
             </div>
             <div className="md:col-span-2">
@@ -449,7 +451,7 @@ export default function ProviderProfileEditPage() {
                   onChange={(e) => setFormData({ ...formData, remote_service: e.target.checked })}
                   className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                 />
-                <span className="text-sm text-neutral-700">Service à distance disponible</span>
+                <span className="text-sm text-neutral-700">{t.provider.remoteServiceLabel}</span>
               </label>
             </div>
           </div>
@@ -457,20 +459,20 @@ export default function ProviderProfileEditPage() {
 
         {/* Pricing and Availability */}
         <div className="card">
-          <h3 className="mb-4 font-semibold text-neutral-900">Tarification et disponibilité</h3>
+          <h3 className="mb-4 font-semibold text-neutral-900">{t.provider.pricingAndAvailability}</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="label">Gamme de prix</label>
+              <label className="label">{t.provider.fields.priceRange}</label>
               <input
                 type="text"
                 value={formData.price_range}
                 onChange={(e) => setFormData({ ...formData, price_range: e.target.value })}
                 className="input-field"
-                placeholder="50€ - 150€/heure"
+                placeholder={t.provider.priceRangePlaceholder}
               />
             </div>
             <div>
-              <label className="label">Disponibilité</label>
+              <label className="label">{t.provider.availabilityLabel}</label>
               <select
                 value={formData.availability}
                 onChange={(e) => setFormData({ ...formData, availability: e.target.value as any })}
@@ -489,7 +491,7 @@ export default function ProviderProfileEditPage() {
           <h3 className="mb-4 font-semibold text-neutral-900">Images</h3>
           <div className="space-y-4">
             <div>
-              <label className="label">URL de l'avatar</label>
+              <label className="label">{t.provider.fields.avatar}</label>
               <input
                 type="url"
                 value={formData.avatar_url}
@@ -502,7 +504,7 @@ export default function ProviderProfileEditPage() {
               )}
             </div>
             <div>
-              <label className="label">URL de la bannière</label>
+              <label className="label">{t.provider.fields.banner}</label>
               <input
                 type="url"
                 value={formData.banner_url}
@@ -520,7 +522,7 @@ export default function ProviderProfileEditPage() {
         {/* Validation Status */}
         {providerProfile && (
           <div className="card">
-            <h3 className="mb-4 font-semibold text-neutral-900">Statut de validation</h3>
+            <h3 className="mb-4 font-semibold text-neutral-900">{t.provider.validationStatus.pending}</h3>
             <div className="flex items-center gap-2">
               <Shield size={20} className={
                 providerProfile.validation_status === 'approved' ? 'text-success-600' :
@@ -532,10 +534,10 @@ export default function ProviderProfileEditPage() {
                 providerProfile.validation_status === 'rejected' ? 'text-error-700' :
                 'text-warning-700'
               }`}>
-                {providerProfile.validation_status === 'approved' ? 'Approuvé' :
-                 providerProfile.validation_status === 'rejected' ? 'Rejeté' :
-                 providerProfile.validation_status === 'changes_requested' ? 'Modifications demandées' :
-                 'En attente de validation'}
+                {providerProfile.validation_status === 'approved' ? t.provider.validationStatus.approved :
+                 providerProfile.validation_status === 'rejected' ? t.provider.validationStatus.rejected :
+                 providerProfile.validation_status === 'changes_requested' ? t.provider.validationStatus.changesRequested :
+                 t.provider.validationStatus.pending}
               </span>
             </div>
             {providerProfile.validation_note && (
