@@ -267,7 +267,7 @@ export default function ProviderProfilePage() {
       return;
     }
     if (!reviewComment.trim()) {
-      setReviewError(t.provider.reviewCommentRequired || 'Veuillez saisir un avis.');
+      setReviewError((t.provider as any).reviewCommentRequired || 'Veuillez saisir un avis.');
       return;
     }
 
@@ -932,7 +932,7 @@ export default function ProviderProfilePage() {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
                   <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                    <Briefcase size={20} /> {t.provider.skills}
+                    <Briefcase size={20} /> {t.provider.fields.skills}
                   </h3>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {provider.skills.map((skill) => (
@@ -944,7 +944,7 @@ export default function ProviderProfilePage() {
                 {provider.certifications && (
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                      <Award size={20} /> {t.provider.certifications}
+                      <Award size={20} /> {t.provider.fields.certifications}
                     </h3>
                     <p className="mt-2 text-sm text-neutral-600">{provider.certifications}</p>
                   </div>
@@ -953,7 +953,7 @@ export default function ProviderProfilePage() {
                 {provider.languages.length > 0 && (
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                      <Languages size={20} /> {t.provider.languages}
+                      <Languages size={20} /> {t.provider.fields.languages}
                     </h3>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {provider.languages.map((lang) => (
@@ -964,24 +964,24 @@ export default function ProviderProfilePage() {
                 )}
 
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900">{t.provider.location}</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900">{(t.provider as any).location || 'Localisation'}</h3>
                   <div className="mt-2 space-y-1 text-sm text-neutral-600">
                     {provider.city && <p className="flex items-center gap-1.5"><MapPin size={14} /> {provider.city}</p>}
-                    {provider.service_area && <p>{t.provider.serviceArea} : {provider.service_area}</p>}
-                    {provider.remote_service && <p className="text-success-600">{t.provider.remoteServiceAvailable}</p>}
+                    {provider.service_area && <p>{t.provider.fields.serviceArea} : {provider.service_area}</p>}
+                    {provider.remote_service && <p className="text-success-600">{t.provider.fields.remoteService}</p>}
                   </div>
                 </div>
 
                 {provider.price_range && (
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900">{t.provider.pricing}</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900">{(t.provider as any).pricing || 'Tarifs'}</h3>
                     <p className="mt-2 text-sm text-neutral-600">{provider.price_range}</p>
                   </div>
                 )}
 
                 {(provider.phone || provider.website) && (
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900">{t.provider.contact}</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900">{(t.provider as any).contact || 'Contact'}</h3>
                     <div className="mt-2 space-y-1 text-sm text-neutral-600">
                       {provider.phone && <p className="flex items-center gap-1.5"><Phone size={14} /> {provider.phone}</p>}
                       {provider.website && (

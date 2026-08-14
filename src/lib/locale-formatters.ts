@@ -3,7 +3,7 @@
  * Supports all regions and languages used in the application
  */
 
-export const formatDate = (date: Date | string, locale: string, options?: Intl.DateTimeFormatOptions): string => {
+export const formatDate = (date: Date | string, locale: string = 'fr-FR', options?: Intl.DateTimeFormatOptions): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
@@ -13,7 +13,7 @@ export const formatDate = (date: Date | string, locale: string, options?: Intl.D
   }).format(dateObj);
 };
 
-export const formatShortDate = (date: Date | string, locale: string): string => {
+export const formatShortDate = (date: Date | string, locale: string = 'fr-FR'): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
@@ -22,7 +22,7 @@ export const formatShortDate = (date: Date | string, locale: string): string => 
   }).format(dateObj);
 };
 
-export const formatTime = (date: Date | string, locale: string): string => {
+export const formatTime = (date: Date | string, locale: string = 'fr-FR'): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
@@ -30,7 +30,7 @@ export const formatTime = (date: Date | string, locale: string): string => {
   }).format(dateObj);
 };
 
-export const formatDateTime = (date: Date | string, locale: string): string => {
+export const formatDateTime = (date: Date | string, locale: string = 'fr-FR'): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
@@ -41,7 +41,7 @@ export const formatDateTime = (date: Date | string, locale: string): string => {
   }).format(dateObj);
 };
 
-export const formatRelativeTime = (date: Date | string, locale: string): string => {
+export const formatRelativeTime = (date: Date | string, locale: string = 'fr-FR'): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
   const diffMs = now.getTime() - dateObj.getTime();

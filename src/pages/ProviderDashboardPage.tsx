@@ -47,7 +47,7 @@ export default function ProviderDashboardPage() {
     videos: [] as string[],
     video_thumbnails: [] as string[],
     tags: '',
-    project_links: [] as { label: string; url: string; type?: 'demo' | 'repo' | 'case-study' | 'other' }[],
+    project_links: [] as { label: string; url: string; type?: 'demo' | 'repo' | 'case-study' | 'live' | 'other' }[],
     client_name: '',
     project_date: '',
     budget: '',
@@ -134,8 +134,8 @@ export default function ProviderDashboardPage() {
         avatar_url: prov.avatar_url ?? '',
         banner_url: prov.banner_url ?? '',
       });
-      setSkillsInput(prov.skills.join(', '));
-      setLanguagesInput(prov.languages.join(', '));
+      setSkillsInput(Array.isArray(prov.skills) ? prov.skills.join(', ') : '');
+      setLanguagesInput(Array.isArray(prov.languages) ? prov.languages.join(', ') : '');
 
       const [portRes, revRes] = await Promise.all([
         supabase.from('portfolio_items').select('*').eq('provider_id', prov.id).order('sort_order'),
@@ -238,11 +238,55 @@ export default function ProviderDashboardPage() {
   }
 
   async function savePortfolioItem() {
-    if (!provider) return;
-    setSaving(true);
-    const photos = itemForm.photos.filter((p) => p.trim());
-    const videos = itemForm.videos.filter((v) => v.trim());
-    const videoThumbnails = itemForm.video_thumbnails.filter((t) => t.trim());
+    let targetProviderId = provider?.id;
+    if (!targetProviderId && user) {
+      // Try to find existing provider profile
+      const { data: existingProvider, error: findError } = await supabase
+        .from('provider_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (findError) {
+        console.error('Error finding provider profile:', findError);
+        setSaveMsg({ type: 'error', text: `Erreur lors de la recherche du profil: ${findError.message}` });
+        return;
+      }
+
+      if (existingProvider) {
+        targetProviderId = existingProvider.id;
+      } else {
+        // Create a new provider profile
+        const slug = slugify((profile as any)?.full_name || 'prestataire') + '-' + Date.now().toString().slice(-4);
+        const { data: newProvider, error: newProviderError } = await supabase
+          .from('provider_profiles')
+          .insert({
+            user_id: user.id,
+            business_name: (profile as any)?.full_name || 'Mon entreprise',
+            slug,
+            validation_status: 'pending'
+          })
+          .select('id')
+          .single();
+
+        if (newProviderError) {
+          console.error('Error creating provider profile:', newProviderError);
+          setSaveMsg({ type: 'error', text: `Erreur lors de la création du profil prestataire: ${newProviderError.message}` });
+          return;
+        }
+
+        targetProviderId = newProvider.id;
+      }
+    }
+
+    if (!targetProviderId) {
+      setSaveMsg({ type: 'error', text: 'Aucun profil prestataire trouvé. Veuillez créer votre profil prestataire d\'abord.' });
+      return;
+    }
+
+    const photos = itemForm.photos.map((p) => p.trim()).filter(Boolean);
+    const videos = itemForm.videos.map((v) => v.trim()).filter(Boolean);
+    const videoThumbnails = itemForm.video_thumbnails.map((t) => t.trim()).filter(Boolean);
     const tags = itemForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
     const technologiesUsed = itemForm.technologies_used.split(',').map((t) => t.trim()).filter(Boolean);
     const projectLinks = (itemForm.project_links as { label: string; url: string; type?: string }[])
@@ -256,73 +300,40 @@ export default function ProviderDashboardPage() {
         new URL(l.url);
       } catch (e) {
         setSaveMsg({ type: 'error', text: `URL invalide : ${l.url}` });
-        setSaving(false);
         return;
       }
     }
 
-    // Ensure we have a valid provider profile for the current user
-    let targetProviderId = provider?.id;
-    
-    if (!targetProviderId && user) {
-      console.log('No provider found, attempting to create one...');
-      
-      // Try to find existing provider profile
-      const { data: existingProvider, error: findError } = await supabase
-        .from('provider_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (findError) {
-        console.error('Error finding provider profile:', findError);
-        setSaveMsg({ type: 'error', text: `Erreur lors de la recherche du profil: ${findError.message}` });
-        setSaving(false);
-        return;
-      }
-      
-      if (existingProvider) {
-        console.log('Found existing provider:', existingProvider.id);
-        targetProviderId = existingProvider.id;
-      } else {
-        // Create a new provider profile
-        console.log('Creating new provider profile...');
-        const slug = slugify((profile as any)?.full_name || 'prestataire') + '-' + Date.now().toString().slice(-4);
-        const { data: newProvider, error: newProviderError } = await supabase
-          .from('provider_profiles')
-          .insert({
-            user_id: user.id,
-            business_name: (profile as any)?.full_name || 'Mon entreprise',
-            slug,
-            validation_status: 'pending'
-          })
-          .select('id')
-          .single();
-        
-        if (newProviderError) {
-          console.error('Error creating provider profile:', newProviderError);
-          setSaveMsg({ type: 'error', text: `Erreur lors de la création du profil prestataire: ${newProviderError.message}` });
-          setSaving(false);
-          return;
-        }
-        
-        console.log('Created new provider:', newProvider.id);
-        targetProviderId = newProvider.id;
-      }
-      
-      // Refresh data to reflect the provider profile
-      await loadData();
-    }
-    
-    // Double-check we have a valid provider_id
-    if (!targetProviderId) {
-      console.error('No provider_id available after all attempts');
-      setSaveMsg({ type: 'error', text: 'Aucun profil prestataire trouvé. Veuillez créer votre profil prestataire d\'abord.' });
-      setSaving(false);
-      return;
-    }
-    
     console.log('Using provider_id:', targetProviderId);
+    setSaving(true);
+    setSaveMsg(null);
+
+    const basePayload: Record<string, any> = {
+      title: itemForm.title,
+      description: itemForm.description,
+      photos,
+      videos,
+      video_thumbnails: videoThumbnails,
+      tags,
+      project_links: projectLinks,
+      client_name: itemForm.client_name || null,
+      project_date: itemForm.project_date || null,
+      budget: itemForm.budget || null,
+      location: itemForm.location || null,
+      featured: itemForm.featured,
+      technologies_used: technologiesUsed,
+      duration: itemForm.duration || null,
+      team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
+    };
+
+    const fullPayload: Record<string, any> = {
+      ...basePayload,
+      context: itemForm.context || null,
+      objective: itemForm.objective || null,
+      role: itemForm.role || null,
+      process: itemForm.process || null,
+      result: itemForm.result || null,
+    };
 
     if (editingItem) {
       // Prevent updating items that don't belong to this user's provider
@@ -331,65 +342,46 @@ export default function ProviderDashboardPage() {
         setSaving(false);
         return;
       }
-      const { error } = await supabase
+      let { error } = await supabase
         .from('portfolio_items')
-        .update({
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          videos,
-          video_thumbnails: videoThumbnails,
-          tags,
-          project_links: projectLinks,
-          client_name: itemForm.client_name || null,
-          project_date: itemForm.project_date || null,
-          budget: itemForm.budget || null,
-          location: itemForm.location || null,
-          featured: itemForm.featured,
-          technologies_used: technologiesUsed,
-          duration: itemForm.duration || null,
-          team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
-          // ===== PROFESSIONAL PORTFOLIO FIELDS =====
-          context: itemForm.context || null,
-          objective: itemForm.objective || null,
-          role: itemForm.role || null,
-          process: itemForm.process || null,
-          result: itemForm.result || null,
-        })
+        .update(fullPayload)
         .eq('id', editingItem.id);
+
+      // Fallback if schema doesn't yet have context/objective/role/process/result columns
+      if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
+        const retry = await supabase
+          .from('portfolio_items')
+          .update(basePayload)
+          .eq('id', editingItem.id);
+        error = retry.error;
+      }
+
       if (error) setSaveMsg({ type: 'error', text: error.message });
       else {
         setSaveMsg({ type: 'success', text: t.auth.signupSuccess });
         await loadData();
       }
     } else {
-      const { error } = await supabase
+      let { error } = await supabase
         .from('portfolio_items')
         .insert({
           provider_id: targetProviderId,
-          title: itemForm.title,
-          description: itemForm.description,
-          photos,
-          videos,
-          video_thumbnails: videoThumbnails,
-          tags,
-          project_links: projectLinks,
-          client_name: itemForm.client_name || null,
-          project_date: itemForm.project_date || null,
-          budget: itemForm.budget || null,
-          location: itemForm.location || null,
-          featured: itemForm.featured,
-          technologies_used: technologiesUsed,
-          duration: itemForm.duration || null,
-          team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
-          // ===== PROFESSIONAL PORTFOLIO FIELDS =====
-          context: itemForm.context || null,
-          objective: itemForm.objective || null,
-          role: itemForm.role || null,
-          process: itemForm.process || null,
-          result: itemForm.result || null,
+          ...fullPayload,
         })
         .select();
+
+      // Fallback if schema doesn't yet have context/objective/role/process/result columns
+      if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
+        const retry = await supabase
+          .from('portfolio_items')
+          .insert({
+            provider_id: targetProviderId,
+            ...basePayload,
+          })
+          .select();
+        error = retry.error;
+      }
+
       if (error) setSaveMsg({ type: 'error', text: error.message });
       else {
         setSaveMsg({ type: 'success', text: t.auth.signupSuccess });
@@ -406,6 +398,7 @@ export default function ProviderDashboardPage() {
       videos: [],
       video_thumbnails: [],
       tags: '',
+      project_links: [],
       client_name: '',
       project_date: '',
       budget: '',
@@ -815,7 +808,12 @@ export default function ProviderDashboardPage() {
                   featured: false,
                   technologies_used: '',
                   duration: '',
-                  team_size: ''
+                  team_size: '',
+                  context: '',
+                  objective: '',
+                  role: '',
+                  process: '',
+                  result: ''
                 });
                 setShowItemForm(true);
               }}
@@ -1210,17 +1208,17 @@ export default function ProviderDashboardPage() {
                           setItemForm({
                             title: item.title,
                             description: item.description ?? '',
-                            photos: item.photos.length ? item.photos : [''],
+                            photos: item.photos?.length ? item.photos : [''],
                             videos: item.videos?.length ? item.videos : [''],
                             video_thumbnails: item.video_thumbnails?.length ? item.video_thumbnails : [''],
-                            tags: item.tags.join(', '),
+                            tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
                             project_links: item.project_links?.length ? item.project_links : [],
                             client_name: item.client_name ?? '',
                             project_date: item.project_date ?? '',
                             budget: item.budget ?? '',
                             location: item.location ?? '',
-                            featured: item.featured,
-                            technologies_used: item.technologies_used.join(', '),
+                            featured: item.featured ?? false,
+                            technologies_used: Array.isArray(item.technologies_used) ? item.technologies_used.join(', ') : '',
                             duration: item.duration ?? '',
                             team_size: item.team_size?.toString() ?? '',
                             // ===== PROFESSIONAL PORTFOLIO FIELDS =====

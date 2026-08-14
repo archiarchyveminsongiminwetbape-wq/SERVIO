@@ -69,7 +69,7 @@ export default function PortfolioItemDetailPage() {
       try {
         await navigator.share({
           title: item?.title,
-          text: item?.description,
+          text: item?.description || undefined,
           url: window.location.href,
         });
       } catch (err) {
@@ -445,13 +445,12 @@ export default function PortfolioItemDetailPage() {
       </div>
 
       {/* Lightbox */}
-      {isLightboxOpen && (
-        <Lightbox
-          images={lightboxImages}
-          currentIndex={lightboxIndex}
-          onClose={() => setIsLightboxOpen(false)}
-        />
-      )}
+      <Lightbox
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+      />
     </div>
   );
 }

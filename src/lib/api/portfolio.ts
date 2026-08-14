@@ -38,7 +38,7 @@ export const portfolioApi = {
   // Create portfolio item
   async createPortfolioItem(item: Omit<PortfolioItem, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<PortfolioItem>> {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('portfolio_items')
         .insert({
           ...item,
@@ -47,6 +47,22 @@ export const portfolioApi = {
         })
         .select()
         .single();
+
+      if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
+        // Strip optional professional fields if not present in schema
+        const { context, objective, role, process, result, ...baseItem } = item as any;
+        const retry = await supabase
+          .from('portfolio_items')
+          .insert({
+            ...baseItem,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
       return handleApiSuccess(data);
@@ -58,7 +74,7 @@ export const portfolioApi = {
   // Update portfolio item
   async updatePortfolioItem(itemId: string, updates: Partial<PortfolioItem>): Promise<ApiResponse<PortfolioItem>> {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('portfolio_items')
         .update({
           ...updates,
@@ -67,6 +83,21 @@ export const portfolioApi = {
         .eq('id', itemId)
         .select()
         .single();
+
+      if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
+        const { context, objective, role, process, result, ...baseUpdates } = updates as any;
+        const retry = await supabase
+          .from('portfolio_items')
+          .update({
+            ...baseUpdates,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', itemId)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
       return handleApiSuccess(data);

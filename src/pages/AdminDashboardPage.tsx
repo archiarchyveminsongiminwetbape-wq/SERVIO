@@ -458,15 +458,15 @@ export default function AdminDashboardPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                           <p className="text-xs font-semibold text-neutral-500 mb-2">{t.admin.contactInfo}</p>
-                          <p className="text-sm text-neutral-700">Email: {prov.contact_email || 'Non renseigné'}</p>
-                          <p className="text-sm text-neutral-700">Téléphone: {prov.contact_phone || 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Email: {(prov as any).contact_email || 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Téléphone: {prov.phone || (prov as any).contact_phone || 'Non renseigné'}</p>
                           <p className="text-sm text-neutral-700">Site web: {prov.website || 'Non renseigné'}</p>
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-neutral-500 mb-2">{t.admin.pricing}</p>
                           <p className="text-sm text-neutral-700">Gamme: {prov.price_range || 'Non renseigné'}</p>
-                          <p className="text-sm text-neutral-700">Min: {prov.price_min ? `${prov.price_min}€` : 'Non renseigné'}</p>
-                          <p className="text-sm text-neutral-700">Max: {prov.price_max ? `${prov.price_max}€` : 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Min: {(prov as any).price_min ? `${(prov as any).price_min}€` : 'Non renseigné'}</p>
+                          <p className="text-sm text-neutral-700">Max: {(prov as any).price_max ? `${(prov as any).price_max}€` : 'Non renseigné'}</p>
                         </div>
                       </div>
 

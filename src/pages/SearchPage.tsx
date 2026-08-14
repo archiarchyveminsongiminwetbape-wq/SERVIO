@@ -488,7 +488,7 @@ export default function SearchPage() {
                 <AlertCircle size={48} className="hidden sm:block text-error-500" />
                 <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">{t.common.error}</h3>
                 <p className="mt-1 text-sm text-neutral-500">{error}</p>
-                <button onClick={doSearch} className="btn-primary mt-3 sm:mt-4">
+                <button onClick={() => doSearch()} className="btn-primary mt-3 sm:mt-4">
                   {t.common.search}
                 </button>
               </BentoCard>
