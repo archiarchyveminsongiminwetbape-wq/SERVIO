@@ -30,6 +30,7 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [categorySlug, setCategorySlug] = useState(searchParams.get('category') ?? '');
@@ -221,7 +222,7 @@ export default function SearchPage() {
     };
   }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, doSearch, setSearchParams]);
 
-  // Load more handler
+  // Load more handler with intersection observer
   const loadMore = useCallback(() => {
     if (!loadingMore && currentPage * ITEMS_PER_PAGE < totalCount) {
       const nextPage = currentPage + 1;
@@ -229,6 +230,28 @@ export default function SearchPage() {
       doSearch(nextPage);
     }
   }, [currentPage, loadingMore, totalCount, doSearch]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [loadMore, loading, loadingMore]);
 
   const clearFilters = () => {
     setQuery('');
@@ -567,27 +590,16 @@ export default function SearchPage() {
                   </div>
                 ))}
                 
-                {/* Load More Button */}
+                {/* Infinite Scroll Trigger */}
                 {currentPage * ITEMS_PER_PAGE < totalCount && (
-                  <BentoCard colSpan={3} className="flex items-center justify-center py-8">
-                    <button
-                      onClick={loadMore}
-                      disabled={loadingMore}
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      {loadingMore ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          Chargement...
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown size={16} />
-                          Charger plus ({providers.length}/{totalCount})
-                        </>
-                      )}
-                    </button>
-                  </BentoCard>
+                  <div ref={loadMoreRef} className="flex items-center justify-center py-8">
+                    {loadingMore && (
+                      <div className="flex items-center gap-2 text-neutral-500">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span className="text-sm">Chargement...</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             ) : (
