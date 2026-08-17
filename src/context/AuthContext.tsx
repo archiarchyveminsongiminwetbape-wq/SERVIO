@@ -126,33 +126,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error.message ?? null };
     }
     
-    // Si l'inscription réussit mais pas de session (email confirmation activée)
-    if (!data.session) {
-      console.log('Email confirmation required or signup pending');
+    // Si l'inscription réussit avec session, l'utilisateur est connecté
+    if (data.session) {
+      // Créer manuellement le profil si le trigger ne fonctionne pas
+      if (data.user) {
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: metadata.full_name,
+              role: metadata.role,
+            });
+          
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            // Le trigger a peut-être déjà créé le profil, ignorer l'erreur
+          }
+        } catch (e) {
+          console.error('Profile creation failed:', e);
+        }
+      }
       return { error: null };
     }
     
-    // Créer manuellement le profil si le trigger ne fonctionne pas
-    if (data.user) {
-      try {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            full_name: metadata.full_name,
-            role: metadata.role,
-          });
-        
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Le trigger a peut-être déjà créé le profil, ignorer l'erreur
-        }
-      } catch (e) {
-        console.error('Profile creation failed:', e);
-      }
-    }
-    
+    // Si pas de session (email confirmation activée), rediriger vers login
     return { error: null };
   }
 
