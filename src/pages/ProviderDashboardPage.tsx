@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
   CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin,
-  Play, Code, FileText, ExternalLink
+  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
+import { uploadAvatar, uploadBanner, uploadPortfolioPhoto } from '@/lib/storage';
 import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
@@ -36,6 +37,10 @@ export default function ProviderDashboardPage() {
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [skillsInput, setSkillsInput] = useState('');
   const [languagesInput, setLanguagesInput] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
 
   // Portfolio form state
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
@@ -491,44 +496,75 @@ export default function ProviderDashboardPage() {
     video.src = URL.createObjectURL(file);
   }
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingAvatar(true);
+    try {
+      const publicUrl = await uploadAvatar(file, user.id);
+      setForm((prev) => ({ ...prev, avatar_url: publicUrl }));
+
+      if (provider?.id) {
+        await supabase
+          .from('provider_profiles')
+          .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+          .eq('id', provider.id);
+        setProvider((prev) => (prev ? { ...prev, avatar_url: publicUrl } : null));
+      }
+      // Also update profiles table
+      await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+      await refreshProfile();
+      setSaveMsg({ type: 'success', text: 'Photo de profil (avatar) mise à jour avec succès.' });
+    } catch (err: any) {
+      console.error('Error uploading avatar:', err);
+      setSaveMsg({ type: 'error', text: err?.message || 'Erreur lors du téléversement de l\'avatar.' });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarFileRef.current) avatarFileRef.current.value = '';
+      setTimeout(() => setSaveMsg(null), 4000);
+    }
+  }
+
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingBanner(true);
+    try {
+      const publicUrl = await uploadBanner(file, user.id);
+      setForm((prev) => ({ ...prev, banner_url: publicUrl }));
+
+      if (provider?.id) {
+        await supabase
+          .from('provider_profiles')
+          .update({ banner_url: publicUrl, updated_at: new Date().toISOString() })
+          .eq('id', provider.id);
+        setProvider((prev) => (prev ? { ...prev, banner_url: publicUrl } : null));
+      }
+      setSaveMsg({ type: 'success', text: 'Photo de couverture (bannière) mise à jour avec succès.' });
+    } catch (err: any) {
+      console.error('Error uploading banner:', err);
+      setSaveMsg({ type: 'error', text: err?.message || 'Erreur lors du téléversement de la bannière.' });
+    } finally {
+      setUploadingBanner(false);
+      if (bannerFileRef.current) bannerFileRef.current.value = '';
+      setTimeout(() => setSaveMsg(null), 4000);
+    }
+  }
+
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (!files.length || !user) return;
 
-    console.log('Starting photo upload:', files.length, 'files');
     setUploadingPhotos(true);
-
     try {
       const uploadedUrls: string[] = [];
-
       for (const file of files) {
-        console.log('Uploading photo:', file.name, file.size);
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
-        const filePath = `${user.id}/portfolio-photos/${fileName}`;
-
-        console.log('Uploading to portfolio-media:', filePath);
-
-        const { error: uploadError, data: uploadData } = await supabase.storage
-          .from('portfolio-media')
-          .upload(filePath, file);
-
-        if (uploadError) {
-          console.error('Upload error for file:', file.name, uploadError);
-          throw uploadError;
-        }
-
-        console.log('Upload successful for:', file.name, uploadData);
-
-        const { data } = supabase.storage
-          .from('portfolio-media')
-          .getPublicUrl(filePath);
-
-        console.log('Public URL:', data.publicUrl);
-        uploadedUrls.push(data.publicUrl);
+        const url = await uploadPortfolioPhoto(file, user.id);
+        uploadedUrls.push(url);
       }
-
-      console.log('All photos uploaded successfully:', uploadedUrls.length);
 
       setItemForm((prev) => ({
         ...prev,
@@ -536,14 +572,9 @@ export default function ProviderDashboardPage() {
       }));
       setSaveMsg({ type: 'success', text: `${uploadedUrls.length} photo${uploadedUrls.length > 1 ? 's' : ''} ajoutée${uploadedUrls.length > 1 ? 's' : ''} avec succès.` });
       setTimeout(() => setSaveMsg(null), 4000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading photos:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-      if (errorMessage.includes('Bucket not found') || errorMessage.includes('bucket')) {
-        setSaveMsg({ type: 'error', text: 'Le bucket portfolio-media n\'existe pas. Veuillez le créer dans le dashboard Supabase.' });
-      } else {
-        setSaveMsg({ type: 'error', text: `Erreur lors du téléchargement des photos: ${errorMessage}` });
-      }
+      setSaveMsg({ type: 'error', text: error?.message || 'Erreur lors du téléchargement des photos.' });
       setTimeout(() => setSaveMsg(null), 4000);
     } finally {
       setUploadingPhotos(false);
@@ -656,6 +687,22 @@ export default function ProviderDashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
+      {/* Hidden file inputs for avatar & banner upload */}
+      <input
+        type="file"
+        ref={avatarFileRef}
+        onChange={handleAvatarUpload}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={bannerFileRef}
+        onChange={handleBannerUpload}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Espace prestataire</h1>
@@ -757,13 +804,24 @@ export default function ProviderDashboardPage() {
           <BentoCard colSpan={3} className="p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-4">Aperçu de votre profil public</h3>
             <div className="flex items-center gap-4">
-              {provider.avatar_url ? (
-                <img src={provider.avatar_url} alt="" className="h-16 w-16 rounded-2xl object-cover" />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 text-xl font-bold text-primary-700">
-                  {provider.business_name[0]?.toUpperCase()}
-                </div>
-              )}
+              <div className="relative group">
+                {provider.avatar_url ? (
+                  <img src={provider.avatar_url} alt="" className="h-16 w-16 rounded-2xl object-cover shadow-sm" />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-100 text-xl font-bold text-primary-700">
+                    {provider.business_name[0]?.toUpperCase()}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => avatarFileRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute -bottom-1.5 -right-1.5 rounded-full bg-primary-600 p-1.5 text-white shadow-md hover:bg-primary-700 transition"
+                  title="Changer l'avatar"
+                >
+                  {uploadingAvatar ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
+                </button>
+              </div>
               <div className="flex-1">
                 <p className="font-semibold text-neutral-900">{provider.business_name}</p>
                 <p className="text-sm text-neutral-500">{provider.headline}</p>
@@ -1557,27 +1615,113 @@ export default function ProviderDashboardPage() {
           </div>
 
           <div className="card p-6">
-            <h3 className="text-lg font-semibold text-neutral-900">Images</h3>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="label">URL de l'avatar</label>
-                <input
-                  type="url"
-                  value={form.avatar_url as string ?? ''}
-                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
-                  className="input-field"
-                  placeholder="https://..."
-                />
+            <h3 className="text-lg font-semibold text-neutral-900 mb-1">Photos de profil et couverture</h3>
+            <p className="text-sm text-neutral-500 mb-6">Ajoutez ou modifiez votre avatar et votre bannière pour valoriser votre profil auprès des clients.</p>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Avatar Upload */}
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
+                <label className="text-sm font-semibold text-neutral-800 mb-2 block">Photo de profil (Avatar)</label>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative h-20 w-20 rounded-2xl border-2 border-white bg-neutral-200 shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {(form.avatar_url as string) ? (
+                      <img src={form.avatar_url as string} alt="Avatar" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon size={32} className="text-neutral-400" />
+                    )}
+                    {uploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white">
+                        <Loader2 size={20} className="animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => avatarFileRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="btn-secondary w-full justify-center text-xs py-2"
+                    >
+                      {uploadingAvatar ? (
+                        <><Loader2 size={14} className="animate-spin" /> Téléversement...</>
+                      ) : (
+                        <><Upload size={14} /> Choisir une photo</>
+                      )}
+                    </button>
+                    {(form.avatar_url as string) && (
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, avatar_url: '' })}
+                        className="text-xs text-error-600 hover:underline block"
+                      >
+                        Supprimer la photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 mb-1 block">Ou saisir une URL directe :</label>
+                  <input
+                    type="url"
+                    value={form.avatar_url as string ?? ''}
+                    onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+                    className="input-field text-xs"
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
-              <div>
-                <label className="label">URL de la bannière</label>
-                <input
-                  type="url"
-                  value={form.banner_url as string ?? ''}
-                  onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
-                  className="input-field"
-                  placeholder="https://..."
-                />
+
+              {/* Banner Upload */}
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
+                <label className="text-sm font-semibold text-neutral-800 mb-2 block">Bannière de couverture</label>
+                <div className="relative h-24 w-full rounded-xl border border-neutral-200 bg-neutral-200 overflow-hidden mb-3 flex items-center justify-center">
+                  {(form.banner_url as string) ? (
+                    <img src={form.banner_url as string} alt="Bannière" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="text-center text-neutral-400">
+                      <ImageIcon size={28} className="mx-auto mb-1 opacity-60" />
+                      <span className="text-xs">Aucune bannière</span>
+                    </div>
+                  )}
+                  {uploadingBanner && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white">
+                      <Loader2 size={24} className="animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => bannerFileRef.current?.click()}
+                    disabled={uploadingBanner}
+                    className="btn-secondary flex-1 justify-center text-xs py-2"
+                  >
+                    {uploadingBanner ? (
+                      <><Loader2 size={14} className="animate-spin" /> Téléversement...</>
+                    ) : (
+                      <><Upload size={14} /> Choisir une bannière</>
+                    )}
+                  </button>
+                  {(form.banner_url as string) && (
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, banner_url: '' })}
+                      className="btn-ghost text-xs text-error-600 py-2"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 mb-1 block">Ou saisir une URL directe :</label>
+                  <input
+                    type="url"
+                    value={form.banner_url as string ?? ''}
+                    onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
+                    className="input-field text-xs"
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
             </div>
           </div>

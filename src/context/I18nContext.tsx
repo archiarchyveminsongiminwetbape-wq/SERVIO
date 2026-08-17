@@ -53,8 +53,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     });
   }, [language]);
 
-  // Detect location on mount
+  // Detect location on mount - non-blocking
   useEffect(() => {
+    // Don't block app initialization if geolocation fails
     detectLocation().then((detectedLocation) => {
       if (detectedLocation) {
         setLocation(detectedLocation);
@@ -68,7 +69,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         applyCulturalTheme(theme);
       }
     }).catch(() => {
-      // Silently fail if location detection fails
+      // Silently fail if location detection fails - don't block app
+      console.log('Location detection failed, using defaults');
     });
   }, []);
 

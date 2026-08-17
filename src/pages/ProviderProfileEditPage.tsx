@@ -1,17 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, X, Plus, Trash2, Upload, Briefcase, MapPin, Phone, Globe, Star, Calendar, Shield } from 'lucide-react';
+import { Save, X, Plus, Trash2, Upload, Briefcase, MapPin, Phone, Globe, Star, Calendar, Shield, Loader2, Camera, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
+import { uploadAvatar, uploadBanner } from '@/lib/storage';
 import type { ProviderProfile, Category } from '@/types';
 
 export default function ProviderProfileEditPage() {
   const { t } = useI18n();
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [providerProfile, setProviderProfile] = useState<ProviderProfile | null>(null);
   const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
@@ -203,6 +210,44 @@ export default function ProviderProfileEditPage() {
     setFormData({ ...formData, languages: formData.languages.filter(l => l !== language) });
   };
 
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingAvatar(true);
+    setUploadMsg(null);
+    try {
+      const publicUrl = await uploadAvatar(file, user.id);
+      setFormData((prev) => ({ ...prev, avatar_url: publicUrl }));
+      setUploadMsg({ type: 'success', text: 'Photo de profil (avatar) téléversée avec succès.' });
+    } catch (err: any) {
+      console.error('Error uploading avatar:', err);
+      setUploadMsg({ type: 'error', text: err?.message || 'Erreur lors du téléversement de l\'avatar.' });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+      setTimeout(() => setUploadMsg(null), 4000);
+    }
+  };
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingBanner(true);
+    setUploadMsg(null);
+    try {
+      const publicUrl = await uploadBanner(file, user.id);
+      setFormData((prev) => ({ ...prev, banner_url: publicUrl }));
+      setUploadMsg({ type: 'success', text: 'Photo de couverture (bannière) téléversée avec succès.' });
+    } catch (err: any) {
+      console.error('Error uploading banner:', err);
+      setUploadMsg({ type: 'error', text: err?.message || 'Erreur lors du téléversement de la bannière.' });
+    } finally {
+      setUploadingBanner(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+      setTimeout(() => setUploadMsg(null), 4000);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -215,6 +260,34 @@ export default function ProviderProfileEditPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={avatarInputRef}
+        onChange={handleAvatarFileChange}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={bannerInputRef}
+        onChange={handleBannerFileChange}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+
+      {uploadMsg && (
+        <div
+          className={`mb-6 rounded-xl p-4 text-sm font-medium ${
+            uploadMsg.type === 'success'
+              ? 'bg-success-50 text-success-800 border border-success-200'
+              : 'bg-error-50 text-error-800 border border-error-200'
+          }`}
+        >
+          {uploadMsg.text}
+        </div>
+      )}
+
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">
@@ -488,33 +561,113 @@ export default function ProviderProfileEditPage() {
 
         {/* Images */}
         <div className="card">
-          <h3 className="mb-4 font-semibold text-neutral-900">Images</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="label">{t.provider.fields.avatar}</label>
-              <input
-                type="url"
-                value={formData.avatar_url}
-                onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                className="input-field"
-                placeholder="https://..."
-              />
-              {formData.avatar_url && (
-                <img src={formData.avatar_url} alt="Avatar" className="mt-2 h-20 w-20 rounded-full object-cover" />
-              )}
+          <h3 className="text-lg font-semibold text-neutral-900 mb-1">Photos de profil et couverture</h3>
+          <p className="text-sm text-neutral-500 mb-6">Ajoutez ou modifiez votre avatar et votre bannière pour valoriser votre profil auprès des clients.</p>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Avatar Section */}
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
+              <label className="text-sm font-semibold text-neutral-800 mb-2 block">{t.provider.fields.avatar}</label>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative h-20 w-20 rounded-2xl border-2 border-white bg-neutral-200 shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  {formData.avatar_url ? (
+                    <img src={formData.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon size={32} className="text-neutral-400" />
+                  )}
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white">
+                      <Loader2 size={20} className="animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="btn-secondary w-full justify-center text-xs py-2"
+                  >
+                    {uploadingAvatar ? (
+                      <><Loader2 size={14} className="animate-spin" /> Téléversement...</>
+                    ) : (
+                      <><Upload size={14} /> Choisir une photo</>
+                    )}
+                  </button>
+                  {formData.avatar_url && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, avatar_url: '' })}
+                      className="text-xs text-error-600 hover:underline block"
+                    >
+                      Supprimer la photo
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-neutral-500 mb-1 block">Ou saisir une URL directe :</label>
+                <input
+                  type="url"
+                  value={formData.avatar_url}
+                  onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                  className="input-field text-xs"
+                  placeholder="https://..."
+                />
+              </div>
             </div>
-            <div>
-              <label className="label">{t.provider.fields.banner}</label>
-              <input
-                type="url"
-                value={formData.banner_url}
-                onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
-                className="input-field"
-                placeholder="https://..."
-              />
-              {formData.banner_url && (
-                <img src={formData.banner_url} alt="Banner" className="mt-2 h-32 w-full rounded-lg object-cover" />
-              )}
+
+            {/* Banner Section */}
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
+              <label className="text-sm font-semibold text-neutral-800 mb-2 block">{t.provider.fields.banner}</label>
+              <div className="relative h-24 w-full rounded-xl border border-neutral-200 bg-neutral-200 overflow-hidden mb-3 flex items-center justify-center">
+                {formData.banner_url ? (
+                  <img src={formData.banner_url} alt="Bannière" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="text-center text-neutral-400">
+                    <ImageIcon size={28} className="mx-auto mb-1 opacity-60" />
+                    <span className="text-xs">Aucune bannière</span>
+                  </div>
+                )}
+                {uploadingBanner && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white">
+                    <Loader2 size={24} className="animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => bannerInputRef.current?.click()}
+                  disabled={uploadingBanner}
+                  className="btn-secondary flex-1 justify-center text-xs py-2"
+                >
+                  {uploadingBanner ? (
+                    <><Loader2 size={14} className="animate-spin" /> Téléversement...</>
+                  ) : (
+                    <><Upload size={14} /> Choisir une bannière</>
+                  )}
+                </button>
+                {formData.banner_url && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, banner_url: '' })}
+                    className="btn-ghost text-xs text-error-600 py-2"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-neutral-500 mb-1 block">Ou saisir une URL directe :</label>
+                <input
+                  type="url"
+                  value={formData.banner_url}
+                  onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
+                  className="input-field text-xs"
+                  placeholder="https://..."
+                />
+              </div>
             </div>
           </div>
         </div>

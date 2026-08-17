@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, LogOut, Save, X, Camera, Globe, CreditCard, Bell, Lock } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, LogOut, Save, X, Camera, Globe, CreditCard, Bell, Lock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/utils';
+import { uploadAvatar, uploadBanner } from '@/lib/storage';
 import type { Profile } from '@/types';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
@@ -15,6 +16,14 @@ export default function UserProfilePage() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -38,6 +47,20 @@ export default function UserProfilePage() {
         email_notifications: (profile as any).email_notifications !== false,
         push_notifications: (profile as any).push_notifications || false,
       });
+
+      // Load banner if provider
+      if (profile.role === 'provider') {
+        supabase
+          .from('provider_profiles')
+          .select('banner_url')
+          .eq('user_id', profile.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.banner_url) {
+              setBannerUrl(data.banner_url);
+            }
+          });
+      }
     }
   }, [profile]);
 
@@ -95,6 +118,73 @@ export default function UserProfilePage() {
     setEditing(false);
   };
 
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploadingAvatar(true);
+    setUploadMessage(null);
+    try {
+      const publicUrl = await uploadAvatar(file, user.id);
+      setFormData((prev) => ({ ...prev, avatar_url: publicUrl }));
+
+      // Update profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      // If user is provider, also update provider_profiles table
+      if (profile?.role === 'provider') {
+        await supabase
+          .from('provider_profiles')
+          .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      }
+
+      await refreshProfile();
+      setUploadMessage({ type: 'success', text: 'Photo de profil mise à jour avec succès !' });
+    } catch (err: any) {
+      console.error('Error uploading avatar:', err);
+      setUploadMessage({ type: 'error', text: err?.message || 'Erreur lors du téléversement de la photo de profil.' });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+      setTimeout(() => setUploadMessage(null), 5000);
+    }
+  };
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploadingBanner(true);
+    setUploadMessage(null);
+    try {
+      const publicUrl = await uploadBanner(file, user.id);
+      setBannerUrl(publicUrl);
+
+      // If provider, update provider_profiles banner_url
+      if (profile?.role === 'provider') {
+        await supabase
+          .from('provider_profiles')
+          .update({ banner_url: publicUrl, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      }
+
+      setUploadMessage({ type: 'success', text: 'Photo de couverture mise à jour avec succès !' });
+    } catch (err: any) {
+      console.error('Error uploading banner:', err);
+      setUploadMessage({ type: 'error', text: err?.message || 'Erreur lors du téléversement de la photo de couverture.' });
+    } finally {
+      setUploadingBanner(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+      setTimeout(() => setUploadMessage(null), 5000);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
@@ -102,6 +192,35 @@ export default function UserProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={avatarInputRef}
+        onChange={handleAvatarFileChange}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={bannerInputRef}
+        onChange={handleBannerFileChange}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+      />
+
+      {uploadMessage && (
+        <div
+          className={`mb-6 flex items-center gap-2 rounded-xl p-4 text-sm font-medium ${
+            uploadMessage.type === 'success'
+              ? 'bg-success-50 text-success-800 border border-success-200'
+              : 'bg-error-50 text-error-800 border border-error-200'
+          }`}
+        >
+          {uploadMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{uploadMessage.text}</span>
+        </div>
+      )}
+
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-neutral-900">{t.user.profile}</h1>
         <div className="flex gap-2">
@@ -139,28 +258,53 @@ export default function UserProfilePage() {
         {/* Profile Card */}
         <div className="md:col-span-1">
           <div className="card overflow-hidden">
-            <div className="relative h-32 bg-gradient-to-br from-primary-600 to-primary-800">
-              {editing && (
-                <button className="absolute right-2 top-2 rounded bg-white/20 p-2 text-white hover:bg-white/30">
-                  <Camera size={16} />
-                </button>
+            {/* Banner with upload button */}
+            <div className="relative h-32 bg-gradient-to-br from-primary-600 to-primary-800 overflow-hidden group">
+              {bannerUrl && (
+                <img src={bannerUrl} alt="Cover" className="h-full w-full object-cover" />
               )}
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                disabled={uploadingBanner}
+                className="absolute right-2 top-2 rounded-lg bg-black/40 p-2 text-white backdrop-blur-sm transition-all hover:bg-black/60 shadow-sm flex items-center gap-1.5 text-xs font-medium"
+                title="Modifier la couverture"
+              >
+                {uploadingBanner ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <>
+                    <Camera size={15} />
+                    <span className="hidden sm:inline">Couverture</span>
+                  </>
+                )}
+              </button>
             </div>
+
             <div className="px-6 pb-6">
               <div className="-mt-12 mb-4 flex justify-center">
-                <div className="relative">
-                  <div className="h-24 w-24 rounded-full border-4 border-white bg-neutral-200 flex items-center justify-center overflow-hidden">
+                <div className="relative group">
+                  <div className="h-24 w-24 rounded-full border-4 border-white bg-neutral-200 flex items-center justify-center overflow-hidden shadow-md">
                     {profile.avatar_url ? (
                       <img src={profile.avatar_url} alt={profile.full_name || 'Avatar'} className="h-full w-full object-cover" />
                     ) : (
                       <User size={48} className="text-neutral-400" />
                     )}
+                    {uploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white">
+                        <Loader2 size={24} className="animate-spin" />
+                      </div>
+                    )}
                   </div>
-                  {editing && (
-                    <button className="absolute bottom-0 right-0 rounded-full bg-primary-600 p-2 text-white hover:bg-primary-700">
-                      <Camera size={14} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute bottom-0 right-0 rounded-full bg-primary-600 p-2 text-white shadow-md hover:bg-primary-700 transition-colors"
+                    title="Changer la photo de profil"
+                  >
+                    {uploadingAvatar ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                  </button>
                 </div>
               </div>
               <div className="text-center">
