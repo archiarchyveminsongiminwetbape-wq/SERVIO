@@ -78,52 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (error) {
       console.error('Signup error:', error);
-      
-      // Handle case where user exists in auth but profile was deleted
-      if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
-        // Try to sign in with the existing auth user
-        const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (!signInError && signInData.user) {
-          // Check if profile exists
-          const { data: existingProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', signInData.user.id)
-            .maybeSingle();
-          
-          if (!existingProfile) {
-            // Profile was deleted but auth user exists, recreate the profile
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: signInData.user.id,
-                email: signInData.user.email,
-                full_name: metadata.full_name,
-                role: metadata.role,
-              });
-            
-            if (profileError) {
-              console.error('Profile recreation error:', profileError);
-              return { error: 'Erreur lors de la recréation du profil. Veuillez contacter le support.' };
-            }
-            
-            // Sign out after profile recreation
-            await supabase.auth.signOut();
-            return { error: null };
-          }
-          
-          // Profile exists, user should just login
-          return { error: 'Cet email est déjà enregistré. Veuillez vous connecter avec votre compte existant.' };
-        }
-        
-        // If sign in failed, the auth user exists but password might be wrong
-        return { error: 'Cet email est déjà enregistré. Si vous avez supprimé votre compte, veuillez contacter le support pour supprimer complètement votre compte d\'authentification afin de pouvoir réutiliser cet email.' };
-      }
-      
       return { error: error.message ?? null };
     }
     

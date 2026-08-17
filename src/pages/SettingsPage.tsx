@@ -91,27 +91,24 @@ export default function SettingsPage() {
 
     if (confirm(t.user.deleteAccountWarning)) {
       try {
-        // Delete profile from database
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', user.id);
-        
-        if (profileError) {
-          console.error('Error deleting profile:', profileError);
+        // Call the Edge Function to delete the user completely
+        const { data, error } = await supabase.functions.invoke('delete-user', {
+          body: { userId: user.id }
+        });
+
+        if (error) {
+          console.error('Error calling delete-user function:', error);
+          alert('Erreur lors de la suppression du compte. Veuillez réessayer.');
+          return;
         }
 
-        // Delete provider profile if exists
-        const { error: providerError } = await supabase
-          .from('provider_profiles')
-          .delete()
-          .eq('user_id', user.id);
-        
-        if (providerError) {
-          console.error('Error deleting provider profile:', providerError);
+        if (data?.error) {
+          console.error('Delete user error:', data.error);
+          alert(data.error || 'Erreur lors de la suppression du compte.');
+          return;
         }
 
-        // Sign out the user (this removes the session but not the auth user)
+        // Sign out the user after successful deletion
         await signOut();
         navigate('/');
         
