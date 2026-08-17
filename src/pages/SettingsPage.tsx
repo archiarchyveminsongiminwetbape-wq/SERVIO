@@ -90,14 +90,35 @@ export default function SettingsPage() {
     if (!user || deleteConfirmation !== t.user.deleteAccountConfirm) return;
 
     if (confirm(t.user.deleteAccountWarning)) {
-      const { error } = await supabase.auth.admin.deleteUser(user.id);
-      
-      if (error) {
-        console.error('Error deleting account:', error);
-        alert(t.common.error);
-      } else {
+      try {
+        // Delete profile from database
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', user.id);
+        
+        if (profileError) {
+          console.error('Error deleting profile:', profileError);
+        }
+
+        // Delete provider profile if exists
+        const { error: providerError } = await supabase
+          .from('provider_profiles')
+          .delete()
+          .eq('user_id', user.id);
+        
+        if (providerError) {
+          console.error('Error deleting provider profile:', providerError);
+        }
+
+        // Sign out the user (this removes the session but not the auth user)
         await signOut();
         navigate('/');
+        
+        alert('Votre compte a été supprimé avec succès.');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        alert(t.common.error);
       }
     }
   };

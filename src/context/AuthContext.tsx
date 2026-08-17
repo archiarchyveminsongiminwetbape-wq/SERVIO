@@ -120,7 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { error: 'Cet email est déjà enregistré. Veuillez vous connecter avec votre compte existant.' };
         }
         
-        return { error: 'Cet email est déjà enregistré. Veuillez vous connecter avec votre compte existant.' };
+        // If sign in failed, the auth user exists but password might be wrong
+        return { error: 'Cet email est déjà enregistré. Si vous avez supprimé votre compte, veuillez contacter le support pour supprimer complètement votre compte d\'authentification afin de pouvoir réutiliser cet email.' };
       }
       
       return { error: error.message ?? null };
