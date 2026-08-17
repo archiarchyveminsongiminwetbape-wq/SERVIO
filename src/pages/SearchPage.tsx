@@ -249,6 +249,38 @@ export default function SearchPage() {
 
   const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime;
 
+  // Group providers by category
+  const groupedProviders = useMemo(() => {
+    if (!providers.length) return {};
+    
+    const groups: Record<string, ProviderProfile[]> = {};
+    
+    providers.forEach((provider) => {
+      const categorySlug = provider.category_slug || 'other';
+      if (!groups[categorySlug]) {
+        groups[categorySlug] = [];
+      }
+      groups[categorySlug].push(provider);
+    });
+    
+    return groups;
+  }, [providers]);
+
+  // Get category name from slug
+  const getCategoryName = (slug: string) => {
+    // Try to find in main categories
+    const mainCat = categoryTaxonomy.find(c => c.slug === slug);
+    if (mainCat) return mainCat.name;
+    
+    // Try to find in subcategories
+    for (const cat of categoryTaxonomy) {
+      const subCat = cat.subcategories.find(sc => sc.slug === slug);
+      if (subCat) return subCat.name;
+    }
+    
+    return slug;
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
       <div className="mb-4 sm:mb-6">
@@ -516,10 +548,23 @@ export default function SearchPage() {
               </BentoCard>
             ) : providers.length > 0 ? (
               <>
-                {providers.map((p) => (
-                  <BentoCard key={p.id} className="p-0 overflow-hidden">
-                    <ProviderCard provider={p} />
-                  </BentoCard>
+                {Object.entries(groupedProviders).map(([categorySlug, categoryProviders]) => (
+                  <div key={categorySlug} className="mb-6 sm:mb-8">
+                    <div className="mb-3 sm:mb-4 flex items-center gap-2">
+                      <CategoryIcon name={categorySlug} size={20} />
+                      <h2 className="text-lg sm:text-xl font-semibold text-neutral-900">
+                        {getCategoryName(categorySlug)}
+                      </h2>
+                      <span className="text-sm text-neutral-500">({categoryProviders.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {categoryProviders.map((p) => (
+                        <BentoCard key={p.id} className="p-0 overflow-hidden">
+                          <ProviderCard provider={p} />
+                        </BentoCard>
+                      ))}
+                    </div>
+                  </div>
                 ))}
                 
                 {/* Load More Button */}
