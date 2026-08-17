@@ -182,6 +182,36 @@ export default function AdminDashboardPage() {
     setActionLoading(false);
   }
 
+  async function deleteUser(userId: string, userEmail: string) {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur ${userEmail} ? Cette action est irréversible.`)) return;
+    setActionLoading(true);
+
+    try {
+      const response = await fetch('/api/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Error calling delete-user API:', data);
+        alert(data.error || 'Erreur lors de la suppression de l\'utilisateur.');
+        return;
+      }
+
+      await logAdminAction('delete_user', 'profile', userId, `Email: ${userEmail}`);
+      await loadAllData();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Erreur lors de la suppression de l\'utilisateur.');
+    }
+    setActionLoading(false);
+  }
+
   async function updateReportStatus(reportId: string, status: 'resolved' | 'dismissed') {
     if (!user) return;
     setActionLoading(true);
@@ -588,16 +618,26 @@ export default function AdminDashboardPage() {
                     <td className="hidden px-4 py-3 text-sm text-neutral-500 sm:table-cell">{formatDate(p.created_at)}</td>
                     <td className="px-4 py-3 text-right">
                       {p.role !== 'admin' && (
-                        <select
-                          value={p.status}
-                          onChange={(e) => updateUserStatus(p.id, e.target.value as 'active' | 'suspended' | 'banned')}
-                          disabled={actionLoading}
-                          className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-700 focus:border-primary-500 focus:outline-none"
-                        >
-                          <option value="active">{t.admin.activeStatus}</option>
-                          <option value="suspended">{t.admin.suspendedStatus}</option>
-                          <option value="banned">{t.admin.bannedStatus}</option>
-                        </select>
+                        <div className="flex items-center justify-end gap-2">
+                          <select
+                            value={p.status}
+                            onChange={(e) => updateUserStatus(p.id, e.target.value as 'active' | 'suspended' | 'banned')}
+                            disabled={actionLoading}
+                            className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-700 focus:border-primary-500 focus:outline-none"
+                          >
+                            <option value="active">{t.admin.activeStatus}</option>
+                            <option value="suspended">{t.admin.suspendedStatus}</option>
+                            <option value="banned">{t.admin.bannedStatus}</option>
+                          </select>
+                          <button
+                            onClick={() => deleteUser(p.id, p.email)}
+                            disabled={actionLoading}
+                            className="rounded-lg p-1.5 text-error-600 hover:bg-error-50 disabled:opacity-50"
+                            title="Supprimer l'utilisateur"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
