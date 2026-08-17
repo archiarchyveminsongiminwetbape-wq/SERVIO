@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle, ArrowRight, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useI18n } from '@/context/I18nContext';
 
 export default function SignupConfirmationPage() {
@@ -10,6 +10,23 @@ export default function SignupConfirmationPage() {
   const email = location.state?.email || '';
   const [resending, setResending] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [countdown, setCountdown] = useState(10);
+
+  // Auto-redirect to login after 10 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          navigate('/login');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [navigate]);
 
   const handleResendEmail = async () => {
     setResending(true);
@@ -70,20 +87,15 @@ export default function SignupConfirmationPage() {
 
           <div className="mt-6 space-y-3">
             <button
-              onClick={handleResendEmail}
-              disabled={resending}
-              className="btn-secondary w-full"
-            >
-              {resending ? t.auth.sending : t.auth.resendEmail}
-            </button>
-
-            <button
               onClick={() => navigate('/login')}
               className="btn-primary w-full"
             >
               {t.auth.goToLogin}
               <ArrowRight size={18} />
             </button>
+            <p className="text-center text-sm text-neutral-500">
+              Redirection automatique dans {countdown} secondes...
+            </p>
           </div>
 
           <div className="mt-6 rounded-lg bg-warning-50 p-4 text-left">
