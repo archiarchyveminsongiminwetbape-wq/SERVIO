@@ -445,7 +445,7 @@ export default function ProviderProfilePage() {
   return (
     <div className="animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Banner */}
-      <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden bg-neutral-200">
+      <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden bg-neutral-200">
         {provider.banner_url && (
           <img src={provider.banner_url} alt="" className="h-full w-full object-cover" />
         )}
@@ -454,16 +454,16 @@ export default function ProviderProfilePage() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Profile header */}
-        <div className="relative -mt-16 sm:-mt-20 flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="relative -mt-20 sm:-mt-24 flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="flex-shrink-0">
             {provider.avatar_url ? (
               <img
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-24 w-24 sm:h-32 sm:w-32 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+                className="h-28 w-28 sm:h-36 sm:w-36 rounded-2xl object-cover ring-4 ring-white shadow-lg"
               />
             ) : (
-              <div className="flex h-24 w-24 sm:h-32 sm:w-32 items-center justify-center rounded-2xl bg-primary-100 text-3xl sm:text-4xl font-bold text-primary-700 ring-4 ring-white shadow-lg">
+              <div className="flex h-28 w-28 sm:h-36 sm:w-36 items-center justify-center rounded-2xl bg-primary-100 text-3xl sm:text-4xl font-bold text-primary-700 ring-4 ring-white shadow-lg">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
