@@ -20,7 +20,6 @@ const UserProfilePage = lazy(() => import('@/pages/UserProfilePage'));
 const ProviderProfileEditPage = lazy(() => import('@/pages/ProviderProfileEditPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const SignupPage = lazy(() => import('@/pages/SignupPage'));
-const SignupConfirmationPage = lazy(() => import('@/pages/SignupConfirmationPage'));
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const FaqPage = lazy(() => import('@/pages/FaqPage'));
@@ -42,11 +41,17 @@ function App() {
       <DarkModeProvider>
         <AuthProvider>
           <BrowserRouter>
-            <Suspense fallback={<div className="min-h-screen bg-white text-center py-24">Loading...</div>}>
+            <Suspense fallback={
+              <div className="min-h-screen bg-white dark:bg-neutral-900 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+                  <p className="mt-4 text-neutral-600 dark:text-neutral-400">Chargement...</p>
+                </div>
+              </div>
+            }>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
-                <Route path="/signup/confirmation" element={<SignupConfirmationPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/admin/seed-categories" element={<CategorySeeder />} />
                 <Route

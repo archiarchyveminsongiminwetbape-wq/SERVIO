@@ -42,9 +42,9 @@ export default function SignupPage() {
       setError(error);
       setLoading(false);
     } else {
-      console.log('Signup successful, redirecting to confirmation');
-      // Rediriger vers la page de confirmation
-      navigate('/signup/confirmation', { state: { email } });
+      console.log('Signup successful, redirecting to login');
+      // Rediriger directement vers la page de connexion
+      navigate('/login');
     }
   };
 
