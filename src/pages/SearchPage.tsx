@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, AlertCircle, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getCache, setCache, cacheKeys } from '@/lib/cache';
 import type { Category, ProviderProfile } from '@/types';
 import ProviderCard from '@/components/ProviderCard';
 import CategoryIcon from '@/components/CategoryIcon';
@@ -12,8 +13,8 @@ import { useI18n } from '@/context/I18nContext';
 
 // ===== PERFORMANCE OPTIMIZATION CONSTANTS =====
 const ITEMS_PER_PAGE = 24;
-const REQUEST_DEBOUNCE_MS = 500;
-const IMAGE_CACHE_TIME = 3600000; // 1 hour
+const REQUEST_DEBOUNCE_MS = 300;
+const CACHE_TTL = 300000; // 5 minutes
 
 export default function SearchPage() {
   const { t } = useI18n();
@@ -58,7 +59,7 @@ export default function SearchPage() {
     }
   }, [categorySlug]);
 
-  // ===== OPTIMIZED SEARCH FUNCTION =====
+  // ===== OPTIMIZED SEARCH FUNCTION WITH CACHING =====
   const doSearch = useCallback(async (pageNum: number = 1) => {
     if (pageNum === 1) {
       setLoading(true);
@@ -66,11 +67,28 @@ export default function SearchPage() {
       setLoadingMore(true);
     }
     setError(null);
+
+    // Generate cache key
+    const cacheKey = cacheKeys.providers(JSON.stringify({
+      query, categorySlug, selectedSubCat, city, country, minRating,
+      availability, sortBy, priceRange, minExperience, remoteOnly,
+      language, verifiedOnly, responseTime, pageNum
+    }));
+
+    // Check cache first
+    const cached = getCache<{ providers: ProviderProfile[]; count: number }>(cacheKey);
+    if (cached && pageNum === 1) {
+      setProviders(cached.providers);
+      setTotalCount(cached.count);
+      setLoading(false);
+      return;
+    }
+
     try {
       let q = supabase
         .from('provider_profiles')
         .select('id, business_name, slug, headline, avatar_url, owner_avatar_url, banner_url, category_id, skills, rating_avg, rating_count, city, remote_service, availability, badges, price_range, is_featured, experience_years, languages, validation_status', { count: 'exact' })
-        .not('slug', 'is', null); // Load all providers regardless of validation status
+        .not('slug', 'is', null);
 
       // ===== OPTIMIZED FILTERS =====
       if (query.trim()) {
@@ -146,11 +164,15 @@ export default function SearchPage() {
         throw fetchError;
       }
       
+      const providersData = data as ProviderProfile[] ?? [];
+      
       if (pageNum === 1) {
-        setProviders((data as ProviderProfile[] ?? []));
+        setProviders(providersData);
         setTotalCount(count ?? 0);
+        // Cache the results
+        setCache(cacheKey, { providers: providersData, count: count ?? 0 }, CACHE_TTL);
       } else {
-        setProviders(prev => [...prev, ...(data as ProviderProfile[] ?? [])]);
+        setProviders(prev => [...prev, ...providersData]);
       }
     } catch (err) {
       console.error('Error searching providers:', err);

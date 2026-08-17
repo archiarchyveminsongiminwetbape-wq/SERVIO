@@ -15,6 +15,7 @@ interface I18nContextType {
   setCurrency: (currency: Currency) => void;
   t: Translations;
   supportedLanguages: typeof supportedLanguages;
+  isLoading: boolean;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -42,14 +43,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const [location, setLocation] = useState<LocationData | null>(null);
   const [culturalTheme, setCulturalTheme] = useState(() => getThemeByLanguage(defaultLanguage));
-  const [translations, setTranslations] = useState<Translations>(() => getInitialTranslations(defaultLanguage));
+  const [translations, setTranslations] = useState<Translations>(getInitialTranslations(defaultLanguage));
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load translations asynchronously
   useEffect(() => {
+    setIsLoading(true);
     getTranslations(language).then((trans) => {
       setTranslations(trans);
+      setIsLoading(false);
     }).catch((error) => {
       console.error(`Failed to load translations for ${language}:`, error);
+      setIsLoading(false);
     });
   }, [language]);
 
@@ -116,7 +121,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setCurrency,
     t: translations,
     supportedLanguages,
-  }), [language, locale, rtl, currency, location, culturalTheme, setLanguage, setCurrency, translations]);
+    isLoading,
+  }), [language, locale, rtl, currency, location, culturalTheme, setLanguage, setCurrency, translations, isLoading]);
 
   return (
     <I18nContext.Provider value={value}>
