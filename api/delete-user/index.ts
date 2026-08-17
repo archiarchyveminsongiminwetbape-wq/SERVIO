@@ -61,7 +61,5 @@ export default async function handler(req: any, res: any) {
 }
 
 export const config = {
-  api: {
-    bodyParser: true,
-  },
+  runtime: 'nodejs',
 };
