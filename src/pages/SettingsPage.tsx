@@ -91,19 +91,19 @@ export default function SettingsPage() {
 
     if (confirm(t.user.deleteAccountWarning)) {
       try {
-        // Call the Edge Function to delete the user completely
-        const { data, error } = await supabase.functions.invoke('delete-user', {
-          body: { userId: user.id }
+        // Call the Vercel API route to delete the user completely
+        const response = await fetch('/api/delete-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.id }),
         });
 
-        if (error) {
-          console.error('Error calling delete-user function:', error);
-          alert('Erreur lors de la suppression du compte. Veuillez réessayer.');
-          return;
-        }
+        const data = await response.json();
 
-        if (data?.error) {
-          console.error('Delete user error:', data.error);
+        if (!response.ok) {
+          console.error('Error calling delete-user API:', data);
           alert(data.error || 'Erreur lors de la suppression du compte.');
           return;
         }
