@@ -59,7 +59,7 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
       to={`/provider/${provider.slug}`}
       className="group card overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
     >
-      <div className="relative h-40 sm:h-48 md:h-52 overflow-hidden bg-neutral-100">
+      <div className="relative h-32 sm:h-40 md:h-44 overflow-hidden bg-neutral-100">
         {provider.banner_url ? (
           <OptimizedImage
             src={provider.banner_url}
@@ -94,16 +94,16 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
 
       <div className="p-4 sm:p-5 md:p-6">
         <div className="flex items-start gap-3 sm:gap-4">
-          <div className="flex-shrink-0 -mt-8 sm:-mt-10 md:-mt-12">
+          <div className="flex-shrink-0 -mt-6 sm:-mt-8 md:-mt-10">
             {provider.avatar_url || provider.owner_avatar_url ? (
               <OptimizedImage
                 src={provider.avatar_url || provider.owner_avatar_url}
                 alt={provider.business_name}
-                className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
+                className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-sm sm:text-base md:text-lg font-bold text-white ring-3 sm:ring-4 ring-white shadow-lg">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-sm sm:text-base md:text-lg font-bold text-white ring-3 sm:ring-4 ring-white shadow-lg">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
