@@ -486,6 +486,7 @@ export default function ProviderProfilePage() {
                 <span className="flex items-center gap-1"><Briefcase size={14} /> {provider.experience_years} {t.provider.yearsOfExperienceLabel}</span>
               )}
               <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
+              <span className="flex items-center gap-1"><Eye size={14} /> {provider.profile_views || 0} {t.common.views}</span>
             </div>
           </div>
 

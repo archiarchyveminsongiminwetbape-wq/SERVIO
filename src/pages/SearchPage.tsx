@@ -88,7 +88,7 @@ export default function SearchPage() {
     try {
       let q = supabase
         .from('provider_profiles')
-        .select('id, business_name, slug, headline, avatar_url, owner_avatar_url, banner_url, category_id, skills, rating_avg, rating_count, city, remote_service, availability, badges, price_range, is_featured, experience_years, languages, validation_status', { count: 'exact' })
+        .select('id, business_name, slug, headline, avatar_url, banner_url, category_id, skills, rating_avg, rating_count, city, remote_service, availability, badges, price_range, is_featured, experience_years, languages, validation_status', { count: 'exact' })
         .not('slug', 'is', null);
 
       // ===== OPTIMIZED FILTERS =====

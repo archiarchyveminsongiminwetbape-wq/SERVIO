@@ -95,9 +95,9 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
       <div className="p-4 sm:p-5 md:p-6">
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="flex-shrink-0 -mt-6 sm:-mt-8 md:-mt-10">
-            {provider.avatar_url || provider.owner_avatar_url ? (
+            {provider.avatar_url ? (
               <OptimizedImage
-                src={provider.avatar_url || provider.owner_avatar_url}
+                src={provider.avatar_url}
                 alt={provider.business_name}
                 className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
                 loading="lazy"

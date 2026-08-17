@@ -47,6 +47,7 @@ export interface ProviderProfile {
   languages: string[];
   certifications: string | null;
   city: string | null;
+  country: string | null;
   service_area: string | null;
   remote_service: boolean;
   phone: string | null;

@@ -6,6 +6,7 @@ import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
 import { uploadAvatar, uploadBanner } from '@/lib/storage';
 import type { ProviderProfile, Category } from '@/types';
+import { countries } from '@/data/countries';
 
 export default function ProviderProfileEditPage() {
   const { t } = useI18n();
@@ -36,6 +37,7 @@ export default function ProviderProfileEditPage() {
     languages: [] as string[],
     certifications: '',
     city: '',
+    country: '',
     service_area: '',
     remote_service: false,
     phone: '',
@@ -89,6 +91,7 @@ export default function ProviderProfileEditPage() {
         languages: profileData.languages || [],
         certifications: profileData.certifications || '',
         city: profileData.city || '',
+        country: profileData.country || '',
         service_area: profileData.service_area || '',
         remote_service: profileData.remote_service || false,
         phone: profileData.phone || '',
@@ -136,6 +139,7 @@ export default function ProviderProfileEditPage() {
             languages: formData.languages,
             certifications: formData.certifications,
             city: formData.city,
+            country: formData.country,
             service_area: formData.service_area,
             remote_service: formData.remote_service,
             phone: formData.phone,
@@ -166,6 +170,7 @@ export default function ProviderProfileEditPage() {
             languages: formData.languages,
             certifications: formData.certifications,
             city: formData.city,
+            country: formData.country,
             service_area: formData.service_area,
             remote_service: formData.remote_service,
             phone: formData.phone,
@@ -485,6 +490,21 @@ export default function ProviderProfileEditPage() {
                 className="input-field"
                 placeholder="Paris"
               />
+            </div>
+            <div>
+              <label className="label">Pays</label>
+              <select
+                value={formData.country}
+                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                className="input-field"
+              >
+                <option value="">Sélectionner un pays</option>
+                {countries.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.flag} {country.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">{t.provider.fields.serviceArea}</label>
