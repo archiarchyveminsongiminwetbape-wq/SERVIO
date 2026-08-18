@@ -148,6 +148,57 @@ export interface Message {
   created_at: string;
 }
 
+export interface Booking {
+  id: string;
+  client_id: string;
+  provider_id: string;
+  service_type: string | null;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  location_type: LocationType;
+  location_address: string | null;
+  notes: string | null;
+  status: BookingStatus;
+  price: number | null;
+  currency: string | null;
+  payment_method: PaymentMethod | null;
+  payment_status: PaymentStatus;
+  created_at: string;
+  updated_at: string;
+  client?: Profile | null;
+  provider?: ProviderProfile | null;
+}
+
+export interface Invoice {
+  id: string;
+  booking_id: string;
+  client_id: string;
+  provider_id: string;
+  invoice_number: string;
+  amount: number;
+  currency: string;
+  status: InvoiceStatus;
+  due_date: string;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+  client?: Profile | null;
+  provider?: ProviderProfile | null;
+  booking?: Booking | null;
+}
+
+export interface AvailabilitySlot {
+  id: string;
+  provider_id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Favorite {
   id: string;
   user_id: string;

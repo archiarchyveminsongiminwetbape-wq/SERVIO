@@ -24,6 +24,7 @@ const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const FaqPage = lazy(() => import('@/pages/FaqPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
+const UserBookingsPage = lazy(() => import('@/pages/UserBookingsPage'));
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -70,6 +71,7 @@ function App() {
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/faq" element={<FaqPage />} />
                         <Route path="/notifications" element={<NotificationsPage />} />
+                        <Route path="/bookings" element={<UserBookingsPage />} />
                         <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
                         <Route path="/provider/edit" element={<ProviderProfileEditPage />} />
                         <Route path="/admin" element={<AdminDashboardPage />} />

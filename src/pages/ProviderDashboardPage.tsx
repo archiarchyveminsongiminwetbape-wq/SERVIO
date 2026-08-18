@@ -18,7 +18,7 @@ import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 
-type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability' | 'bookings';
+type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability' | 'bookings' | 'invoices';
 
 export default function ProviderDashboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -30,6 +30,7 @@ export default function ProviderDashboardPage() {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -127,12 +128,13 @@ export default function ProviderDashboardPage() {
   async function loadData() {
     if (!user) return;
     setLoading(true);
-    const [provRes, catRes, portRes, revRes, bookingRes] = await Promise.all([
+    const [provRes, catRes, portRes, revRes, bookingRes, invoiceRes] = await Promise.all([
       supabase.from('provider_profiles').select('*, category:categories(*)').eq('user_id', user.id).maybeSingle(),
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('portfolio_items').select('*').eq('provider_id', user.id).order('sort_order'),
       supabase.from('reviews').select('*, author:profiles(full_name, avatar_url)').eq('provider_id', user.id).order('created_at', { ascending: false }),
       supabase.from('bookings').select('*, client:profiles(full_name, email, avatar_url)').eq('provider_id', user.id).order('scheduled_at', { ascending: true }),
+      supabase.from('invoices').select('*, client:profiles(full_name, email), booking:bookings(*)').eq('provider_id', user.id).order('created_at', { ascending: false }),
     ]);
 
     if (provRes.data) {
@@ -168,6 +170,7 @@ export default function ProviderDashboardPage() {
     setPortfolio(portRes.data as PortfolioItem[] ?? []);
     setReviews(revRes.data as Review[] ?? []);
     setBookings(bookingRes.data as any[] ?? []);
+    setInvoices(invoiceRes.data as any[] ?? []);
     setLoading(false);
   }
 
@@ -690,7 +693,49 @@ export default function ProviderDashboardPage() {
           body: statusMessages[status],
           link: '/bookings',
         });
+
+        // Generate invoice when booking is completed
+        if (status === 'completed' && booking.price) {
+          await generateInvoice(booking);
+        }
       }
+      await loadData();
+    }
+    setSaving(false);
+  }
+
+  async function generateInvoice(booking: any) {
+    const invoiceNumber = `INV-${Date.now()}-${booking.id.slice(0, 8)}`;
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7); // Due in 7 days
+
+    const { error } = await supabase.from('invoices').insert({
+      booking_id: booking.id,
+      client_id: booking.client_id,
+      provider_id: booking.provider_id,
+      invoice_number: invoiceNumber,
+      amount: booking.price,
+      currency: booking.currency || 'EUR',
+      status: 'sent',
+      due_date: dueDate.toISOString(),
+    });
+
+    if (error) {
+      console.error('Error generating invoice:', error);
+    }
+  }
+
+  async function markInvoiceAsPaid(invoiceId: string) {
+    setSaving(true);
+    const { error } = await supabase
+      .from('invoices')
+      .update({ 
+        status: 'paid',
+        paid_at: new Date().toISOString()
+      })
+      .eq('id', invoiceId);
+
+    if (!error) {
       await loadData();
     }
     setSaving(false);
@@ -777,6 +822,7 @@ export default function ProviderDashboardPage() {
     { id: 'reviews', label: 'Avis', icon: Star },
     { id: 'availability', label: 'Disponibilité', icon: Calendar },
     { id: 'bookings', label: 'Réservations', icon: MessageCircle },
+    { id: 'invoices', label: 'Factures', icon: CreditCard },
   ];
 
   return (
@@ -858,6 +904,24 @@ export default function ProviderDashboardPage() {
             label="Réalisations" 
             variant="default"
           />
+          <BentoStatCard 
+            icon={MessageCircle} 
+            value={bookings.filter(b => b.status === 'pending').length} 
+            label="Réservations en attente" 
+            variant="warning"
+          />
+          <BentoStatCard 
+            icon={CheckCircle2} 
+            value={bookings.filter(b => b.status === 'completed').length} 
+            label="Réservations complétées" 
+            variant="success"
+          />
+          <BentoStatCard 
+            icon={CreditCard} 
+            value={`${invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0)}€`} 
+            label="Revenus totaux" 
+            variant="primary"
+          />
           
           <BentoCard colSpan={2} className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -881,12 +945,39 @@ export default function ProviderDashboardPage() {
             </p>
           </BentoCard>
 
-          <BentoFeatureCard 
-            icon={TrendingUp}
-            title="Statistiques"
-            description="Voir vos performances et tendances"
-            variant="primary"
-          />
+          <BentoCard colSpan={2} className="p-6">
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Statistiques des réservations</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Taux de confirmation</span>
+                <span className="text-sm font-semibold text-neutral-900">
+                  {bookings.length > 0 
+                    ? `${Math.round((bookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length / bookings.length) * 100)}%`
+                    : 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Réservations ce mois</span>
+                <span className="text-sm font-semibold text-neutral-900">
+                  {bookings.filter(b => {
+                    const bookingDate = new Date(b.created_at);
+                    const now = new Date();
+                    return bookingDate.getMonth() === now.getMonth() && bookingDate.getFullYear() === now.getFullYear();
+                  }).length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Revenus ce mois</span>
+                <span className="text-sm font-semibold text-primary-700">
+                  {invoices.filter(i => {
+                    const invoiceDate = new Date(i.created_at);
+                    const now = new Date();
+                    return invoiceDate.getMonth() === now.getMonth() && invoiceDate.getFullYear() === now.getFullYear() && i.status === 'paid';
+                  }).reduce((sum, i) => sum + i.amount, 0)}€
+                </span>
+              </div>
+            </div>
+          </BentoCard>
 
           {provider.validation_note && (
             <BentoCard colSpan={3} className="p-5 bg-warning-50 border-warning-200">
@@ -1695,6 +1786,80 @@ export default function ProviderDashboardPage() {
                           >
                             <CheckCircle2 size={14} />
                             Marquer terminée
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoices management */}
+      {tab === 'invoices' && (
+        <div className="mx-auto max-w-4xl space-y-6">
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Factures</h3>
+            <p className="mt-1 text-sm text-neutral-500">Gérez vos factures clients</p>
+            
+            <div className="mt-6 space-y-4">
+              {invoices.length === 0 ? (
+                <div className="text-center py-8">
+                  <CreditCard size={48} className="mx-auto text-neutral-300" />
+                  <p className="mt-3 text-sm text-neutral-500">Aucune facture pour le moment</p>
+                  <p className="text-xs text-neutral-400">Les factures sont générées automatiquement après la complétion des réservations</p>
+                </div>
+              ) : (
+                invoices.map((invoice) => (
+                  <div key={invoice.id} className="rounded-lg border border-neutral-200 p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-lg font-semibold text-primary-700">
+                          <CreditCard size={20} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-900">{invoice.invoice_number}</p>
+                          <p className="text-sm text-neutral-500">{invoice.client?.full_name || 'Client'}</p>
+                          <div className="mt-2 flex flex-wrap gap-2 text-sm text-neutral-600">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={14} />
+                              {new Date(invoice.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={14} />
+                              Échéance: {new Date(invoice.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          {invoice.booking && (
+                            <p className="mt-1 text-sm text-neutral-600">Réservation: {invoice.booking.service_type || 'Service'}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`badge ${
+                          invoice.status === 'paid' ? 'bg-success-50 text-success-700' :
+                          invoice.status === 'sent' ? 'bg-primary-50 text-primary-700' :
+                          invoice.status === 'overdue' ? 'bg-error-50 text-error-700' :
+                          'bg-neutral-100 text-neutral-600'
+                        }`}>
+                          {invoice.status === 'paid' ? 'Payée' :
+                           invoice.status === 'sent' ? 'Envoyée' :
+                           invoice.status === 'overdue' ? 'En retard' :
+                           invoice.status === 'draft' ? 'Brouillon' :
+                           invoice.status === 'cancelled' ? 'Annulée' : invoice.status}
+                        </span>
+                        <p className="text-lg font-semibold text-neutral-900">{invoice.amount} {invoice.currency}</p>
+                        {invoice.status === 'sent' && (
+                          <button
+                            onClick={() => markInvoiceAsPaid(invoice.id)}
+                            disabled={saving}
+                            className="btn-secondary text-xs"
+                          >
+                            <CheckCircle2 size={14} />
+                            Marquer payée
                           </button>
                         )}
                       </div>
