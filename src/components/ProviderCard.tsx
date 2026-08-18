@@ -59,7 +59,7 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
       to={`/provider/${provider.slug}`}
       className="group card overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
     >
-      <div className="relative h-40 sm:h-48 md:h-52 overflow-hidden bg-neutral-100">
+      <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden bg-neutral-100">
         {provider.banner_url ? (
           <OptimizedImage
             src={provider.banner_url}
@@ -92,27 +92,27 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
         </div>
       </div>
 
-      <div className="p-5 sm:p-6 md:p-7">
+      <div className="p-6 sm:p-7 md:p-8">
         <div className="flex items-start gap-3 sm:gap-4">
-          <div className="flex-shrink-0 -mt-8 sm:-mt-10 md:-mt-12">
+          <div className="flex-shrink-0 -mt-10 sm:-mt-12 md:-mt-14">
             {provider.avatar_url ? (
               <OptimizedImage
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
+                className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-base sm:text-lg md:text-xl font-bold text-white ring-3 sm:ring-4 ring-white shadow-lg">
+              <div className="flex h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg sm:text-xl md:text-2xl font-bold text-white ring-3 sm:ring-4 ring-white shadow-lg">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
           </div>
-          <div className="min-w-0 flex-1 pt-2">
-            <h3 className="truncate text-base sm:text-lg md:text-xl font-bold text-neutral-900 group-hover:text-primary-700 transition-colors">
+          <div className="min-w-0 flex-1 pt-3">
+            <h3 className="truncate text-lg sm:text-xl md:text-2xl font-bold text-neutral-900 group-hover:text-primary-700 transition-colors">
               {provider.business_name}
             </h3>
-            <p className="truncate text-sm sm:text-base text-neutral-500 mt-1">{provider.headline}</p>
+            <p className="truncate text-sm sm:text-base md:text-lg text-neutral-500 mt-1">{provider.headline}</p>
           </div>
         </div>
 
