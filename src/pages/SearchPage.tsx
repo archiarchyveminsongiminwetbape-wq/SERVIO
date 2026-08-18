@@ -580,7 +580,7 @@ export default function SearchPage() {
                       </h2>
                       <span className="text-sm text-neutral-500">({categoryProviders.length})</span>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
                       {categoryProviders.map((p) => (
                         <ProviderCard key={p.id} provider={p} />
                       ))}
