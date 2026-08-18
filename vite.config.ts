@@ -29,6 +29,7 @@ export default defineConfig({
         drop_debugger: true,
       },
     },
+    assetsInlineLimit: 4096,
   },
   optimizeDeps: {
     include: ['lucide-react'],
