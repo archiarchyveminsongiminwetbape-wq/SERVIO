@@ -18,7 +18,6 @@ ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'pending';
 CREATE TABLE IF NOT EXISTS invoices (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
-  provider_id UUID REFERENCES provider_profiles(id) ON DELETE CASCADE,
   invoice_number TEXT NOT NULL UNIQUE,
   amount NUMERIC NOT NULL,
   currency TEXT NOT NULL DEFAULT 'EUR',
@@ -37,6 +36,17 @@ BEGIN
         WHERE table_name = 'invoices' AND column_name = 'client_id'
     ) THEN
         ALTER TABLE invoices ADD COLUMN client_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+-- Add provider_id column to invoices if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'invoices' AND column_name = 'provider_id'
+    ) THEN
+        ALTER TABLE invoices ADD COLUMN provider_id UUID REFERENCES provider_profiles(id) ON DELETE CASCADE;
     END IF;
 END $$;
 
