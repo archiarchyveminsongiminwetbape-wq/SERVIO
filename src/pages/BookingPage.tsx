@@ -23,6 +23,8 @@ export default function BookingPage() {
   const [serviceType, setServiceType] = useState('Consultation');
   const [duration, setDuration] = useState(60);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'bank_transfer'>('cash');
+  const [price, setPrice] = useState<number>(0);
 
   useEffect(() => {
     if (!slug) return;
@@ -71,13 +73,20 @@ export default function BookingPage() {
   };
 
   const getDurationOptions = () => [
-    { value: 30, label: '30 min' },
-    { value: 45, label: '45 min' },
-    { value: 60, label: '1 heure' },
-    { value: 90, label: '1h30' },
-    { value: 120, label: '2 heures' },
-    { value: 180, label: '3 heures' },
+    { value: 30, label: '30 min', price: 50 },
+    { value: 45, label: '45 min', price: 75 },
+    { value: 60, label: '1 heure', price: 100 },
+    { value: 90, label: '1h30', price: 150 },
+    { value: 120, label: '2 heures', price: 200 },
+    { value: 180, label: '3 heures', price: 300 },
   ];
+
+  useEffect(() => {
+    const selectedOption = getDurationOptions().find(opt => opt.value === duration);
+    if (selectedOption) {
+      setPrice(selectedOption.price);
+    }
+  }, [duration]);
 
   async function handleSubmitBooking() {
     if (!user || !provider || !selectedSlot) return;
@@ -97,8 +106,10 @@ export default function BookingPage() {
       location_address: locationType === 'in_person' || locationType === 'hybrid' ? address : null,
       notes: notes || null,
       status: 'pending',
-      price: null,
+      price: price,
       currency: 'EUR',
+      payment_method: paymentMethod,
+      payment_status: paymentMethod === 'cash' ? 'pending' : 'pending',
     });
 
     if (error) {
@@ -379,6 +390,55 @@ export default function BookingPage() {
                     rows={3}
                     placeholder="Précisez votre demande ou vos questions..."
                   />
+                </div>
+
+                <div>
+                  <label className="label">Mode de paiement</label>
+                  <div className="mt-2 space-y-2">
+                    <button
+                      onClick={() => setPaymentMethod('cash')}
+                      className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+                        paymentMethod === 'cash'
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span className="text-sm text-neutral-700">Payer en espèces sur place</span>
+                      {paymentMethod === 'cash' && <Check size={16} className="text-primary-600" />}
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod('card')}
+                      className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+                        paymentMethod === 'card'
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span className="text-sm text-neutral-700">Payer par carte bancaire</span>
+                      {paymentMethod === 'card' && <Check size={16} className="text-primary-600" />}
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod('bank_transfer')}
+                      className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+                        paymentMethod === 'bank_transfer'
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span className="text-sm text-neutral-700">Virement bancaire</span>
+                      {paymentMethod === 'bank_transfer' && <Check size={16} className="text-primary-600" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-primary-50 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-700">Prix total</span>
+                    <span className="text-lg font-semibold text-primary-700">{price}€</span>
+                  </div>
+                  <div className="mt-1 text-xs text-neutral-500">
+                    Durée: {duration} min
+                  </div>
                 </div>
               </div>
 

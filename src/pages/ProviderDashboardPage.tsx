@@ -18,7 +18,7 @@ import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
 
-type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability';
+type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability' | 'bookings';
 
 export default function ProviderDashboardPage() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
@@ -29,6 +29,7 @@ export default function ProviderDashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -91,6 +92,16 @@ export default function ProviderDashboardPage() {
     sunday: { start: '09:00', end: '12:00', available: false },
   });
 
+  // Availability slots management
+  const [availabilitySlots, setAvailabilitySlots] = useState<any[]>([]);
+  const [showSlotForm, setShowSlotForm] = useState(false);
+  const [slotForm, setSlotForm] = useState({
+    date: '',
+    start_time: '',
+    end_time: '',
+    is_available: true,
+  });
+
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -102,6 +113,12 @@ export default function ProviderDashboardPage() {
   }, [authLoading, user, profile, navigate]);
 
   useEffect(() => {
+    if (provider) {
+      loadAvailabilitySlots();
+    }
+  }, [provider]);
+
+  useEffect(() => {
     if (user) {
       loadData();
     }
@@ -110,45 +127,47 @@ export default function ProviderDashboardPage() {
   async function loadData() {
     if (!user) return;
     setLoading(true);
-    const [provRes, catRes] = await Promise.all([
+    const [provRes, catRes, portRes, revRes, bookingRes] = await Promise.all([
       supabase.from('provider_profiles').select('*, category:categories(*)').eq('user_id', user.id).maybeSingle(),
       supabase.from('categories').select('*').order('sort_order'),
+      supabase.from('portfolio_items').select('*').eq('provider_id', user.id).order('sort_order'),
+      supabase.from('reviews').select('*, author:profiles(full_name, avatar_url)').eq('provider_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('bookings').select('*, client:profiles(full_name, email, avatar_url)').eq('provider_id', user.id).order('scheduled_at', { ascending: true }),
     ]);
 
-    const prov = provRes.data as ProviderProfile | null;
-    setProvider(prov);
-    setCategories(catRes.data as Category[] ?? []);
-
-    if (prov) {
+    if (provRes.data) {
+      setProvider(provRes.data as ProviderProfile);
       setForm({
-        business_name: prov.business_name,
-        headline: prov.headline ?? '',
-        description: prov.description ?? '',
-        category_id: prov.category_id ?? '',
-        city: prov.city ?? '',
-        country: (prov as any).country ?? 'FR',
-        service_area: prov.service_area ?? '',
-        remote_service: prov.remote_service,
-        phone: prov.phone ?? '',
-        website: prov.website ?? '',
-        price_range: prov.price_range ?? '',
-        currency: (prov as any).currency ?? 'EUR',
-        availability: prov.availability,
-        experience_years: prov.experience_years ?? '',
-        certifications: prov.certifications ?? '',
-        avatar_url: prov.avatar_url ?? '',
-        banner_url: prov.banner_url ?? '',
+        business_name: provRes.data.business_name ?? '',
+        headline: provRes.data.headline ?? '',
+        description: provRes.data.description ?? '',
+        category_id: provRes.data.category_id ?? '',
+        skills: provRes.data.skills ?? [],
+        experience_years: provRes.data.experience_years ?? '',
+        languages: provRes.data.languages ?? [],
+        certifications: provRes.data.certifications ?? '',
+        city: provRes.data.city ?? '',
+        country: provRes.data.country ?? '',
+        service_area: provRes.data.service_area ?? '',
+        remote_service: provRes.data.remote_service,
+        phone: provRes.data.phone ?? '',
+        website: provRes.data.website ?? '',
+        price_range: provRes.data.price_range ?? '',
+        currency: (provRes.data as any).currency ?? 'EUR',
+        availability: provRes.data.availability,
+        avatar_url: provRes.data.avatar_url ?? '',
+        banner_url: provRes.data.banner_url ?? '',
       });
-      setSkillsInput(Array.isArray(prov.skills) ? prov.skills.join(', ') : '');
-      setLanguagesInput(Array.isArray(prov.languages) ? prov.languages.join(', ') : '');
-
-      const [portRes, revRes] = await Promise.all([
-        supabase.from('portfolio_items').select('*').eq('provider_id', prov.id).order('sort_order'),
-        supabase.from('reviews').select('*').eq('provider_id', prov.id).order('created_at', { ascending: false }),
-      ]);
-      setPortfolio(portRes.data as PortfolioItem[] ?? []);
-      setReviews(revRes.data as Review[] ?? []);
+      setSkillsInput((provRes.data.skills ?? []).join(', '));
+      setLanguagesInput((provRes.data.languages ?? []).join(', '));
+      if ((provRes.data as any).availability_schedule) {
+        setAvailabilitySchedule((provRes.data as any).availability_schedule);
+      }
     }
+    setCategories(catRes.data as Category[] ?? []);
+    setPortfolio(portRes.data as PortfolioItem[] ?? []);
+    setReviews(revRes.data as Review[] ?? []);
+    setBookings(bookingRes.data as any[] ?? []);
     setLoading(false);
   }
 
@@ -596,11 +615,85 @@ export default function ProviderDashboardPage() {
     if (error) {
       setSaveMsg({ type: 'error', text: error.message });
     } else {
-      setSaveMsg({ type: 'success', text: t.auth.loginSuccess });
+      setSaveMsg({ type: 'success', text: 'Horaires enregistrés avec succès' });
       await loadData();
     }
     setSaving(false);
     setTimeout(() => setSaveMsg(null), 4000);
+  }
+
+  async function loadAvailabilitySlots() {
+    if (!provider) return;
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from('availability_slots')
+      .select('*')
+      .eq('provider_id', provider.id)
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true });
+    
+    if (data) {
+      setAvailabilitySlots(data);
+    }
+  }
+
+  async function createAvailabilitySlot() {
+    if (!provider || !slotForm.date || !slotForm.start_time || !slotForm.end_time) return;
+    setSaving(true);
+
+    const { error } = await supabase
+      .from('availability_slots')
+      .insert({
+        provider_id: provider.id,
+        date: slotForm.date,
+        start_time: slotForm.start_time,
+        end_time: slotForm.end_time,
+        is_available: slotForm.is_available,
+      });
+
+    if (!error) {
+      setSlotForm({ date: '', start_time: '', end_time: '', is_available: true });
+      setShowSlotForm(false);
+      await loadAvailabilitySlots();
+    }
+    setSaving(false);
+  }
+
+  async function deleteAvailabilitySlot(slotId: string) {
+    if (!confirm('Supprimer ce créneau ?')) return;
+    await supabase.from('availability_slots').delete().eq('id', slotId);
+    await loadAvailabilitySlots();
+  }
+
+  async function updateBookingStatus(bookingId: string, status: 'confirmed' | 'rejected' | 'completed' | 'cancelled') {
+    setSaving(true);
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status })
+      .eq('id', bookingId);
+
+    if (!error) {
+      // Send notification to client
+      const booking = bookings.find(b => b.id === bookingId);
+      if (booking) {
+        const statusMessages = {
+          confirmed: 'Votre réservation a été confirmée',
+          rejected: 'Votre réservation a été refusée',
+          completed: 'Votre réservation est terminée',
+          cancelled: 'Votre réservation a été annulée',
+        };
+        await supabase.from('notifications').insert({
+          user_id: booking.client_id,
+          type: 'booking',
+          title: `Réservation ${status === 'confirmed' ? 'confirmée' : status === 'rejected' ? 'refusée' : status === 'completed' ? 'terminée' : 'annulée'}`,
+          body: statusMessages[status],
+          link: '/bookings',
+        });
+      }
+      await loadData();
+    }
+    setSaving(false);
   }
 
   async function deletePortfolioItem(id: string) {
@@ -683,6 +776,7 @@ export default function ProviderDashboardPage() {
     { id: 'profile', label: 'Mon profil', icon: Settings },
     { id: 'reviews', label: 'Avis', icon: Star },
     { id: 'availability', label: 'Disponibilité', icon: Calendar },
+    { id: 'bookings', label: 'Réservations', icon: MessageCircle },
   ];
 
   return (
@@ -1379,6 +1473,109 @@ export default function ProviderDashboardPage() {
           </div>
 
           <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Créneaux spécifiques</h3>
+            <p className="mt-1 text-sm text-neutral-500">Ajoutez des créneaux de disponibilité pour des dates spécifiques</p>
+            
+            <div className="mt-4">
+              <button
+                onClick={() => setShowSlotForm(true)}
+                className="btn-primary"
+              >
+                <Plus size={18} />
+                Ajouter un créneau
+              </button>
+            </div>
+
+            {showSlotForm && (
+              <div className="mt-6 rounded-lg border border-neutral-200 p-4">
+                <h4 className="font-semibold text-neutral-900">Nouveau créneau</h4>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="label">Date</label>
+                    <input
+                      type="date"
+                      value={slotForm.date}
+                      onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
+                      className="input-field"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Heure de début</label>
+                    <input
+                      type="time"
+                      value={slotForm.start_time}
+                      onChange={(e) => setSlotForm({ ...slotForm, start_time: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Heure de fin</label>
+                    <input
+                      type="time"
+                      value={slotForm.end_time}
+                      onChange={(e) => setSlotForm({ ...slotForm, end_time: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="slot-available"
+                    checked={slotForm.is_available}
+                    onChange={(e) => setSlotForm({ ...slotForm, is_available: e.target.checked })}
+                    className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <label htmlFor="slot-available" className="text-sm text-neutral-700">Disponible</label>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={createAvailabilitySlot}
+                    disabled={saving}
+                    className="btn-primary"
+                  >
+                    {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                    Enregistrer
+                  </button>
+                  <button
+                    onClick={() => setShowSlotForm(false)}
+                    className="btn-secondary"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 space-y-2">
+              {availabilitySlots.length === 0 ? (
+                <p className="text-sm text-neutral-500">Aucun créneau spécifique défini</p>
+              ) : (
+                availabilitySlots.map((slot) => (
+                  <div key={slot.id} className="flex items-center justify-between rounded-lg border border-neutral-200 p-3">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="font-medium text-neutral-900">{new Date(slot.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                        <p className="text-sm text-neutral-500">{slot.start_time} - {slot.end_time}</p>
+                      </div>
+                      <span className={`badge ${slot.is_available ? 'bg-success-50 text-success-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                        {slot.is_available ? 'Disponible' : 'Indisponible'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => deleteAvailabilitySlot(slot.id)}
+                      className="text-error-600 hover:bg-error-50 rounded-lg p-2"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="card p-6">
             <h3 className="text-lg font-semibold text-neutral-900">Statut actuel</h3>
             <div className="mt-4">
               <label className="label">Disponibilité générale</label>
@@ -1401,6 +1598,110 @@ export default function ProviderDashboardPage() {
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 Mettre à jour le statut
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bookings management */}
+      {tab === 'bookings' && (
+        <div className="mx-auto max-w-4xl space-y-6">
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-neutral-900">Réservations</h3>
+            <p className="mt-1 text-sm text-neutral-500">Gérez vos réservations de clients</p>
+            
+            <div className="mt-6 space-y-4">
+              {bookings.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageCircle size={48} className="mx-auto text-neutral-300" />
+                  <p className="mt-3 text-sm text-neutral-500">Aucune réservation pour le moment</p>
+                </div>
+              ) : (
+                bookings.map((booking) => (
+                  <div key={booking.id} className="rounded-lg border border-neutral-200 p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        {booking.client?.avatar_url ? (
+                          <img src={booking.client.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-lg font-semibold text-primary-700">
+                            {booking.client?.full_name?.[0]?.toUpperCase() ?? '?'}
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-semibold text-neutral-900">{booking.client?.full_name || 'Client'}</p>
+                          <p className="text-sm text-neutral-500">{booking.client?.email || ''}</p>
+                          <div className="mt-2 flex flex-wrap gap-2 text-sm text-neutral-600">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={14} />
+                              {new Date(booking.scheduled_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={14} />
+                              {new Date(booking.scheduled_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin size={14} />
+                              {booking.location_type === 'remote' ? 'À distance' : booking.location_type === 'in_person' ? 'En personne' : 'Hybride'}
+                            </span>
+                          </div>
+                          {booking.service_type && (
+                            <p className="mt-1 text-sm text-neutral-600">Service: {booking.service_type}</p>
+                          )}
+                          {booking.notes && (
+                            <p className="mt-1 text-sm text-neutral-500 italic">Note: {booking.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`badge ${
+                          booking.status === 'pending' ? 'bg-warning-50 text-warning-700' :
+                          booking.status === 'confirmed' ? 'bg-success-50 text-success-700' :
+                          booking.status === 'completed' ? 'bg-primary-50 text-primary-700' :
+                          booking.status === 'rejected' ? 'bg-error-50 text-error-700' :
+                          'bg-neutral-100 text-neutral-600'
+                        }`}>
+                          {booking.status === 'pending' ? 'En attente' :
+                           booking.status === 'confirmed' ? 'Confirmée' :
+                           booking.status === 'completed' ? 'Terminée' :
+                           booking.status === 'rejected' ? 'Refusée' :
+                           booking.status === 'cancelled' ? 'Annulée' : booking.status}
+                        </span>
+                        {booking.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                              disabled={saving}
+                              className="btn-secondary text-xs"
+                            >
+                              <Check size={14} />
+                              Accepter
+                            </button>
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'rejected')}
+                              disabled={saving}
+                              className="btn-secondary text-xs text-error-600 hover:bg-error-50"
+                            >
+                              <X size={14} />
+                              Refuser
+                            </button>
+                          </div>
+                        )}
+                        {booking.status === 'confirmed' && (
+                          <button
+                            onClick={() => updateBookingStatus(booking.id, 'completed')}
+                            disabled={saving}
+                            className="btn-secondary text-xs"
+                          >
+                            <CheckCircle2 size={14} />
+                            Marquer terminée
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
