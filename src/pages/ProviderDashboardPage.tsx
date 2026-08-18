@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { uploadAvatar, uploadBanner, uploadPortfolioPhoto } from '@/lib/storage';
+import { sendEmail, generateBookingConfirmationEmail, generateBookingRequestEmail } from '@/lib/email';
 import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
@@ -693,6 +694,29 @@ export default function ProviderDashboardPage() {
           body: statusMessages[status],
           link: '/bookings',
         });
+
+        // Send email notification for confirmed bookings
+        if (status === 'confirmed' && booking.client?.email) {
+          const date = new Date(booking.scheduled_at).toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          });
+          const time = new Date(booking.scheduled_at).toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          
+          const emailOptions = generateBookingConfirmationEmail(
+            provider?.business_name || 'Prestataire',
+            booking.client.full_name || 'Client',
+            date,
+            time,
+            booking.service_type || 'Service'
+          );
+          emailOptions.to = booking.client.email;
+          await sendEmail(emailOptions);
+        }
 
         // Generate invoice when booking is completed
         if (status === 'completed' && booking.price) {

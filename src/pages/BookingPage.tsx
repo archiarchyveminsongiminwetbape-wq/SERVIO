@@ -4,6 +4,7 @@ import { Calendar, Clock, MapPin, Video, User, Check, X, Loader2 } from 'lucide-
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
+import { sendEmail, generateBookingRequestEmail } from '@/lib/email';
 import type { ProviderProfile, Booking, AvailabilitySlot } from '@/types';
 
 export default function BookingPage() {
@@ -117,6 +118,34 @@ export default function BookingPage() {
       alert(t.common.error);
       setSubmitting(false);
     } else {
+      // Send email notification to provider
+      if (provider.user_id) {
+        const { data: providerProfile } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', provider.user_id)
+          .single();
+
+        if (providerProfile?.email) {
+          const date = new Date(selectedSlot.date).toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          });
+          const time = selectedSlot.start_time;
+          
+          const emailOptions = generateBookingRequestEmail(
+            provider.business_name,
+            profile?.full_name || 'Client',
+            date,
+            time,
+            serviceType
+          );
+          emailOptions.to = providerProfile.email;
+          await sendEmail(emailOptions);
+        }
+      }
+
       setStep('success');
       setSubmitting(false);
     }
