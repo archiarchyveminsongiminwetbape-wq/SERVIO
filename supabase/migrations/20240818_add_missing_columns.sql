@@ -63,8 +63,11 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER IF NOT EXISTS update_invoices_updated_at BEFORE UPDATE ON invoices
+-- Drop trigger if exists then create
+DROP TRIGGER IF EXISTS update_invoices_updated_at ON invoices;
+CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER IF NOT EXISTS update_availability_slots_updated_at BEFORE UPDATE ON availability_slots
+DROP TRIGGER IF EXISTS update_availability_slots_updated_at ON availability_slots;
+CREATE TRIGGER update_availability_slots_updated_at BEFORE UPDATE ON availability_slots
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
