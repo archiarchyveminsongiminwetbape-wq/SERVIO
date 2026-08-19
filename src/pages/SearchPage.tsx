@@ -279,7 +279,7 @@ export default function SearchPage() {
     const groups: Record<string, ProviderProfile[]> = {};
     
     providers.forEach((provider) => {
-      const categorySlug = provider.category_slug || 'other';
+      const categorySlug = provider.category?.slug || 'other';
       if (!groups[categorySlug]) {
         groups[categorySlug] = [];
       }
