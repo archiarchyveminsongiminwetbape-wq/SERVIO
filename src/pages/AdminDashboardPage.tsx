@@ -187,10 +187,20 @@ export default function AdminDashboardPage() {
     setActionLoading(true);
 
     try {
-      const response = await fetch('/api/delete-user', {
+      // Use Supabase Edge Function instead of local API
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        alert('Configuration Supabase manquante');
+        return;
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
         },
         body: JSON.stringify({ userId }),
       });
