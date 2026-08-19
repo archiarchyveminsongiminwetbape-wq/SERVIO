@@ -64,21 +64,22 @@ export default function LandingPage() {
           <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary-400/20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+        <div className="relative mx-auto max-w-7xl px-4 py-12 sm:py-16 md:py-20 lg:py-24 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-6 sm:mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
-              <Sparkles size={16} className="text-primary-200" />
+            <div className="mb-4 sm:mb-6 md:mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
+              <Sparkles size={14} className="sm:hidden" />
+              <Sparkles size={16} className="hidden sm:block" />
               {t.landing.platformBadge}
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight tracking-tight text-white animate-slide-up">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white animate-slide-up">
               {t.landing.heroTitle}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-primary-100">{t.landing.heroSubtitle}</span>
             </h1>
-            <p className="mx-auto mt-4 sm:mt-6 lg:mt-8 max-w-2xl text-base sm:text-lg lg:text-xl leading-relaxed text-primary-100 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <p className="mx-auto mt-3 sm:mt-4 md:mt-6 lg:mt-8 max-w-2xl text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed text-primary-100 animate-slide-up" style={{ animationDelay: '0.1s' }}>
               {t.landing.heroDescription}
             </p>
 
-            <form onSubmit={handleSearch} className="mx-auto mt-6 sm:mt-8 lg:mt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <form onSubmit={handleSearch} className="mx-auto mt-4 sm:mt-6 md:mt-8 lg:mt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <GlassCard variant={darkMode ? 'dark' : 'default'} className="flex max-w-2xl flex-col sm:flex-row items-center gap-2 sm:gap-3 p-2">
                 <GlassInput
                   type="text"
@@ -86,18 +87,19 @@ export default function LandingPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.search.placeholder}
                   variant={darkMode ? 'dark' : 'default'}
-                  icon={<Search size={20} className="text-neutral-400" />}
+                  icon={<Search size={18} className="sm:hidden" />}
+                  iconDesktop={<Search size={20} className="hidden sm:block" />}
                   className="flex-1"
                 />
-                <button type="submit" className="btn-primary rounded-xl sm:rounded-2xl px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto">
+                <button type="submit" className="btn-primary rounded-xl sm:rounded-2xl px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 w-full sm:w-auto text-sm sm:text-base">
                   {t.common.search}
-                  <ArrowRight size={18} className="hidden sm:inline" />
+                  <ArrowRight size={16} className="hidden sm:inline" />
                 </button>
               </GlassCard>
             </form>
 
-            <div className="mt-6 sm:mt-8 lg:mt-10 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-6 sm:gap-y-3 gap-y-2 text-xs sm:text-sm text-primary-100 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><ShieldCheck size={14} className="sm:hidden" /><ShieldCheck size={18} className="hidden sm:inline" /> {t.landing.verifiedProfiles}</span>
+            <div className="mt-4 sm:mt-6 md:mt-8 lg:mt-10 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 md:gap-x-6 gap-y-2 sm:gap-y-3 text-xs sm:text-sm text-primary-100 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-full backdrop-blur-sm"><ShieldCheck size={12} className="sm:hidden" /><ShieldCheck size={14} className="sm:hidden" /><ShieldCheck size={18} className="hidden md:inline" /> {t.landing.verifiedProfiles}</span>
               <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><MessageSquare size={14} className="sm:hidden" /><MessageSquare size={18} className="hidden sm:inline" /> {t.landing.integratedMessaging}</span>
               <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><Star size={14} className="sm:hidden" /><Star size={18} className="hidden sm:inline" /> {t.landing.realReviews}</span>
             </div>

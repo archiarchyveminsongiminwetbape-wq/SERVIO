@@ -335,22 +335,53 @@ function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-neutral-200 bg-white px-4 py-3 md:hidden" role="menu">
-          <Link to="/" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Accueil</Link>
-          <Link to="/search" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Explorer</Link>
-          {user ? (
-            <>
-              <Link to="/messages" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Messagerie</Link>
-              <Link to="/favorites" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Favoris</Link>
-              <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-neutral-700" role="menuitem">Tableau de bord</Link>
-              <button onClick={handleSignOut} className="block w-full py-2 text-left text-sm font-medium text-error-600" role="menuitem">Déconnexion</button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600" role="menuitem">Connexion</Link>
-              <Link to="/signup" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-primary-600" role="menuitem">S'inscrire</Link>
-            </>
-          )}
+        <div className="border-t border-neutral-200 bg-white px-4 py-4 md:hidden" role="menu">
+          <div className="flex flex-col gap-1">
+            <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
+              <Briefcase size={20} />
+              Accueil
+            </Link>
+            <Link to="/search" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
+              <Briefcase size={20} />
+              Explorer
+            </Link>
+            {user ? (
+              <>
+                <Link to="/messages" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
+                  <MessageSquare size={20} />
+                  Messagerie
+                </Link>
+                <Link to="/favorites" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
+                  <Heart size={20} />
+                  Favoris
+                </Link>
+                <Link to="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
+                  <MessageSquare size={20} />
+                  Notifications
+                </Link>
+                <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
+                  <LayoutDashboard size={20} />
+                  Tableau de bord
+                </Link>
+                <div className="border-t border-neutral-200 my-2" />
+                <button onClick={handleSignOut} className="flex items-center gap-3 py-3 text-base font-medium text-error-600 rounded-lg hover:bg-error-50 px-3 w-full text-left" role="menuitem">
+                  <LogOut size={20} />
+                  Déconnexion
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="border-t border-neutral-200 my-2" />
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 py-3 text-base font-medium text-primary-600 rounded-lg hover:bg-primary-50 px-3" role="menuitem">
+                  <User size={20} />
+                  Connexion
+                </Link>
+                <Link to="/signup" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 py-3 text-base font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 px-3" role="menuitem">
+                  S'inscrire
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       )}
     </nav>

@@ -88,6 +88,7 @@ interface GlassInputProps {
   className?: string;
   variant?: 'default' | 'dark';
   icon?: ReactNode;
+  iconDesktop?: ReactNode;
 }
 
 export function GlassInput({ 
@@ -97,7 +98,8 @@ export function GlassInput({
   onChange,
   className = '',
   variant = 'default',
-  icon
+  icon,
+  iconDesktop
 }: GlassInputProps) {
   const variantClasses = {
     default: 'glass-input',
@@ -107,8 +109,13 @@ export function GlassInput({
   return (
     <div className="relative">
       {icon && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 sm:hidden">
           {icon}
+        </div>
+      )}
+      {iconDesktop && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 hidden sm:block">
+          {iconDesktop}
         </div>
       )}
       <input
@@ -116,7 +123,7 @@ export function GlassInput({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className={`${variantClasses} w-full ${icon ? 'pl-12' : 'px-4'} py-3 ${className}`}
+        className={`${variantClasses} w-full ${(icon || iconDesktop) ? 'pl-12' : 'px-4'} py-3 ${className}`}
       />
     </div>
   );
