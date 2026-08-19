@@ -569,52 +569,20 @@ export default function SearchPage() {
                   {t.common.search}
                 </button>
               </BentoCard>
-            ) : providers.length > 0 ? (
-              <>
-                {Object.entries(groupedProviders).map(([categorySlug, categoryProviders]) => (
-                  <div key={categorySlug} className="mb-6 sm:mb-8">
-                    <div className="mb-3 sm:mb-4 flex items-center gap-2">
-                      <CategoryIcon name={categorySlug} size={20} />
-                      <h2 className="text-lg sm:text-xl font-semibold text-neutral-900">
-                        {getCategoryName(categorySlug)}
-                      </h2>
-                      <span className="text-sm text-neutral-500">({categoryProviders.length})</span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {categoryProviders.map((p) => (
-                        <ProviderCard key={p.id} provider={p} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Infinite Scroll Trigger */}
-                {currentPage * ITEMS_PER_PAGE < totalCount && (
-                  <div ref={loadMoreRef} className="flex items-center justify-center py-8">
-                    {loadingMore && (
-                      <div className="flex items-center gap-2 text-neutral-500">
-                        <Loader2 size={16} className="animate-spin" />
-                        <span className="text-sm">Chargement...</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
             ) : (
-              <BentoCard colSpan={3} className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
-                <Frown size={40} className="sm:hidden text-neutral-300" />
-                <Frown size={48} className="hidden sm:block text-neutral-300" />
-                <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">Aucun résultat</h3>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Essayez de modifier vos critères de recherche.
-                </p>
-                {hasFilters && (
-                  <button onClick={clearFilters} className="btn-secondary mt-4">
-                    <X size={16} />
-                    Effacer les filtres
-                  </button>
-                )}
+              <BentoCard className="col-span-full">
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <AlertCircle size={48} className="hidden sm:block text-neutral-400" />
+                  <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">Aucun profil disponible</h3>
+                  <p className="mt-1 text-sm text-neutral-500">Les profils seront bientôt disponibles.</p>
+                </div>
               </BentoCard>
+            )}
+            {hasFilters && (
+              <button onClick={clearFilters} className="btn-secondary mt-4">
+                <X size={16} />
+                Effacer les filtres
+              </button>
             )}
           </BentoGrid>
         </div>
