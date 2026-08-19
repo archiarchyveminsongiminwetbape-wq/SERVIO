@@ -1,6 +1,7 @@
 -- Create RPC function to delete user by email from auth and database
 -- This function requires service role key to execute due to auth.users deletion
 -- WARNING: This operation is irreversible
+-- NOTE: After deletion, the email can be reused for new account creation
 
 CREATE OR REPLACE FUNCTION delete_user_by_email(user_email TEXT)
 RETURNS JSONB
@@ -74,11 +75,12 @@ BEGIN
     
     -- Delete from auth.users (requires admin privileges)
     -- This is done via the auth schema
+    -- After this deletion, the email can be reused for new account creation
     DELETE FROM auth.users WHERE id = target_user_id;
     
     result := jsonb_build_object(
         'success', true,
-        'message', 'User and all related data deleted successfully',
+        'message', 'User and all related data deleted successfully. The email can now be reused for new account creation.',
         'user_id', target_user_id,
         'email', user_email
     );
