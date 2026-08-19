@@ -37,6 +37,9 @@ BEGIN
     -- Delete from messages
     DELETE FROM messages WHERE sender_id = target_user_id;
     
+    -- Delete from conversation_participants
+    DELETE FROM conversation_participants WHERE user_id = target_user_id;
+    
     -- Delete from favorites
     DELETE FROM favorites WHERE user_id = target_user_id;
     
@@ -127,6 +130,9 @@ BEGIN
     
     -- Delete from messages
     DELETE FROM messages WHERE sender_id = target_user_id;
+    
+    -- Delete from conversation_participants
+    DELETE FROM conversation_participants WHERE user_id = target_user_id;
     
     -- Delete from favorites
     DELETE FROM favorites WHERE user_id = target_user_id;
