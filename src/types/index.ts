@@ -241,40 +241,6 @@ export interface Notification {
   created_at: string;
 }
 
-export interface Booking {
-  id: string;
-  client_id: string;
-  provider_id: string;
-  service_type: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  location_type: LocationType;
-  location_address: string | null;
-  notes: string | null;
-  status: BookingStatus;
-  price: number | null;
-  currency: string;
-  created_at: string;
-  updated_at: string;
-  confirmed_at: string | null;
-  cancelled_at: string | null;
-  cancellation_reason: string | null;
-  client?: Profile | null;
-  provider?: ProviderProfile | null;
-}
-
-export interface AvailabilitySlot {
-  id: string;
-  provider_id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  is_available: boolean;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Payment {
   id: string;
   booking_id: string | null;
@@ -297,20 +263,18 @@ export interface Payment {
 
 export interface Invoice {
   id: string;
-  payment_id: string | null;
-  booking_id: string | null;
+  booking_id: string;
+  client_id: string;
+  provider_id: string;
   invoice_number: string;
-  issued_at: string;
-  due_at: string;
-  paid_at: string | null;
-  status: InvoiceStatus;
-  subtotal: number;
-  tax: number;
-  total: number;
+  amount: number;
   currency: string;
-  notes: string | null;
+  status: InvoiceStatus;
+  due_date: string;
+  paid_at: string | null;
   created_at: string;
   updated_at: string;
-  payment?: Payment | null;
+  client?: Profile | null;
+  provider?: ProviderProfile | null;
   booking?: Booking | null;
 }
