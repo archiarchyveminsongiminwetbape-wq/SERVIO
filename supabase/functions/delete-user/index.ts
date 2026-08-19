@@ -41,7 +41,7 @@ serve(async (req) => {
     }
 
     // Call the RPC function to delete database records
-    const { error: dbError } = await supabase.rpc('delete_user_account', { user_id: userId })
+    const { error: dbError } = await supabase.rpc('delete_user_by_id', { target_user_id: userId })
     
     if (dbError) {
       console.error('Error deleting database records:', dbError)
