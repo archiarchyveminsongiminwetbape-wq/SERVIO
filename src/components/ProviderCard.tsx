@@ -59,7 +59,7 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
       to={`/provider/${provider.slug}`}
       className="group card overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
     >
-      <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden bg-neutral-100">
+      <div className="relative h-40 sm:h-48 md:h-64 overflow-hidden bg-neutral-100">
         {provider.banner_url ? (
           <OptimizedImage
             src={provider.banner_url}
@@ -92,32 +92,32 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
         </div>
       </div>
 
-      <div className="p-6 sm:p-7 md:p-8">
+      <div className="p-5 sm:p-6 md:p-8">
         <div className="flex items-start gap-3 sm:gap-4">
-          <div className="flex-shrink-0 -mt-8 sm:-mt-10 md:-mt-12">
+          <div className="flex-shrink-0 -mt-6 sm:-mt-8 md:-mt-12">
             {provider.avatar_url ? (
               <OptimizedImage
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
+                className="h-14 w-14 sm:h-16 sm:w-16 md:h-24 md:w-24 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-base sm:text-lg md:text-xl font-bold text-white ring-3 sm:ring-4 ring-white shadow-lg">
+              <div className="flex h-14 w-14 sm:h-16 sm:w-16 md:h-24 md:w-24 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-base sm:text-lg md:text-2xl font-bold text-white ring-3 sm:ring-4 ring-white shadow-lg">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
           </div>
-          <div className="min-w-0 flex-1 pt-2">
+          <div className="min-w-0 flex-1 pt-1">
             <h3 className="truncate text-base sm:text-lg md:text-2xl font-bold text-neutral-900 group-hover:text-primary-700 transition-colors">
               {provider.business_name}
             </h3>
-            <p className="truncate text-sm sm:text-base md:text-lg text-neutral-500 mt-1">{provider.headline}</p>
+            <p className="truncate text-sm sm:text-base md:text-lg text-neutral-500 mt-0.5 sm:mt-1">{provider.headline}</p>
           </div>
         </div>
 
         {provider.city && (
-          <div className="mt-3 sm:mt-4 flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-neutral-600">
+          <div className="mt-3 sm:mt-4 flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm md:text-base text-neutral-600">
             <MapPin size={14} className="sm:size-16 text-primary-600" />
             {provider.city}
             {provider.remote_service && <span className="text-neutral-400">· Service à distance</span>}
@@ -126,12 +126,12 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
 
         <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
           {provider.skills.slice(0, 3).map((skill) => (
-            <span key={skill} className="badge bg-primary-50 text-primary-700 border border-primary-100 text-[10px] sm:text-xs">
+            <span key={skill} className="badge bg-primary-50 text-primary-700 border border-primary-100 text-[10px] sm:text-xs md:text-sm">
               {skill}
             </span>
           ))}
           {provider.skills.length > 3 && (
-            <span className="badge bg-neutral-100 text-neutral-600 border border-neutral-200 text-[10px] sm:text-xs">
+            <span className="badge bg-neutral-100 text-neutral-600 border border-neutral-200 text-[10px] sm:text-xs md:text-sm">
               +{provider.skills.length - 3}
             </span>
           )}
@@ -140,7 +140,7 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
         <div className="mt-3 sm:mt-4 flex items-center justify-between border-t border-neutral-100 pt-3 sm:pt-4">
           <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
           {provider.price_range && (
-            <span className="text-xs sm:text-sm font-bold text-primary-700">{provider.price_range}</span>
+            <span className="text-xs sm:text-sm md:text-base font-bold text-primary-700">{provider.price_range}</span>
           )}
         </div>
       </div>
