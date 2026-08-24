@@ -99,14 +99,8 @@ export default function SearchPage() {
       if (categorySlug) {
         const cat = categoryTaxonomy.find((c) => c.slug === categorySlug);
         if (cat) {
-          if (selectedSubCat) {
-            const subCat = subCategories.find((sc) => sc.slug === selectedSubCat);
-            if (subCat) {
-              q = q.ilike('category_slug', `%${subCat.slug}%`);
-            }
-          } else {
-            q = q.ilike('category_slug', `%${cat.slug}%`);
-          }
+          // Filter by category_id instead of category_slug since category_slug column doesn't exist
+          q = q.eq('category_id', cat.id);
         }
       }
       if (city.trim()) {

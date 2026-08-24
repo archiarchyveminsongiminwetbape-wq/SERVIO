@@ -130,7 +130,7 @@ export default function ProviderDashboardPage() {
     if (!user) return;
     setLoading(true);
     const [provRes, catRes, portRes, revRes, bookingRes, invoiceRes] = await Promise.all([
-      supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, category_slug, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).maybeSingle(),
+      supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).maybeSingle(),
       supabase.from('categories').select('id, name, slug, icon, parent_id, sort_order').order('sort_order'),
       supabase.from('portfolio_items').select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at').eq('provider_id', user.id).order('sort_order'),
       supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, updated_at, provider_response, provider_response_at, author:profiles(id, full_name, avatar_url)').eq('provider_id', user.id).order('created_at', { ascending: false }),
