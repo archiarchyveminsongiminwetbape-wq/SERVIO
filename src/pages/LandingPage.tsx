@@ -27,13 +27,22 @@ export default function LandingPage() {
 
   useEffect(() => {
     async function loadData() {
-      const featRes = await supabase
-        .from('provider_profiles')
-        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, category_slug, experience_years, languages, validation_status, is_featured, description, website, phone, email, social_links, response_time_hours, created_at, category:categories(id, name, slug)')
-        .order('is_featured', { ascending: false })
-        .order('rating_avg', { ascending: false })
-        .limit(6);
-      setFeatured(featRes.data as ProviderProfile[] ?? []);
+      try {
+        const featRes = await supabase
+          .from('provider_profiles')
+          .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, category_slug, experience_years, languages, validation_status, is_featured, description, website, phone, email, social_links, response_time_hours, created_at')
+          .order('is_featured', { ascending: false })
+          .order('rating_avg', { ascending: false })
+          .limit(6);
+        
+        console.log('Featured providers data:', featRes.data);
+        console.log('Featured providers error:', featRes.error);
+        
+        setFeatured(featRes.data as ProviderProfile[] ?? []);
+      } catch (error) {
+        console.error('Error loading featured providers:', error);
+        setFeatured([]);
+      }
       setLoading(false);
     }
     loadData();
