@@ -1,11 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, Users, Award, Clock, Quote, Check, ChevronRight } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useI18n } from '@/context/I18nContext';
-import type { Category, ProviderProfile } from '@/types';
-import ProviderCard from '@/components/ProviderCard';
 import CategoryIcon from '@/components/CategoryIcon';
 import { BentoGrid, BentoCard, BentoSection } from '@/components/BentoGrid';
 import { BentoStatCard, BentoFeatureCard, BentoActionCard } from '@/components/BentoCard';
@@ -16,37 +13,12 @@ export default function LandingPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { darkMode } = useDarkMode();
-  const [featured, setFeatured] = useState<ProviderProfile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
   const displayedCategories = showAllCategories 
     ? categoryTaxonomy 
     : categoryTaxonomy.slice(0, 12);
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const featRes = await supabase
-          .from('provider_profiles')
-          .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, category_slug, experience_years, languages, validation_status, is_featured, description, website, phone, email, social_links, response_time_hours, created_at')
-          .order('is_featured', { ascending: false })
-          .order('rating_avg', { ascending: false })
-          .limit(6);
-        
-        console.log('Featured providers data:', featRes.data);
-        console.log('Featured providers error:', featRes.error);
-        
-        setFeatured(featRes.data as ProviderProfile[] ?? []);
-      } catch (error) {
-        console.error('Error loading featured providers:', error);
-        setFeatured([]);
-      }
-      setLoading(false);
-    }
-    loadData();
-  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,51 +127,6 @@ export default function LandingPage() {
               >
                 {showAllCategories ? t.landing.seeLess : t.landing.seeAllSectors.replace('{count}', categoryTaxonomy.length.toString())}
               </button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Featured Providers */}
-      <section className="bg-gradient-to-b from-neutral-50 to-white py-16 sm:py-20 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-12">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.featuredProviders}</h2>
-              <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.featuredProvidersSubtitle}</p>
-            </div>
-            <Link to="/search" className="btn-secondary text-sm sm:text-base">
-              Voir tous les prestataires
-              <ArrowRight size={16} className="hidden sm:inline ml-2" />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="card h-96 animate-pulse overflow-hidden">
-                  <div className="h-48 bg-gradient-to-br from-neutral-200 to-neutral-300" />
-                  <div className="p-6">
-                    <div className="h-5 w-3/4 rounded bg-neutral-200 mb-3" />
-                    <div className="h-4 w-1/2 rounded bg-neutral-200 mb-3" />
-                    <div className="h-4 w-2/3 rounded bg-neutral-200 mb-3" />
-                    <div className="h-4 w-1/2 rounded bg-neutral-200" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : featured.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {featured.map((p) => (
-                <ProviderCard key={p.id} provider={p} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
-                <Search size={32} className="text-neutral-400" />
-              </div>
-              <p className="text-lg text-neutral-600">{t.search.noResults}</p>
             </div>
           )}
         </div>
