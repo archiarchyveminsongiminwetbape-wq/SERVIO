@@ -83,13 +83,13 @@ export default function ProviderProfilePage() {
 
       const { data: provData, error: provError } = await supabase
         .from('provider_profiles')
-        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, email, social_links, response_time_hours, created_at, category:categories(id, name, slug)')
+        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, response_time_hours, created_at, category:categories(id, name, slug)')
         .eq('slug', slug)
         .maybeSingle();
 
       if (!provData) {
         console.log('Provider profile not found for slug:', slug);
-        console.log('Error:', provError);
+        console.log('Error details:', JSON.stringify(provError, null, 2));
         setLoading(false);
         return;
       }
