@@ -62,7 +62,7 @@ export default function ProviderProfileEditPage() {
     // Load categories
     const { data: categoriesData } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, slug, icon, parent_id, sort_order')
       .order('sort_order');
     
     if (categoriesData) {
@@ -72,7 +72,7 @@ export default function ProviderProfileEditPage() {
     // Load provider profile
     const { data: profileData } = await supabase
       .from('provider_profiles')
-      .select('*')
+      .select('id, user_id, business_name, slug, headline, description, avatar_url, banner_url, category_id, skills, experience_years, languages, certifications, city, country, service_area, remote_service, phone, website, social_links, price_range, availability, validation_status, validation_note')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -105,7 +105,7 @@ export default function ProviderProfileEditPage() {
     // Load portfolio items
     const { data: portfolioData } = await supabase
       .from('portfolio_items')
-      .select('*')
+      .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at')
       .eq('provider_id', profileData?.id)
       .order('sort_order');
 

@@ -59,13 +59,13 @@ export default function AdminDashboardPage() {
   async function loadAllData() {
     setLoading(true);
     const [pendingRes, profilesRes, providersRes, reportsRes, statsRes, catRes, auditRes] = await Promise.all([
-      supabase.from('provider_profiles').select('*, category:categories(*)').eq('validation_status', 'pending').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('provider_profiles').select('*, category:categories(*)').order('created_at', { ascending: false }),
-      supabase.from('reports').select('*').order('created_at', { ascending: false }),
+      supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, city, skills, badges, validation_status, validation_note, category_id, category:categories(id, name, slug)').eq('validation_status', 'pending').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, full_name, email, avatar_url, role, status, created_at').order('created_at', { ascending: false }),
+      supabase.from('provider_profiles').select('id, user_id, business_name, headline, avatar_url, city, skills, badges, validation_status, validation_note, phone, website, price_range, category_id, category:categories(id, name, slug)').order('created_at', { ascending: false }),
+      supabase.from('reports').select('id, reporter_id, reported_id, reported_type, reason, description, status, created_at, resolved_by, resolved_at').order('created_at', { ascending: false }),
       supabase.rpc('get_admin_stats'),
-      supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('admin_actions').select('*, admin:profiles!admin_actions_admin_id_fkey(full_name, email)').order('created_at', { ascending: false }).limit(50),
+      supabase.from('categories').select('id, name, slug, icon, description, parent_id, sort_order').order('sort_order'),
+      supabase.from('admin_actions').select('id, admin_id, action_type, target_type, target_id, details, created_at, admin:profiles!admin_actions_admin_id_fkey(full_name, email)').order('created_at', { ascending: false }).limit(50),
     ]);
 
     setPendingProviders(pendingRes.data as ProviderProfile[] ?? []);

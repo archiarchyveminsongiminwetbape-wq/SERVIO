@@ -130,12 +130,12 @@ export default function ProviderDashboardPage() {
     if (!user) return;
     setLoading(true);
     const [provRes, catRes, portRes, revRes, bookingRes, invoiceRes] = await Promise.all([
-      supabase.from('provider_profiles').select('*, category:categories(*)').eq('user_id', user.id).maybeSingle(),
-      supabase.from('categories').select('*').order('sort_order'),
-      supabase.from('portfolio_items').select('*').eq('provider_id', user.id).order('sort_order'),
-      supabase.from('reviews').select('*, author:profiles(full_name, avatar_url)').eq('provider_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('bookings').select('*, client:profiles(full_name, email, avatar_url)').eq('provider_id', user.id).order('scheduled_at', { ascending: true }),
-      supabase.from('invoices').select('*, client:profiles(full_name, email), booking:bookings(*)').eq('provider_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, category_slug, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).maybeSingle(),
+      supabase.from('categories').select('id, name, slug, icon, parent_id, sort_order').order('sort_order'),
+      supabase.from('portfolio_items').select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at').eq('provider_id', user.id).order('sort_order'),
+      supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, updated_at, provider_response, provider_response_at, author:profiles(id, full_name, avatar_url)').eq('provider_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('bookings').select('id, client_id, provider_id, scheduled_at, status, service_type, duration, location_type, location_address, notes, price, currency, payment_method, created_at, client:profiles(id, full_name, email, avatar_url)').eq('provider_id', user.id).order('scheduled_at', { ascending: true }),
+      supabase.from('invoices').select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_at, created_at, client:profiles(id, full_name, email), booking:bookings(id, service_type, scheduled_at)').eq('provider_id', user.id).order('created_at', { ascending: false }),
     ]);
 
     if (provRes.data) {
@@ -631,7 +631,7 @@ export default function ProviderDashboardPage() {
     const today = new Date().toISOString().split('T')[0];
     const { data } = await supabase
       .from('availability_slots')
-      .select('*')
+      .select('id, provider_id, date, start_time, end_time, is_available')
       .eq('provider_id', provider.id)
       .gte('date', today)
       .order('date', { ascending: true })
