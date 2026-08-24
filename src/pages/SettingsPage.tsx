@@ -104,7 +104,7 @@ export default function SettingsPage() {
 
         if (!response.ok) {
           console.error('Error calling delete-user API:', data);
-          alert(data.error || 'Erreur lors de la suppression du compte.');
+          alert(data.error || t.settings.deleteAccountError);
           return;
         }
 
@@ -112,7 +112,7 @@ export default function SettingsPage() {
         await signOut();
         navigate('/');
         
-        alert('Votre compte a été supprimé avec succès.');
+        alert(t.settings.deleteAccountSuccess);
       } catch (error) {
         console.error('Error deleting account:', error);
         alert(t.common.error);
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-neutral-900">{profile.full_name || 'Utilisateur'}</p>
+                      <p className="font-medium text-neutral-900">{profile.full_name || t.settings.user}</p>
                       <p className="text-sm text-neutral-600">{profile.email}</p>
                     </div>
                   </div>

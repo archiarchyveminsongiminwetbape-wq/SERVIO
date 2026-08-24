@@ -203,7 +203,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         {profile?.role === 'admin' ? <Shield size={16} /> : <LayoutDashboard size={16} />}
-                        Tableau de bord
+                        {t.nav.dashboard}
                       </Link>
                       <Link
                         to="/favorites"
@@ -212,7 +212,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <Heart size={16} />
-                        Mes favoris
+                        {t.nav.myFavorites}
                       </Link>
                       <Link
                         to="/messages"
@@ -221,7 +221,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <MessageSquare size={16} />
-                        Messagerie
+                        {t.nav.messages}
                       </Link>
                       <Link
                         to="/notifications"
@@ -230,7 +230,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <MessageSquare size={16} />
-                        Notifications
+                        {t.nav.notifications}
                       </Link>
                       <Link
                         to="/profile"
@@ -239,7 +239,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <UserCircle size={16} />
-                        Mon profil
+                        {t.nav.myProfile}
                       </Link>
                       <Link
                         to="/settings"
@@ -248,7 +248,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <Settings size={16} />
-                        Paramètres
+                        {t.nav.settings}
                       </Link>
                       <div className="my-1 border-t border-neutral-100" />
                       <button
@@ -257,7 +257,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <LogOut size={16} />
-                        Déconnexion
+                        {t.nav.logout}
                       </button>
                     </div>
                   </>
@@ -272,7 +272,7 @@ function Navbar() {
                   className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-neutral-100"
                   aria-expanded={langMenuOpen}
                   aria-haspopup="true"
-                  aria-label="Changer la langue"
+                  aria-label={t.nav.changeLanguage}
                 >
                   <Globe size={16} />
                   <span className="text-sm font-medium text-neutral-700">
@@ -293,7 +293,7 @@ function Navbar() {
                             language === lang.code ? 'bg-primary-50 text-primary-700' : 'text-neutral-700'
                           }`}
                           role="menuitem"
-                          aria-label={`Changer la langue en ${lang.name}`}
+                          aria-label={`${t.nav.changeLanguageTo.replace('{lang}', lang.name)}`}
                         >
                           <span>{lang.flag}</span>
                           <span>{lang.name}</span>
@@ -303,12 +303,12 @@ function Navbar() {
                   </>
                 )}
               </div>
-              <Link to="/login" className="btn-ghost" aria-label="Connexion">
+              <Link to="/login" className="btn-ghost" aria-label={t.nav.login}>
                 <User size={18} />
-                Connexion
+                {t.nav.login}
               </Link>
               <Link to="/signup" className="btn-primary">
-                S'inscrire
+                {t.nav.signup}
               </Link>
             </>
           )}
@@ -317,7 +317,7 @@ function Navbar() {
         <button
           className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-neutral-600 md:hidden"
           onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-label={mobileOpen ? t.nav.closeMenu : t.nav.openMenu}
           aria-expanded={mobileOpen}
         >
           {mobileOpen ? (
@@ -339,34 +339,34 @@ function Navbar() {
           <div className="flex flex-col gap-1">
             <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
               <Briefcase size={20} />
-              Accueil
+              {t.nav.home}
             </Link>
             <Link to="/search" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
               <Briefcase size={20} />
-              Explorer
+              {t.nav.explore}
             </Link>
             {user ? (
               <>
                 <Link to="/messages" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
                   <MessageSquare size={20} />
-                  Messagerie
+                  {t.nav.messages}
                 </Link>
                 <Link to="/favorites" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
                   <Heart size={20} />
-                  Favoris
+                  {t.nav.myFavorites}
                 </Link>
                 <Link to="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
                   <MessageSquare size={20} />
-                  Notifications
+                  {t.nav.notifications}
                 </Link>
                 <Link to={dashboardLink()} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
                   <LayoutDashboard size={20} />
-                  Tableau de bord
+                  {t.nav.dashboard}
                 </Link>
                 <div className="border-t border-neutral-200 my-2" />
                 <button onClick={handleSignOut} className="flex items-center gap-3 py-3 text-base font-medium text-error-600 rounded-lg hover:bg-error-50 px-3 w-full text-left" role="menuitem">
                   <LogOut size={20} />
-                  Déconnexion
+                  {t.nav.logout}
                 </button>
               </>
             ) : (
@@ -374,10 +374,10 @@ function Navbar() {
                 <div className="border-t border-neutral-200 my-2" />
                 <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 py-3 text-base font-medium text-primary-600 rounded-lg hover:bg-primary-50 px-3" role="menuitem">
                   <User size={20} />
-                  Connexion
+                  {t.nav.login}
                 </Link>
                 <Link to="/signup" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 py-3 text-base font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 px-3" role="menuitem">
-                  S'inscrire
+                  {t.nav.signup}
                 </Link>
               </>
             )}

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
-  MapPin, Mail, Phone, Globe, Star, Calendar, Users, Clock, Search, Filter, Play, Video, 
-  Share2, Flag, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Plus, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, Code, FileText, ExternalLink
+  MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
+  Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -83,7 +83,7 @@ export default function ProviderProfilePage() {
 
       const { data: provData } = await supabase
         .from('provider_profiles')
-        .select('*, category:categories(*)')
+        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, category_slug, experience_years, languages, validation_status, is_featured, description, website, phone, email, social_links, response_time_hours, created_at, category:categories(id, name, slug)')
         .eq('slug', slug)
         .maybeSingle();
 
@@ -113,22 +113,23 @@ export default function ProviderProfilePage() {
       // Track portfolio views if available
       const portRes = await supabase
         .from('portfolio_items')
-        .select('*')
+        .select('id, provider_id, title, description, image_url, video_url, project_url, type, tags, year, featured, sort_order, created_at')
         .eq('provider_id', provData.id)
         .order('sort_order');
 
       setPortfolio(portRes.data as PortfolioItem[] ?? []);
 
       // Increment portfolio item views in background
-      if (portRes.data && portRes.data.length > 0) {
-        portRes.data.forEach(async (item) => {
-          await supabase.rpc('increment_portfolio_views', { item_id: item.id }).then(() => {});
-        });
-      }
+      // TODO: Create increment_portfolio_views RPC function in Supabase
+      // if (portRes.data && portRes.data.length > 0) {
+      //   portRes.data.forEach(async (item) => {
+      //     await supabase.rpc('increment_portfolio_views', { item_id: item.id }).then(() => {});
+      //   });
+      // }
 
       const revRes = await supabase
         .from('reviews')
-        .select('*')
+        .select('id, provider_id, author_id, rating, comment, created_at, updated_at, response')
         .eq('provider_id', provData.id)
         .order('created_at', { ascending: false });
 

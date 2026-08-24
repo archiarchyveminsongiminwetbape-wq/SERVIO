@@ -74,12 +74,12 @@ export default function BookingPage() {
   };
 
   const getDurationOptions = () => [
-    { value: 30, label: '30 min', price: 50 },
-    { value: 45, label: '45 min', price: 75 },
-    { value: 60, label: '1 heure', price: 100 },
-    { value: 90, label: '1h30', price: 150 },
-    { value: 120, label: '2 heures', price: 200 },
-    { value: 180, label: '3 heures', price: 300 },
+    { value: 30, label: t.booking.minutes30, price: 50 },
+    { value: 45, label: t.booking.minutes45, price: 75 },
+    { value: 60, label: t.booking.hour1, price: 100 },
+    { value: 90, label: t.booking.hour1half, price: 150 },
+    { value: 120, label: t.booking.hours2, price: 200 },
+    { value: 180, label: t.booking.hours3, price: 300 },
   ];
 
   useEffect(() => {
@@ -174,14 +174,13 @@ export default function BookingPage() {
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success-100 text-success-600">
             <Check size={40} />
           </div>
-          <h2 className="mt-6 text-2xl font-bold text-neutral-900">{t.auth.signupSuccess}</h2>
+          <h2 className="mt-6 text-2xl font-bold text-neutral-900">{t.booking.successTitle}</h2>
           <p className="mt-2 text-neutral-600">
-            Votre demande de rendez-vous a été envoyée à {provider.business_name}.
-            Vous recevrez une confirmation une fois le rendez-vous accepté.
+            {t.booking.successMessage.replace('{provider}', provider.business_name)}
           </p>
           <div className="mt-6 space-y-2">
             <button onClick={() => navigate('/messages')} className="btn-primary w-full">
-              Voir mes messages
+              {t.booking.viewMessages}
             </button>
             <button onClick={() => navigate('/')} className="btn-secondary w-full">
               {t.common.back}
@@ -195,8 +194,8 @@ export default function BookingPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:py-8">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Réserver un rendez-vous</h1>
-        <p className="mt-1 text-neutral-600">avec {provider.business_name}</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{t.booking.title}</h1>
+        <p className="mt-1 text-neutral-600">{t.booking.with} {provider.business_name}</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -225,21 +224,21 @@ export default function BookingPage() {
         <div className="md:col-span-2">
           {step === 'select' && (
             <div className="card p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-4">Choisir un créneau</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-4">{t.booking.selectSlot}</h3>
               
               <div className="mb-4 sm:mb-6">
-                <label className="label">Type de service</label>
+                <label className="label">{t.booking.serviceType}</label>
                 <input
                   type="text"
                   value={serviceType}
                   onChange={(e) => setServiceType(e.target.value)}
                   className="input-field"
-                  placeholder="Ex: Consultation, Audit, Formation..."
+                  placeholder={t.booking.serviceTypePlaceholder}
                 />
               </div>
 
               <div className="mb-4 sm:mb-6">
-                <label className="label">Durée</label>
+                <label className="label">{t.booking.duration}</label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {getDurationOptions().map((opt) => (
                     <button
@@ -260,13 +259,13 @@ export default function BookingPage() {
               {slots.length === 0 ? (
                 <div className="text-center py-6 sm:py-8">
                   <Calendar size={40} className="mx-auto text-neutral-300" />
-                  <p className="mt-3 text-sm sm:text-base text-neutral-600">Aucun créneau disponible</p>
-                  <p className="text-xs sm:text-sm text-neutral-400">Le prestataire n'a pas encore défini ses disponibilités</p>
+                  <p className="mt-3 text-sm sm:text-base text-neutral-600">{t.booking.noSlotsAvailable}</p>
+                  <p className="text-xs sm:text-sm text-neutral-400">{t.booking.noSlotsSubtext}</p>
                 </div>
               ) : (
                 <>
                   <div className="mb-4">
-                    <label className="label">Date</label>
+                    <label className="label">{t.booking.date}</label>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {getAvailableDates().map((date) => (
                         <button
@@ -324,7 +323,7 @@ export default function BookingPage() {
                   disabled={!selectedSlot}
                   className="btn-primary"
                 >
-                  Continuer
+                  {t.booking.continue}
                 </button>
               </div>
             </div>
@@ -333,14 +332,14 @@ export default function BookingPage() {
           {step === 'confirm' && (
             <div className="card p-4 sm:p-6">
               <button onClick={() => setStep('select')} className="text-sm text-neutral-600 hover:text-neutral-900 mb-4">
-                ← Retour aux créneaux
+                {t.booking.backToSlots}
               </button>
 
-              <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-4">Confirmer le rendez-vous</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-4">{t.booking.confirmBooking}</h3>
 
               <div className="space-y-4">
                 <div className="rounded-lg bg-neutral-50 p-4">
-                  <div className="font-medium text-neutral-900">Date et heure</div>
+                  <div className="font-medium text-neutral-900">{t.booking.dateTime}</div>
                   <div className="mt-1 text-sm text-neutral-600">
                     {selectedSlot && (
                       <>
@@ -358,7 +357,7 @@ export default function BookingPage() {
                 </div>
 
                 <div>
-                  <label className="label">Type de rendez-vous</label>
+                  <label className="label">{t.booking.appointmentType}</label>
                   <div className="mt-2 grid grid-cols-3 gap-2 sm:gap-3">
                     <button
                       onClick={() => setLocationType('in_person')}
@@ -369,8 +368,8 @@ export default function BookingPage() {
                       }`}
                     >
                       <MapPin size={16} />
-                      <span className="hidden sm:inline">En personne</span>
-                      <span className="sm:hidden">Présentiel</span>
+                      <span className="hidden sm:inline">{t.booking.inPerson}</span>
+                      <span className="sm:hidden">{t.booking.inPersonShort}</span>
                     </button>
                     <button
                       onClick={() => setLocationType('remote')}
@@ -381,7 +380,7 @@ export default function BookingPage() {
                       }`}
                     >
                       <Video size={16} />
-                      Visio
+                      {t.booking.remote}
                     </button>
                     <button
                       onClick={() => setLocationType('hybrid')}
@@ -392,37 +391,37 @@ export default function BookingPage() {
                       }`}
                     >
                       <User size={16} />
-                      Hybride
+                      {t.booking.hybrid}
                     </button>
                   </div>
                 </div>
 
                 {(locationType === 'in_person' || locationType === 'hybrid') && (
                   <div>
-                    <label className="label">Adresse</label>
+                    <label className="label">{t.booking.address}</label>
                     <input
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="input-field"
-                      placeholder="Adresse complète"
+                      placeholder={t.booking.addressPlaceholder}
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="label">Notes (optionnel)</label>
+                  <label className="label">{t.booking.notes}</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="input-field resize-none"
                     rows={3}
-                    placeholder="Précisez votre demande ou vos questions..."
+                    placeholder={t.booking.notesPlaceholder}
                   />
                 </div>
 
                 <div>
-                  <label className="label">Mode de paiement</label>
+                  <label className="label">{t.booking.paymentMethod}</label>
                   <div className="mt-2 space-y-2">
                     <button
                       onClick={() => setPaymentMethod('cash')}
@@ -432,7 +431,7 @@ export default function BookingPage() {
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                     >
-                      <span className="text-sm text-neutral-700">Payer en espèces sur place</span>
+                      <span className="text-sm text-neutral-700">{t.booking.payCash}</span>
                       {paymentMethod === 'cash' && <Check size={16} className="text-primary-600" />}
                     </button>
                     <button
@@ -443,7 +442,7 @@ export default function BookingPage() {
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                     >
-                      <span className="text-sm text-neutral-700">Payer par carte bancaire</span>
+                      <span className="text-sm text-neutral-700">{t.booking.payCard}</span>
                       {paymentMethod === 'card' && <Check size={16} className="text-primary-600" />}
                     </button>
                     <button
@@ -454,7 +453,7 @@ export default function BookingPage() {
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                     >
-                      <span className="text-sm text-neutral-700">Virement bancaire</span>
+                      <span className="text-sm text-neutral-700">{t.booking.payBankTransfer}</span>
                       {paymentMethod === 'bank_transfer' && <Check size={16} className="text-primary-600" />}
                     </button>
                   </div>
@@ -462,25 +461,25 @@ export default function BookingPage() {
 
                 <div className="rounded-lg bg-primary-50 p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-neutral-700">Prix total</span>
+                    <span className="text-sm text-neutral-700">{t.booking.totalPrice}</span>
                     <span className="text-lg font-semibold text-primary-700">{price}€</span>
                   </div>
                   <div className="mt-1 text-xs text-neutral-500">
-                    Durée: {duration} min
+                    {t.booking.durationLabel} {duration} min
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
                 <button onClick={() => setStep('select')} className="btn-secondary w-full sm:w-auto">
-                  Annuler
+                  {t.booking.cancel}
                 </button>
                 <button
                   onClick={handleSubmitBooking}
                   disabled={submitting || ((locationType === 'in_person' || locationType === 'hybrid') && !address)}
                   className="btn-primary w-full sm:w-auto"
                 >
-                  {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirmer le rendez-vous'}
+                  {submitting ? <Loader2 size={18} className="animate-spin" /> : t.booking.confirmButton}
                 </button>
               </div>
             </div>

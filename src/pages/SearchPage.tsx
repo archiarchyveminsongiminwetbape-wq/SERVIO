@@ -569,14 +569,29 @@ export default function SearchPage() {
                   {t.common.search}
                 </button>
               </BentoCard>
-            ) : (
+            ) : providers.length === 0 ? (
               <BentoCard className="col-span-full">
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <AlertCircle size={48} className="hidden sm:block text-neutral-400" />
-                  <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">Aucun profil disponible</h3>
-                  <p className="mt-1 text-sm text-neutral-500">Les profils seront bientôt disponibles.</p>
+                  <Frown size={48} className="hidden sm:block text-neutral-400" />
+                  <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">{t.search.noResults}</h3>
+                  <p className="mt-1 text-sm text-neutral-500">{t.search.tryDifferentFilters}</p>
                 </div>
               </BentoCard>
+            ) : (
+              <>
+                {providers.map((provider) => (
+                  <BentoCard key={provider.id} colSpan={1}>
+                    <ProviderCard provider={provider} />
+                  </BentoCard>
+                ))}
+                <div ref={loadMoreRef} className="col-span-full">
+                  {loadingMore && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 size={28} className="animate-spin text-primary-500" />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
             {hasFilters && (
               <button onClick={clearFilters} className="btn-secondary mt-4">

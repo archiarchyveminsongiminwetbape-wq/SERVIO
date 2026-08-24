@@ -38,7 +38,7 @@ export default function UserBookingsPage() {
   }
 
   async function cancelBooking(bookingId: string) {
-    if (!confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) return;
+    if (!confirm(t.bookings.confirmCancel)) return;
 
     const { error } = await supabase
       .from('bookings')
@@ -59,32 +59,32 @@ export default function UserBookingsPage() {
   }
 
   const statusInfo: Record<string, { label: string; color: string }> = {
-    pending: { label: 'En attente', color: 'bg-warning-50 text-warning-700' },
-    confirmed: { label: 'Confirmée', color: 'bg-success-50 text-success-700' },
-    completed: { label: 'Terminée', color: 'bg-primary-50 text-primary-700' },
-    cancelled: { label: 'Annulée', color: 'bg-neutral-100 text-neutral-600' },
-    rejected: { label: 'Refusée', color: 'bg-error-50 text-error-700' },
+    pending: { label: t.bookings.status.pending, color: 'bg-warning-50 text-warning-700' },
+    confirmed: { label: t.bookings.status.confirmed, color: 'bg-success-50 text-success-700' },
+    completed: { label: t.bookings.status.completed, color: 'bg-primary-50 text-primary-700' },
+    cancelled: { label: t.bookings.status.cancelled, color: 'bg-neutral-100 text-neutral-600' },
+    rejected: { label: t.bookings.status.rejected, color: 'bg-error-50 text-error-700' },
   };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:py-8">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Mes réservations</h1>
-        <p className="mt-1 text-neutral-600">Gérez vos rendez-vous avec les prestataires</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{t.bookings.title}</h1>
+        <p className="mt-1 text-neutral-600">{t.bookings.subtitle}</p>
       </div>
 
       {bookings.length === 0 ? (
         <div className="card p-8 text-center">
           <Calendar size={48} className="mx-auto text-neutral-300" />
-          <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucune réservation</h3>
+          <h3 className="mt-4 text-lg font-semibold text-neutral-900">{t.bookings.noBookings}</h3>
           <p className="mt-2 text-sm text-neutral-600">
-            Vous n'avez pas encore de réservation. Trouvez un prestataire pour commencer.
+            {t.bookings.noBookingsSubtext}
           </p>
           <button
             onClick={() => navigate('/search')}
             className="btn-primary mt-6"
           >
-            Rechercher un prestataire
+            {t.bookings.searchProvider}
           </button>
         </div>
       ) : (
@@ -111,7 +111,7 @@ export default function UserBookingsPage() {
                   <div className="flex-1">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold text-neutral-900">{provider?.business_name || 'Prestataire'}</h3>
+                        <h3 className="font-semibold text-neutral-900">{provider?.business_name || t.bookings.provider}</h3>
                         <div className="mt-2 flex flex-wrap gap-3 text-sm text-neutral-600">
                           <span className="flex items-center gap-1">
                             <Calendar size={14} />
@@ -137,10 +137,10 @@ export default function UserBookingsPage() {
                               <User size={14} />
                             )}
                             {booking.location_type === 'remote'
-                              ? 'À distance'
+                              ? t.bookings.location.remote
                               : booking.location_type === 'in_person'
-                              ? 'En personne'
-                              : 'Hybride'}
+                              ? t.bookings.location.inPerson
+                              : t.bookings.location.hybrid}
                           </span>
                         </div>
                       </div>
@@ -148,11 +148,11 @@ export default function UserBookingsPage() {
                     </div>
 
                     {booking.service_type && (
-                      <p className="mt-2 text-sm text-neutral-600">Service: {booking.service_type}</p>
+                      <p className="mt-2 text-sm text-neutral-600">{t.bookings.service}: {booking.service_type}</p>
                     )}
 
                     {booking.notes && (
-                      <p className="mt-2 text-sm text-neutral-500 italic">Note: {booking.notes}</p>
+                      <p className="mt-2 text-sm text-neutral-500 italic">{t.bookings.note}: {booking.notes}</p>
                     )}
 
                     {booking.location_address && (
@@ -170,7 +170,7 @@ export default function UserBookingsPage() {
                       )}
                       {booking.payment_method && (
                         <span className="text-xs text-neutral-500">
-                          ({booking.payment_method === 'cash' ? 'Espèces' : booking.payment_method === 'card' ? 'Carte' : 'Virement'})
+                          ({booking.payment_method === 'cash' ? t.bookings.payment.cash : booking.payment_method === 'card' ? t.bookings.payment.card : t.bookings.payment.bankTransfer})
                         </span>
                       )}
                     </div>
@@ -182,7 +182,7 @@ export default function UserBookingsPage() {
                           className="btn-secondary text-xs"
                         >
                           <MessageCircle size={14} />
-                          Contacter le prestataire
+                          {t.bookings.contactProvider}
                         </button>
                       )}
                       {booking.status === 'pending' && (
@@ -191,7 +191,7 @@ export default function UserBookingsPage() {
                           className="btn-secondary text-xs text-error-600 hover:bg-error-50"
                         >
                           <X size={14} />
-                          Annuler
+                          {t.bookings.cancel}
                         </button>
                       )}
                       {provider?.slug && (
@@ -199,7 +199,7 @@ export default function UserBookingsPage() {
                           onClick={() => navigate(`/provider/${provider.slug}`)}
                           className="btn-secondary text-xs"
                         >
-                          Voir le profil
+                          {t.bookings.viewProfile}
                         </button>
                       )}
                     </div>

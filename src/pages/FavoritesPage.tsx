@@ -53,9 +53,9 @@ export default function FavoritesPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-bold text-neutral-900">Mes favoris</h1>
+      <h1 className="text-2xl font-bold text-neutral-900">{t.favorites.title}</h1>
       <p className="mt-1 text-sm text-neutral-600">
-        {favorites.length > 0 ? `${favorites.length} prestataire${favorites.length > 1 ? 's' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}` : t.search.noResults}
+        {favorites.length > 0 ? t.favorites.subtitle.replace('{count}', favorites.length.toString()) : t.search.noResults}
       </p>
 
       {favorites.length > 0 ? (
@@ -67,12 +67,12 @@ export default function FavoritesPage() {
       ) : (
         <div className="mt-16 flex flex-col items-center justify-center text-center">
           <Heart size={48} className="text-neutral-300" />
-          <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun favori</h3>
+          <h3 className="mt-4 text-lg font-semibold text-neutral-900">{t.favorites.noFavorites}</h3>
           <p className="mt-1 text-sm text-neutral-500">
-            Sauvegardez vos prestataires préférés pour les retrouver facilement.
+            {t.favorites.noFavoritesSubtext}
           </p>
           <button onClick={() => navigate('/search')} className="btn-primary mt-6">
-            Explorer les prestataires
+            {t.favorites.exploreProviders}
           </button>
         </div>
       )}

@@ -235,7 +235,7 @@ export default function MessagesPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-      <h1 className="mb-4 text-2xl font-bold text-neutral-900">Messagerie</h1>
+      <h1 className="mb-4 text-2xl font-bold text-neutral-900">{t.messages.title}</h1>
 
       <div className="card flex h-[calc(100vh-180px)] min-h-[500px] overflow-hidden flex-col md:flex-row">
         {/* Conversations list */}
@@ -258,10 +258,10 @@ export default function MessagesPage() {
               <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                 <MessageSquare size={40} className="text-neutral-300" />
                 <p className="mt-3 text-sm text-neutral-500">
-                  {searchQuery ? t.search.noResults : 'Aucune conversation'}
+                  {searchQuery ? t.search.noResults : t.messages.noConversations}
                 </p>
                 <p className="text-xs text-neutral-400 mt-1">
-                  {searchQuery ? 'Essayez une autre recherche' : 'Contactez un prestataire pour commencer'}
+                  {searchQuery ? t.messages.tryDifferentSearch : t.messages.contactProviderToStart}
                 </p>
               </div>
             ) : (
@@ -292,7 +292,7 @@ export default function MessagesPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <p className="truncate text-sm font-semibold text-neutral-900">
-                          {conv.other_provider?.business_name ?? conv.other_user?.full_name ?? 'Utilisateur'}
+                          {conv.other_provider?.business_name ?? conv.other_user?.full_name ?? t.messages.user}
                         </p>
                         {conv.last_message_at && (
                           <span className="text-xs text-neutral-400 flex-shrink-0 ml-2">{formatRelativeTime(conv.last_message_at, locale)}</span>
@@ -371,7 +371,7 @@ export default function MessagesPage() {
                   className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50"
                 >
                   <Zap size={12} />
-                  Réponses rapides
+                  {t.messages.quickReplies}
                 </button>
                 {showQuickReplies && (
                   <div className="flex flex-wrap gap-2 w-full">
@@ -411,7 +411,7 @@ export default function MessagesPage() {
                     <div className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span>L'autre personne est en train d'écrire...</span>
+                  <span>{t.messages.typing}</span>
                 </div>
               )}
             </div>
@@ -420,7 +420,7 @@ export default function MessagesPage() {
           <div className="hidden md:flex flex-1 items-center justify-center">
             <div className="text-center px-4">
               <MessageSquare size={48} className="mx-auto text-neutral-300" />
-              <p className="mt-4 text-sm text-neutral-500">Sélectionnez une conversation</p>
+              <p className="mt-4 text-sm text-neutral-500">{t.messages.selectConversation}</p>
             </div>
           </div>
         )}

@@ -155,12 +155,12 @@ export default function NotificationsPage() {
 
   const notificationTypes = [
     { value: 'all', label: t.common.all },
-    { value: 'unread', label: 'Non lues' },
-    { value: 'message', label: 'Messages' },
-    { value: 'review', label: 'Avis' },
-    { value: 'validation', label: 'Validation' },
-    { value: 'report', label: 'Signalements' },
-    { value: 'system', label: 'Système' },
+    { value: 'unread', label: t.notifications.unread },
+    { value: 'message', label: t.notifications.messages },
+    { value: 'review', label: t.notifications.reviews },
+    { value: 'validation', label: t.notifications.validation },
+    { value: 'report', label: t.notifications.reports },
+    { value: 'system', label: t.notifications.system },
   ];
 
   return (
@@ -169,14 +169,14 @@ export default function NotificationsPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{t.user.notifications}</h1>
           <p className="mt-1 text-sm text-neutral-600">
-            {unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}` : 'Toutes les notifications sont lues'}
+            {unreadCount > 0 ? t.notifications.unreadCount.replace('{count}', unreadCount.toString()) : t.notifications.allRead}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={`btn-ghost ${soundEnabled ? 'text-primary-600' : 'text-neutral-400'}`}
-            title={soundEnabled ? 'Désactiver le son' : 'Activer le son'}
+            title={soundEnabled ? t.notifications.disableSound : t.notifications.enableSound}
           >
             {soundEnabled ? '🔊' : '🔇'}
           </button>
@@ -191,7 +191,7 @@ export default function NotificationsPage() {
               ) : (
                 <>
                   <CheckCheck size={16} className="sm:hidden" />
-                  <CheckCheck size={18} className="hidden sm:inline" /> Tout marquer comme lu
+                  <CheckCheck size={18} className="hidden sm:inline" /> {t.notifications.markAllRead}
                 </>
               )}
             </button>
@@ -280,7 +280,7 @@ export default function NotificationsPage() {
                           markAsRead(notification.id);
                         }}
                         className="p-1 text-neutral-400 hover:text-primary-600"
-                        title="Marquer comme lu"
+                        title={t.notifications.markRead}
                       >
                         <Check size={14} className="sm:hidden" />
                         <Check size={16} className="hidden sm:block" />
@@ -292,7 +292,7 @@ export default function NotificationsPage() {
                         deleteNotification(notification.id);
                       }}
                       className="p-1 text-neutral-400 hover:text-error-600"
-                      title="Supprimer"
+                      title={t.notifications.delete}
                     >
                       <Trash2 size={14} className="sm:hidden" />
                       <Trash2 size={16} className="hidden sm:block" />
@@ -308,10 +308,10 @@ export default function NotificationsPage() {
           <Bell size={40} className="sm:hidden text-neutral-300" />
           <Bell size={48} className="hidden sm:block text-neutral-300" />
           <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-neutral-900">
-            {filterType === 'all' ? 'Aucune notification' : `Aucune notification "${notificationTypes.find(t => t.value === filterType)?.label}"`}
+            {filterType === 'all' ? t.notifications.noNotifications : t.notifications.noNotificationsType.replace('{type}', notificationTypes.find(t => t.value === filterType)?.label || '')}
           </h3>
           <p className="mt-1 text-sm text-neutral-500">
-            {filterType === 'all' ? 'Vous n\'avez pas encore de notifications.' : 'Aucune notification de ce type.'}
+            {filterType === 'all' ? t.notifications.noNotificationsSubtext : t.notifications.noNotificationsType}
           </p>
         </div>
       )}

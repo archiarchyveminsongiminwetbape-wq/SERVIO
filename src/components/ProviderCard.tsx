@@ -57,90 +57,94 @@ function ProviderCard({ provider }: { provider: ProviderProfile }) {
   return (
     <Link
       to={`/provider/${provider.slug}`}
-      className="group card overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
+      className="group card overflow-hidden transition-all hover:shadow-xl hover:-translate-y-0.5"
     >
-      <div className="relative h-56 sm:h-72 lg:h-96 overflow-hidden bg-neutral-100">
-        {provider.banner_url ? (
-          <OptimizedImage
-            src={provider.banner_url}
-            alt={provider.business_name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-            loading="lazy"
-          />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-primary-100 via-primary-200 to-primary-300" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/60 via-transparent to-transparent" />
-        
-        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex gap-1 sm:gap-2">
-          {provider.badges.slice(0, 2).map((badge) => {
-            const info = badgeLabels[badge];
-            if (!info) return null;
-            const Icon = info.icon;
-            return (
-              <span key={badge} className={`badge ${info.color} backdrop-blur-md shadow-sm text-[10px] sm:text-xs`}>
-                <Icon size={10} className="sm:size-12" />
-                {info.label}
-              </span>
-            );
-          })}
-        </div>
-        
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1 sm:gap-1.5 rounded-full bg-white/95 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-neutral-700 backdrop-blur-md shadow-sm">
-          <span className={`h-1.5 sm:h-2 w-1.5 sm:w-2 rounded-full ${avail.color} animate-pulse`} />
-          {avail.label}
-        </div>
-      </div>
-
-      <div className="p-6 sm:p-8 lg:p-10">
-        <div className="flex items-start gap-3 sm:gap-4">
-          <div className="flex-shrink-0 -mt-8 sm:-mt-12 lg:-mt-16">
+      {/* Unified Layout for Mobile and Desktop */}
+      <div className="p-5">
+        {/* Header Section */}
+        <div className="flex items-start gap-4">
+          {/* Avatar */}
+          <div className="flex-shrink-0">
             {provider.avatar_url ? (
               <OptimizedImage
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-20 w-20 sm:h-24 sm:w-24 lg:h-32 lg:w-32 rounded-xl sm:rounded-2xl object-cover ring-3 sm:ring-4 ring-white shadow-lg"
+                className="h-16 w-16 rounded-xl object-cover ring-2 ring-white shadow-md"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-20 w-20 sm:h-24 sm:w-24 lg:h-32 lg:w-32 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg sm:text-xl lg:text-3xl font-bold text-white ring-3 sm:ring-4 ring-white shadow-lg">
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-xl font-bold text-white ring-2 ring-white shadow-md">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
           </div>
-          <div className="min-w-0 flex-1 pt-2">
-            <h3 className="truncate text-lg sm:text-xl lg:text-3xl font-bold text-neutral-900 group-hover:text-primary-700 transition-colors">
-              {provider.business_name}
-            </h3>
-            <p className="truncate text-sm sm:text-base lg:text-xl text-neutral-500 mt-1 sm:mt-2">{provider.headline}</p>
+
+          {/* Name and Info */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-lg font-bold text-neutral-900 group-hover:text-primary-700 transition-colors">
+                  {provider.business_name}
+                </h3>
+                <p className="truncate text-sm text-neutral-500 mt-0.5">{provider.headline}</p>
+              </div>
+              {/* Availability Badge */}
+              <div className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 border border-neutral-200 shadow-sm flex-shrink-0">
+                <span className={`h-1.5 w-1.5 rounded-full ${avail.color} animate-pulse`} />
+                {avail.label}
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {provider.badges.slice(0, 2).map((badge) => {
+                const info = badgeLabels[badge];
+                if (!info) return null;
+                const Icon = info.icon;
+                return (
+                  <span key={badge} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${info.color}`}>
+                    <Icon size={10} />
+                    {info.label}
+                  </span>
+                );
+              })}
+            </div>
           </div>
         </div>
 
+        {/* Location and Remote Service */}
         {provider.city && (
-          <div className="mt-4 sm:mt-6 flex items-center gap-2 sm:gap-3 text-sm sm:text-base lg:text-lg text-neutral-600">
-            <MapPin size={16} className="sm:size-20 lg:size-24 text-primary-600" />
-            {provider.city}
-            {provider.remote_service && <span className="text-neutral-400">· Service à distance</span>}
+          <div className="mt-4 flex items-center gap-2 text-sm text-neutral-600">
+            <MapPin size={16} className="text-primary-600 flex-shrink-0" />
+            <span className="truncate">{provider.city}</span>
+            {provider.remote_service && (
+              <span className="flex-shrink-0 inline-flex items-center gap-1 text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-400" />
+                À distance
+              </span>
+            )}
           </div>
         )}
 
-        <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
+        {/* Skills */}
+        <div className="mt-4 flex flex-wrap gap-1.5">
           {provider.skills.slice(0, 3).map((skill) => (
-            <span key={skill} className="badge bg-primary-50 text-primary-700 border border-primary-100 text-xs sm:text-sm lg:text-base">
+            <span key={skill} className="inline-block px-2.5 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-medium border border-neutral-200">
               {skill}
             </span>
           ))}
           {provider.skills.length > 3 && (
-            <span className="badge bg-neutral-100 text-neutral-600 border border-neutral-200 text-xs sm:text-sm lg:text-base">
+            <span className="inline-block px-2.5 py-1 bg-neutral-50 text-neutral-500 rounded-lg text-xs font-medium border border-neutral-200">
               +{provider.skills.length - 3}
             </span>
           )}
         </div>
 
-        <div className="mt-4 sm:mt-6 flex items-center justify-between border-t border-neutral-100 pt-4 sm:pt-6">
+        {/* Footer: Rating and Price */}
+        <div className="mt-4 flex items-center justify-between pt-4 border-t border-neutral-200">
           <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
           {provider.price_range && (
-            <span className="text-sm sm:text-base lg:text-lg font-bold text-primary-700">{provider.price_range}</span>
+            <span className="text-sm font-bold text-primary-700">{provider.price_range}</span>
           )}
         </div>
       </div>

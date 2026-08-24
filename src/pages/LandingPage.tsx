@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, TrendingUp, Users, Award, Clock, Quote, Check, Play, ChevronRight } from 'lucide-react';
+import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, Users, Award, Clock, Quote, Check, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useI18n } from '@/context/I18nContext';
@@ -29,7 +29,7 @@ export default function LandingPage() {
     async function loadData() {
       const featRes = await supabase
         .from('provider_profiles')
-        .select('*, category:categories(*)')
+        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, category_slug, experience_years, languages, validation_status, is_featured, description, website, phone, email, social_links, response_time_hours, created_at, category:categories(id, name, slug)')
         .eq('validation_status', 'approved')
         .order('is_featured', { ascending: false })
         .order('rating_avg', { ascending: false })
@@ -108,34 +108,39 @@ export default function LandingPage() {
       </section>
 
       {/* Categories */}
-      <section className="py-12 sm:py-16 lg:py-20">
+      <section className="py-16 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.exploreBySector}</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.findRightProfessional}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-12">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.exploreBySector}</h2>
+              <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.findRightProfessional}</p>
+            </div>
+            <Link to="/search" className="btn-secondary text-sm sm:text-base">
+              Voir tous les secteurs
+              <ArrowRight size={16} className="hidden sm:inline ml-2" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {displayedCategories.map((cat) => (
               <Link
                 key={cat.slug}
                 to={`/search?category=${cat.slug}`}
-                className="group flex flex-col items-center p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-neutral-200 bg-white hover:border-primary-300 hover:shadow-lg transition-all"
+                className="group flex flex-col items-center p-4 rounded-2xl border border-neutral-200 bg-white hover:border-primary-300 hover:shadow-lg transition-all"
               >
-                <div className="flex h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 transition-all group-hover:scale-110 group-hover:from-primary-100 group-hover:to-primary-200">
-                  <CategoryIcon name={cat.icon ?? ''} size={20} className="sm:hidden" />
-                  <CategoryIcon name={cat.icon ?? ''} size={28} className="hidden sm:block" />
+                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 transition-all group-hover:scale-110 group-hover:from-primary-100 group-hover:to-primary-200">
+                  <CategoryIcon name={cat.icon ?? ''} size={28} />
                 </div>
-                <div className="min-w-0 mt-2 sm:mt-3 text-center">
-                  <p className="truncate text-xs sm:text-sm font-bold text-neutral-900 group-hover:text-primary-700">{cat.name}</p>
-                  <p className="truncate text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1">{cat.subcategories.length} {t.landing.specialties}</p>
+                <div className="min-w-0 mt-3 text-center">
+                  <p className="truncate text-sm font-bold text-neutral-900 group-hover:text-primary-700">{cat.name}</p>
+                  <p className="truncate text-xs text-neutral-500 mt-1">{cat.subcategories.length} {t.landing.specialties}</p>
                 </div>
               </Link>
             ))}
           </div>
 
           {categoryTaxonomy.length > 12 && (
-            <div className="text-center mt-6 sm:mt-8">
+            <div className="text-center mt-8">
               <button
                 onClick={() => setShowAllCategories(!showAllCategories)}
                 className="btn-secondary text-sm sm:text-base"
@@ -148,47 +153,58 @@ export default function LandingPage() {
       </section>
 
       {/* Featured Providers */}
-      <section className="bg-gradient-to-b from-neutral-50 to-white py-12 sm:py-16 lg:py-20">
+      <section className="bg-gradient-to-b from-neutral-50 to-white py-16 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.featuredProviders}</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.featuredProvidersSubtitle}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-12">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.featuredProviders}</h2>
+              <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.featuredProvidersSubtitle}</p>
+            </div>
+            <Link to="/search" className="btn-secondary text-sm sm:text-base">
+              Voir tous les prestataires
+              <ArrowRight size={16} className="hidden sm:inline ml-2" />
+            </Link>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-in">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="card h-80 sm:h-96 animate-pulse overflow-hidden">
-                  <div className="h-40 sm:h-48 bg-gradient-to-br from-neutral-200 to-neutral-300" />
-                  <div className="p-4 sm:p-6">
-                    <div className="h-4 sm:h-5 w-3/4 rounded bg-neutral-200" />
-                    <div className="mt-2 sm:mt-3 h-3 sm:h-4 w-1/2 rounded bg-neutral-200" />
-                    <div className="mt-3 sm:mt-4 h-3 sm:h-4 w-2/3 rounded bg-neutral-200" />
-                    <div className="mt-3 sm:mt-4 h-3 sm:h-4 w-1/2 rounded bg-neutral-200" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="card h-96 animate-pulse overflow-hidden">
+                  <div className="h-48 bg-gradient-to-br from-neutral-200 to-neutral-300" />
+                  <div className="p-6">
+                    <div className="h-5 w-3/4 rounded bg-neutral-200 mb-3" />
+                    <div className="h-4 w-1/2 rounded bg-neutral-200 mb-3" />
+                    <div className="h-4 w-2/3 rounded bg-neutral-200 mb-3" />
+                    <div className="h-4 w-1/2 rounded bg-neutral-200" />
                   </div>
                 </div>
               ))}
             </div>
           ) : featured.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-in">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {featured.map((p) => (
                 <ProviderCard key={p.id} provider={p} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 sm:py-16">
-              <div className="mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-neutral-100">
-                <Search size={28} className="sm:hidden text-neutral-400" />
-                <Search size={32} className="hidden sm:block text-neutral-400" />
+            <div className="text-center py-16">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+                <Search size={32} className="text-neutral-400" />
               </div>
-              <p className="text-base sm:text-lg text-neutral-600">{t.search.noResults}</p>
+              <p className="text-lg text-neutral-600">{t.search.noResults}</p>
             </div>
           )}
         </div>
       </section>
 
       {/* Stats - Bento Grid */}
-      <BentoSection className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <BentoSection className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-8 sm:mb-12">
+          <div className="text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Nos statistiques</h2>
+            <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-300">Des chiffres qui parlent d'eux-mêmes</p>
+          </div>
+        </div>
         <BentoGrid>
           <BentoStatCard 
             icon={Users} 
@@ -220,85 +236,75 @@ export default function LandingPage() {
       </BentoSection>
 
       {/* Testimonials */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white to-neutral-50">
+      <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-white to-neutral-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.testimonialsTitle}</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.testimonialsSubtitle}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-12">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.testimonialsTitle}</h2>
+              <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.testimonialsSubtitle}</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            <div className="card p-4 sm:p-6">
-              <div className="flex items-center gap-1 mb-3 sm:mb-4">
+            <div className="card p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center gap-1 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={14} className="sm:hidden fill-warning-400 text-warning-400" />
-                ))}
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={`desktop-${star}`} size={16} className="hidden sm:block fill-warning-400 text-warning-400" />
+                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
                 ))}
               </div>
-              <Quote className="text-primary-300 mb-3 sm:mb-4 sm:hidden" size={24} />
-              <Quote className="text-primary-300 mb-4 hidden sm:block" size={32} />
-              <p className="text-sm sm:text-base text-neutral-700 mb-3 sm:mb-4">
+              <Quote className="text-primary-300 mb-4" size={32} />
+              <p className="text-base text-neutral-700 mb-4">
                 {t.landing.testimonial1}
               </p>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold">
                   ML
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">{t.landing.testimonial1Name}</p>
-                  <p className="text-xs sm:text-sm text-neutral-500">{t.landing.testimonial1Role}</p>
+                  <p className="font-semibold text-neutral-900 text-base">{t.landing.testimonial1Name}</p>
+                  <p className="text-sm text-neutral-500">{t.landing.testimonial1Role}</p>
                 </div>
               </div>
             </div>
 
-            <div className="card p-4 sm:p-6">
-              <div className="flex items-center gap-1 mb-3 sm:mb-4">
+            <div className="card p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center gap-1 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={14} className="sm:hidden fill-warning-400 text-warning-400" />
-                ))}
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={`desktop-${star}`} size={16} className="hidden sm:block fill-warning-400 text-warning-400" />
+                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
                 ))}
               </div>
-              <Quote className="text-primary-300 mb-3 sm:mb-4 sm:hidden" size={24} />
-              <Quote className="text-primary-300 mb-4 hidden sm:block" size={32} />
-              <p className="text-sm sm:text-base text-neutral-700 mb-3 sm:mb-4">
+              <Quote className="text-primary-300 mb-4" size={32} />
+              <p className="text-base text-neutral-700 mb-4">
                 {t.landing.testimonial2}
               </p>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-sm font-semibold">
                   TD
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">{t.landing.testimonial2Name}</p>
-                  <p className="text-xs sm:text-sm text-neutral-500">{t.landing.testimonial2Role}</p>
+                  <p className="font-semibold text-neutral-900 text-base">{t.landing.testimonial2Name}</p>
+                  <p className="text-sm text-neutral-500">{t.landing.testimonial2Role}</p>
                 </div>
               </div>
             </div>
 
-            <div className="card p-4 sm:p-6">
-              <div className="flex items-center gap-1 mb-3 sm:mb-4">
+            <div className="card p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center gap-1 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={14} className="sm:hidden fill-warning-400 text-warning-400" />
-                ))}
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={`desktop-${star}`} size={16} className="hidden sm:block fill-warning-400 text-warning-400" />
+                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
                 ))}
               </div>
-              <Quote className="text-primary-300 mb-3 sm:mb-4 sm:hidden" size={24} />
-              <Quote className="text-primary-300 mb-4 hidden sm:block" size={32} />
-              <p className="text-sm sm:text-base text-neutral-700 mb-3 sm:mb-4">
+              <Quote className="text-primary-300 mb-4" size={32} />
+              <p className="text-base text-neutral-700 mb-4">
                 {t.landing.testimonial3}
               </p>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center text-white text-sm font-semibold">
                   SM
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-900 text-sm sm:text-base">{t.landing.testimonial3Name}</p>
-                  <p className="text-xs sm:text-sm text-neutral-500">{t.landing.testimonial3Role}</p>
+                  <p className="font-semibold text-neutral-900 text-base">{t.landing.testimonial3Name}</p>
+                  <p className="text-sm text-neutral-500">{t.landing.testimonial3Role}</p>
                 </div>
               </div>
             </div>
@@ -307,83 +313,76 @@ export default function LandingPage() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-12 sm:py-16 lg:py-20">
+      <section className="py-16 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.whyChooseTitle}</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.whyChooseSubtitle}</p>
+            <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.whyChooseSubtitle}</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <div className="card p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="mx-auto flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 mb-3 sm:mb-4">
-                <ShieldCheck size={24} className="sm:hidden" />
-                <ShieldCheck size={32} className="hidden sm:block" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 mb-4">
+                <ShieldCheck size={32} />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit1Title}</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit1Description}</p>
+              <h3 className="font-semibold text-neutral-900 mb-2 text-base">{t.landing.benefit1Title}</h3>
+              <p className="text-sm text-neutral-600">{t.landing.benefit1Description}</p>
             </div>
 
-            <div className="card p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="mx-auto flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-accent-50 to-accent-100 text-accent-600 mb-3 sm:mb-4">
-                <MessageSquare size={24} className="sm:hidden" />
-                <MessageSquare size={32} className="hidden sm:block" />
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-50 to-accent-100 text-accent-600 mb-4">
+                <MessageSquare size={32} />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit2Title}</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit2Description}</p>
+              <h3 className="font-semibold text-neutral-900 mb-2 text-base">{t.landing.benefit2Title}</h3>
+              <p className="text-sm text-neutral-600">{t.landing.benefit2Description}</p>
             </div>
 
-            <div className="card p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="mx-auto flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-success-50 to-success-100 text-success-600 mb-3 sm:mb-4">
-                <Star size={24} className="sm:hidden" />
-                <Star size={32} className="hidden sm:block" />
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-success-50 to-success-100 text-success-600 mb-4">
+                <Star size={32} />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit3Title}</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit3Description}</p>
+              <h3 className="font-semibold text-neutral-900 mb-2 text-base">{t.landing.benefit3Title}</h3>
+              <p className="text-sm text-neutral-600">{t.landing.benefit3Description}</p>
             </div>
 
-            <div className="card p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="mx-auto flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-warning-50 to-warning-100 text-warning-600 mb-3 sm:mb-4">
-                <Clock size={24} className="sm:hidden" />
-                <Clock size={32} className="hidden sm:block" />
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-warning-50 to-warning-100 text-warning-600 mb-4">
+                <Clock size={32} />
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.benefit4Title}</h3>
-              <p className="text-xs sm:text-sm text-neutral-600">{t.landing.benefit4Description}</p>
+              <h3 className="font-semibold text-neutral-900 mb-2 text-base">{t.landing.benefit4Title}</h3>
+              <p className="text-sm text-neutral-600">{t.landing.benefit4Description}</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Quick Start Guide */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-primary-50 to-white">
+      <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-br from-primary-50 to-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.landing.quickStartTitle}</h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.quickStartSubtitle}</p>
+            <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-600">{t.landing.quickStartSubtitle}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="relative">
-              <div className="card p-5 sm:p-8 relative z-10">
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary-600 text-white text-base sm:text-xl font-bold mb-3 sm:mb-4">
+              <div className="card p-8 relative z-10 h-full">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white text-xl font-bold mb-4">
                   1
                 </div>
-                <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.step1Title}</h3>
-                <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">{t.landing.step1Description}</p>
-                <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-neutral-600">
+                <h3 className="font-semibold text-neutral-900 mb-2 text-base">{t.landing.step1Title}</h3>
+                <p className="text-sm text-neutral-600 mb-4">{t.landing.step1Description}</p>
+                <ul className="space-y-2 text-sm text-neutral-600">
                   <li className="flex items-center gap-2">
-                    <Check size={12} className="sm:hidden text-success-500" />
-                    <Check size={16} className="hidden sm:block text-success-500" />
+                    <Check size={16} className="text-success-500 flex-shrink-0" />
                     {t.landing.step1Feature1}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={12} className="sm:hidden text-success-500" />
-                    <Check size={16} className="hidden sm:block text-success-500" />
+                    <Check size={16} className="text-success-500 flex-shrink-0" />
                     {t.landing.step1Feature2}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={12} className="sm:hidden text-success-500" />
-                    <Check size={16} className="hidden sm:block text-success-500" />
+                    <Check size={16} className="text-success-500 flex-shrink-0" />
                     {t.landing.step1Feature3}
                   </li>
                 </ul>
@@ -394,26 +393,23 @@ export default function LandingPage() {
             </div>
 
             <div className="relative">
-              <div className="card p-5 sm:p-8 relative z-10">
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary-600 text-white text-base sm:text-xl font-bold mb-3 sm:mb-4">
+              <div className="card p-8 relative z-10 h-full">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white text-xl font-bold mb-4">
                   2
                 </div>
-                <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.step2Title}</h3>
-                <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">{t.landing.step2Description}</p>
-                <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-neutral-600">
+                <h3 className="font-semibold text-neutral-900 mb-2 text-base">{t.landing.step2Title}</h3>
+                <p className="text-sm text-neutral-600 mb-4">{t.landing.step2Description}</p>
+                <ul className="space-y-2 text-sm text-neutral-600">
                   <li className="flex items-center gap-2">
-                    <Check size={12} className="sm:hidden text-success-500" />
-                    <Check size={16} className="hidden sm:block text-success-500" />
+                    <Check size={16} className="text-success-500 flex-shrink-0" />
                     {t.landing.step2Feature1}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={12} className="sm:hidden text-success-500" />
-                    <Check size={16} className="hidden sm:block text-success-500" />
+                    <Check size={16} className="text-success-500 flex-shrink-0" />
                     {t.landing.step2Feature2}
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={12} className="sm:hidden text-success-500" />
-                    <Check size={16} className="hidden sm:block text-success-500" />
+                    <Check size={16} className="text-success-500 flex-shrink-0" />
                     {t.landing.step2Feature3}
                   </li>
                 </ul>
@@ -423,26 +419,23 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="card p-5 sm:p-8">
-              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-primary-600 text-white text-base sm:text-xl font-bold mb-3 sm:mb-4">
+            <div className="card p-8 h-full">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white text-xl font-bold mb-4">
                 3
               </div>
-              <h3 className="font-semibold text-neutral-900 mb-1 sm:mb-2 text-sm sm:text-base">{t.landing.step3Title}</h3>
-              <p className="text-xs sm:text-sm text-neutral-600 mb-3 sm:mb-4">{t.landing.step3Description}</p>
-              <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-neutral-600">
+              <h3 className="font-semibold text-neutral-900 mb-2 text-base">{t.landing.step3Title}</h3>
+              <p className="text-sm text-neutral-600 mb-4">{t.landing.step3Description}</p>
+              <ul className="space-y-2 text-sm text-neutral-600">
                 <li className="flex items-center gap-2">
-                  <Check size={12} className="sm:hidden text-success-500" />
-                  <Check size={16} className="hidden sm:block text-success-500" />
+                  <Check size={16} className="text-success-500 flex-shrink-0" />
                   {t.landing.step3Feature1}
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check size={12} className="sm:hidden text-success-500" />
-                  <Check size={16} className="hidden sm:block text-success-500" />
+                  <Check size={16} className="text-success-500 flex-shrink-0" />
                   {t.landing.step3Feature2}
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check size={12} className="sm:hidden text-success-500" />
-                  <Check size={16} className="hidden sm:block text-success-500" />
+                  <Check size={16} className="text-success-500 flex-shrink-0" />
                   {t.landing.step3Feature3}
                 </li>
               </ul>
