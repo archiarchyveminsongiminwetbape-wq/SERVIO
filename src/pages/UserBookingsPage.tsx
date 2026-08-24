@@ -27,7 +27,7 @@ export default function UserBookingsPage() {
 
     const { data } = await supabase
       .from('bookings')
-      .select('*, provider:provider_profiles(business_name, avatar_url, slug, phone)')
+      .select('id, client_id, provider_id, scheduled_at, status, service_type, duration, location_type, location_address, notes, price, currency, payment_method, created_at, provider:provider_profiles(business_name, avatar_url, slug, phone)')
       .eq('client_id', user.id)
       .order('scheduled_at', { ascending: true });
 

@@ -72,7 +72,7 @@ export default function NotificationsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('notifications')
-      .select('*')
+      .select('id, user_id, type, title, body, link, is_read, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50);

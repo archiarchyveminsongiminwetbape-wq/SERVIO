@@ -41,7 +41,7 @@ export default function SettingsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('user_settings')
-      .select('*')
+      .select('user_id, email_notifications, push_notifications, email_messages, email_reviews, email_updates, language, currency, timezone')
       .eq('user_id', user.id)
       .maybeSingle();
 

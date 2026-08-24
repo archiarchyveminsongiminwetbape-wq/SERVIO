@@ -126,7 +126,7 @@ export default function MessagesPage() {
     setLoading(true);
     const { data } = await supabase
       .from('conversations')
-      .select('*')
+      .select('id, participant_a, participant_b, last_message_preview, last_message_at, created_at')
       .or(
         `participant_a.eq.${user.id},participant_b.eq.${user.id}`
       )
@@ -140,13 +140,13 @@ export default function MessagesPage() {
         const otherId = conv.participant_a === user.id ? conv.participant_b : conv.participant_a;
         const { data: otherUser } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, full_name, avatar_url')
           .eq('id', otherId)
           .maybeSingle();
 
         const { data: otherProvider } = await supabase
           .from('provider_profiles')
-          .select('*')
+          .select('id, business_name, headline, avatar_url')
           .eq('user_id', otherId)
           .maybeSingle();
 
@@ -166,7 +166,7 @@ export default function MessagesPage() {
     setSelectedConv(conv);
     const { data } = await supabase
       .from('messages')
-      .select('*')
+      .select('id, conversation_id, sender_id, content, created_at, read_at')
       .eq('conversation_id', conv.id)
       .order('created_at', { ascending: true });
 
