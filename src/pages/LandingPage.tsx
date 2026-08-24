@@ -30,7 +30,6 @@ export default function LandingPage() {
       const featRes = await supabase
         .from('provider_profiles')
         .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, category_slug, experience_years, languages, validation_status, is_featured, description, website, phone, email, social_links, response_time_hours, created_at, category:categories(id, name, slug)')
-        .in('validation_status', ['approved', 'pending'])
         .order('is_featured', { ascending: false })
         .order('rating_avg', { ascending: false })
         .limit(6);
