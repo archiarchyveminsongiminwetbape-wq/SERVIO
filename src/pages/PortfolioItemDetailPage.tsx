@@ -47,7 +47,7 @@ export default function PortfolioItemDetailPage() {
       // Load provider info
       const { data: providerData } = await supabase
         .from('provider_profiles')
-        .select('*, category:categories(*)')
+        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, category:categories(id, name, slug)')
         .eq('id', itemData.provider_id)
         .single();
 

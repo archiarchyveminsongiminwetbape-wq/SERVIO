@@ -130,9 +130,10 @@ export default function SearchPage() {
       if (verifiedOnly) {
         q = q.eq('validation_status', 'approved');
       }
-      if (responseTime) {
-        q = q.lte('response_time_hours', parseInt(responseTime));
-      }
+      // response_time_hours column doesn't exist in database, skipping this filter
+      // if (responseTime) {
+      //   q = q.lte('response_time_hours', parseInt(responseTime));
+      // }
 
       // ===== OPTIMIZED SORTING =====
       if (sortBy === 'rating') {

@@ -17,8 +17,7 @@ export const providersApi = {
       let query = supabase
         .from('provider_profiles')
         .select(`
-          *,
-          categories:category_id(name, slug, icon)
+          id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, updated_at, category:categories(id, name, slug), certifications, service_area, validation_note, validated_at, validated_by, profile_views, currency, review_count, availability_schedule
         `);
 
       if (filters?.category_id) {
@@ -64,10 +63,7 @@ export const providersApi = {
       const { data, error } = await supabase
         .from('provider_profiles')
         .select(`
-          *,
-          categories:category_id(name, slug, icon),
-          portfolio_items(*),
-          reviews(*, profiles:reviewer_id(full_name, avatar_url))
+          id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, updated_at, category:categories(id, name, slug), certifications, service_area, validation_note, validated_at, validated_by, profile_views, currency, review_count, availability_schedule
         `)
         .eq('slug', slug)
         .single();
@@ -84,7 +80,9 @@ export const providersApi = {
     try {
       const { data, error } = await supabase
         .from('provider_profiles')
-        .select('*')
+        .select(`
+          id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, updated_at, category:categories(id, name, slug), certifications, service_area, validation_note, validated_at, validated_by, profile_views, currency, review_count, availability_schedule
+        `)
         .eq('user_id', userId)
         .single();
 
@@ -227,7 +225,9 @@ export const providersApi = {
     try {
       const { data, error } = await supabase
         .from('provider_profiles')
-        .select('*')
+        .select(`
+          id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, updated_at, category:categories(id, name, slug), certifications, service_area, validation_note, validated_at, validated_by, profile_views, currency, review_count, availability_schedule
+        `)
         .or(`business_name.ilike.%${query}%,headline.ilike.%${query}%,skills.ilike.%${query}%`)
         .limit(20);
 
@@ -243,7 +243,9 @@ export const providersApi = {
     try {
       const { data, error } = await supabase
         .from('provider_profiles')
-        .select('*')
+        .select(`
+          id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, updated_at, category:categories(id, name, slug), certifications, service_area, validation_note, validated_at, validated_by, profile_views, currency, review_count, availability_schedule
+        `)
         .gte('rating_avg', 4.5)
         .gte('rating_count', 5)
         .eq('availability', 'available')

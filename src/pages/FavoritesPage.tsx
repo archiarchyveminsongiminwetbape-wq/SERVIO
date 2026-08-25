@@ -28,7 +28,7 @@ export default function FavoritesPage() {
     setLoading(true);
     const { data } = await supabase
       .from('favorites')
-      .select('provider:provider_profiles(id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, response_time_hours, created_at, category:categories(id, name, slug), owner:profiles!provider_profiles_user_id_fkey(avatar_url))')
+      .select('provider:provider_profiles(id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, category:categories(id, name, slug), owner:profiles!provider_profiles_user_id_fkey(avatar_url))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
