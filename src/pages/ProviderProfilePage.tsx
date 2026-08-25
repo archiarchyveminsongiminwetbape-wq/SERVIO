@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
   Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -115,7 +115,7 @@ export default function ProviderProfilePage() {
       // Track portfolio views if available
       const portRes = await supabase
         .from('portfolio_items')
-        .select('id, provider_id, title, description, image_url, video_url, project_url, type, tags, year, featured, sort_order, created_at')
+        .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at')
         .eq('provider_id', provData.id)
         .order('sort_order');
 
@@ -131,7 +131,7 @@ export default function ProviderProfilePage() {
 
       const revRes = await supabase
         .from('reviews')
-        .select('id, provider_id, author_id, rating, comment, created_at, updated_at, response')
+        .select('id, provider_id, author_id, rating, comment, created_at, updated_at, provider_response, provider_response_at')
         .eq('provider_id', provData.id)
         .order('created_at', { ascending: false });
 
