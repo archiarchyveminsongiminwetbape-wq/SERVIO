@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MessageSquare, Send, Loader2, ArrowLeft, Search, Zap } from 'lucide-react';
+import { MessageSquare, Send, Loader2, ArrowLeft, Search, Zap, Paperclip, X, Image, File } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
-import type { Conversation, Message, Profile, ProviderProfile } from '@/types';
+import type { Conversation, Message, Profile, ProviderProfile, MessageAttachment } from '@/types';
 import { formatRelativeTime } from '@/lib/utils';
 
 export default function MessagesPage() {
@@ -22,6 +22,9 @@ export default function MessagesPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const quickReplies = [
     t.provider.message.quickReplies.reply1,
@@ -166,7 +169,7 @@ export default function MessagesPage() {
     setSelectedConv(conv);
     const { data } = await supabase
       .from('messages')
-      .select('id, conversation_id, sender_id, content, created_at, read_at')
+      .select('id, conversation_id, sender_id, content, created_at, read_at, attachments:message_attachments(id, file_name, file_url, file_type, file_size, created_at)')
       .eq('conversation_id', conv.id)
       .order('created_at', { ascending: true });
 
@@ -187,30 +190,112 @@ export default function MessagesPage() {
     }, 100);
   }
 
-  async function sendMessage() {
-    if (!user || !selectedConv || !newMessage.trim()) return;
-    setSending(true);
+  async function uploadFile(file: File): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `message-attachments/${user?.id}/${fileName}`;
 
-    const { data: msg } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: selectedConv.id,
-        sender_id: user.id,
-        content: newMessage.trim(),
-      })
-      .select('*')
-      .single();
+    const { error: uploadError } = await supabase.storage
+      .from('attachments')
+      .upload(filePath, file);
 
-    if (msg) {
-      setMessages([...messages, msg as Message]);
-      setNewMessage('');
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 50);
-      loadConversations();
-    }
-    setSending(false);
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('attachments')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
   }
+
+  async function sendMessage() {
+    if (!user || !selectedConv || (!newMessage.trim() && attachments.length === 0)) return;
+    setSending(true);
+    setUploading(true);
+
+    try {
+      let attachmentData: MessageAttachment[] = [];
+
+      // Upload files
+      for (const file of attachments) {
+        const fileUrl = await uploadFile(file);
+        const { data: attachment } = await supabase
+          .from('message_attachments')
+          .insert({
+            file_name: file.name,
+            file_url: fileUrl,
+            file_type: file.type,
+            file_size: file.size,
+          })
+          .select('*')
+          .single();
+        
+        if (attachment) {
+          attachmentData.push(attachment as MessageAttachment);
+        }
+      }
+
+      const { data: msg } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: selectedConv.id,
+          sender_id: user.id,
+          content: newMessage.trim(),
+        })
+        .select('*')
+        .single();
+
+      if (msg) {
+        // Link attachments to message
+        for (const attachment of attachmentData) {
+          await supabase
+            .from('message_attachments')
+            .update({ message_id: msg.id })
+            .eq('id', attachment.id);
+        }
+
+        const messageWithAttachments = {
+          ...msg,
+          attachments: attachmentData,
+        } as Message;
+
+        setMessages([...messages, messageWithAttachments]);
+        setNewMessage('');
+        setAttachments([]);
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
+        loadConversations();
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setSending(false);
+      setUploading(false);
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => {
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        alert('File size exceeds 10MB limit');
+        return false;
+      }
+      return true;
+    });
+    setAttachments([...attachments, ...validFiles]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return Image;
+    return File;
+  };
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchQuery.trim()) return true;
@@ -352,7 +437,38 @@ export default function MessagesPage() {
                             : 'bg-white text-neutral-900 shadow-sm'
                         }`}
                       >
-                        <p className="break-words">{msg.content}</p>
+                        {msg.content && (
+                          <p className="break-words">{msg.content}</p>
+                        )}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="mt-2 space-y-2">
+                            {msg.attachments.map((attachment) => {
+                              const FileIcon = getFileIcon(attachment.file_type);
+                              return (
+                                <div key={attachment.id} className="flex items-center gap-2">
+                                  {attachment.file_type.startsWith('image/') ? (
+                                    <img
+                                      src={attachment.file_url}
+                                      alt={attachment.file_name}
+                                      className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90"
+                                      onClick={() => window.open(attachment.file_url, '_blank')}
+                                    />
+                                  ) : (
+                                    <a
+                                      href={attachment.file_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-2 bg-neutral-100/20 rounded-lg px-3 py-2 hover:bg-neutral-100/30 transition-colors"
+                                    >
+                                      <FileIcon size={16} />
+                                      <span className="truncate">{attachment.file_name}</span>
+                                    </a>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                         <p className={`mt-1 text-xs ${isOwn ? 'text-primary-200' : 'text-neutral-400'}`}>
                           {formatRelativeTime(msg.created_at, locale)}
                         </p>
@@ -365,6 +481,24 @@ export default function MessagesPage() {
             </div>
 
             <div className="border-t border-neutral-200 p-4 flex-shrink-0">
+              {/* Attachments preview */}
+              {attachments.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {attachments.map((file, index) => (
+                    <div key={index} className="flex items-center gap-2 bg-neutral-100 rounded-lg px-3 py-2">
+                      <Paperclip size={14} className="text-neutral-500" />
+                      <span className="text-sm text-neutral-700 truncate max-w-[150px]">{file.name}</span>
+                      <button
+                        onClick={() => removeAttachment(index)}
+                        className="text-neutral-400 hover:text-error-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="mb-2 flex flex-wrap gap-2">
                 <button
                   onClick={() => setShowQuickReplies(!showQuickReplies)}
@@ -373,6 +507,21 @@ export default function MessagesPage() {
                   <Zap size={12} />
                   {t.messages.quickReplies}
                 </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
+                >
+                  <Paperclip size={12} />
+                  {t.messages.attachFile}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                />
                 {showQuickReplies && (
                   <div className="flex flex-wrap gap-2 w-full">
                     {quickReplies.map((qr, i) => (
@@ -398,10 +547,10 @@ export default function MessagesPage() {
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={sending || !newMessage.trim()}
+                  disabled={sending || uploading || (!newMessage.trim() && attachments.length === 0)}
                   className="btn-primary px-3 py-2.5 flex-shrink-0"
                 >
-                  {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  {sending || uploading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 </button>
               </div>
               {isTyping && (

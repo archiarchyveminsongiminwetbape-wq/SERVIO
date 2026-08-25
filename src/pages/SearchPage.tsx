@@ -45,6 +45,8 @@ export default function SearchPage() {
   const [language, setLanguage] = useState(searchParams.get('language') ?? '');
   const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get('verified') === 'true');
   const [responseTime, setResponseTime] = useState(searchParams.get('response') ?? '');
+  const [skillsFilter, setSkillsFilter] = useState<string[]>(searchParams.get('skills')?.split(',') ?? []);
+  const [badgesFilter, setBadgesFilter] = useState<string[]>(searchParams.get('badges')?.split(',') ?? []);
 
   // Load subcategories when a category is selected
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function SearchPage() {
     const cacheKey = cacheKeys.providers(JSON.stringify({
       query, categorySlug, selectedSubCat, city, country, minRating,
       availability, sortBy, priceRange, minExperience, remoteOnly,
-      language, verifiedOnly, responseTime, pageNum
+      language, verifiedOnly, responseTime, skillsFilter, badgesFilter, pageNum
     }));
 
     // Check cache first
@@ -134,6 +136,12 @@ export default function SearchPage() {
       // if (responseTime) {
       //   q = q.lte('response_time_hours', parseInt(responseTime));
       // }
+      if (skillsFilter.length > 0) {
+        q = q.contains('skills', skillsFilter);
+      }
+      if (badgesFilter.length > 0) {
+        q = q.contains('badges', badgesFilter);
+      }
 
       // ===== OPTIMIZED SORTING =====
       if (sortBy === 'rating') {
@@ -183,7 +191,7 @@ export default function SearchPage() {
         setLoadingMore(false);
       }
     }
-  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, country, subCategories]);
+  }, [query, categorySlug, selectedSubCat, city, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, country, subCategories, skillsFilter, badgesFilter]);
 
   // ===== DEBOUNCED SEARCH EFFECT =====
   useEffect(() => {
@@ -206,6 +214,8 @@ export default function SearchPage() {
       if (language) params.language = language;
       if (verifiedOnly) params.verified = 'true';
       if (responseTime) params.response = responseTime;
+      if (skillsFilter.length > 0) params.skills = skillsFilter.join(',');
+      if (badgesFilter.length > 0) params.badges = badgesFilter.join(',');
       if (sortBy !== 'featured') params.sort = sortBy;
       setSearchParams(params);
     }, REQUEST_DEBOUNCE_MS);
@@ -215,7 +225,7 @@ export default function SearchPage() {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, doSearch, setSearchParams]);
+  }, [query, categorySlug, selectedSubCat, city, country, minRating, availability, sortBy, priceRange, minExperience, remoteOnly, language, verifiedOnly, responseTime, skillsFilter, badgesFilter, doSearch, setSearchParams]);
 
   // Load more handler with intersection observer
   const loadMore = useCallback(() => {
@@ -262,10 +272,12 @@ export default function SearchPage() {
     setLanguage('');
     setVerifiedOnly(false);
     setResponseTime('');
+    setSkillsFilter([]);
+    setBadgesFilter([]);
     setSortBy('featured');
   };
 
-  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime;
+  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime || skillsFilter.length > 0 || badgesFilter.length > 0;
 
   // Group providers by category
   const groupedProviders = useMemo(() => {
@@ -512,6 +524,51 @@ export default function SearchPage() {
                     <option value="12">Moins de 12 heures</option>
                     <option value="24">Moins de 24 heures</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="label">Compétences</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {providers.length > 0 && (() => {
+                      const allSkills = Array.from(new Set(providers.flatMap(p => p.skills))).slice(0, 10);
+                      return allSkills.map((skill) => (
+                        <button
+                          key={skill}
+                          onClick={() => {
+                            setSkillsFilter(prev => 
+                              prev.includes(skill) 
+                                ? prev.filter(s => s !== skill)
+                                : [...prev, skill]
+                            );
+                          }}
+                          className={`badge text-xs ${skillsFilter.includes(skill) ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                        >
+                          {skill}
+                        </button>
+                      ));
+                    })()}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Badges</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['profil-verifie', 'reponse-rapide', 'nouveau'].map((badge) => (
+                      <button
+                        key={badge}
+                        onClick={() => {
+                          setBadgesFilter(prev => 
+                            prev.includes(badge) 
+                              ? prev.filter(b => b !== badge)
+                              : [...prev, badge]
+                          );
+                        }}
+                        className={`badge text-xs ${badgesFilter.includes(badge) ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                      >
+                        {badge}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

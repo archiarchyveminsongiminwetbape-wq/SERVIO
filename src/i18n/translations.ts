@@ -488,7 +488,6 @@ export interface Translations {
     viewProfile: string;
     confirmCancel: string;
   };
-  // Booking translations for appointment booking flow
   booking: {
     title: string;
     with: string;
@@ -571,6 +570,7 @@ export interface Translations {
     contactProviderToStart: string;
     user: string;
     quickReplies: string;
+    attachFile: string;
     typing: string;
     selectConversation: string;
   };
@@ -1162,11 +1162,12 @@ export const translations: Record<Language, Translations> = {
     messages: {
       title: 'Messagerie',
       noConversations: 'Aucune conversation',
-      noConversationsSubtext: 'Contactez un prestataire pour commencer',
+      noConversationsSubtext: 'Vous n\'avez pas encore de conversation. Contactez un prestataire pour commencer.',
       tryDifferentSearch: 'Essayez une autre recherche',
       contactProviderToStart: 'Contactez un prestataire pour commencer',
       user: 'Utilisateur',
       quickReplies: 'Réponses rapides',
+      attachFile: 'Joindre un fichier',
       typing: 'L\'autre personne est en train d\'écrire...',
       selectConversation: 'Sélectionnez une conversation',
     },
@@ -1805,11 +1806,12 @@ export const translations: Record<Language, Translations> = {
     messages: {
       title: 'Messages',
       noConversations: 'No conversations',
-      noConversationsSubtext: 'Contact a provider to get started',
+      noConversationsSubtext: 'You don\'t have any conversations yet. Contact a provider to get started.',
       tryDifferentSearch: 'Try a different search',
       contactProviderToStart: 'Contact a provider to get started',
       user: 'User',
       quickReplies: 'Quick replies',
+      attachFile: 'Attach file',
       typing: 'The other person is typing...',
       selectConversation: 'Select a conversation',
     },
@@ -2453,6 +2455,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: 'Contacta a un proveedor para comenzar',
       user: 'Usuario',
       quickReplies: 'Respuestas rápidas',
+      attachFile: 'Adjuntar archivo',
       typing: 'La otra persona está escribiendo...',
       selectConversation: 'Selecciona una conversación',
     },
@@ -3096,6 +3099,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: 'Kontaktieren Sie einen Anbieter, um zu beginnen',
       user: 'Benutzer',
       quickReplies: 'Schnelle Antworten',
+      attachFile: 'Datei anhängen',
       typing: 'Die andere Person tippt...',
       selectConversation: 'Wählen Sie ein Gespräch aus',
     },
@@ -3739,6 +3743,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: 'Contatta un fornitore per iniziare',
       user: 'Utente',
       quickReplies: 'Risposte rapide',
+      attachFile: 'Allega file',
       typing: 'L\'altra persona sta scrivendo...',
       selectConversation: 'Seleziona una conversazione',
     },
@@ -4382,6 +4387,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: 'Contate um prestador para começar',
       user: 'Usuário',
       quickReplies: 'Respostas rápidas',
+      attachFile: 'Anexar arquivo',
       typing: 'A outra pessoa está digitando...',
       selectConversation: 'Selecione uma conversa',
     },
@@ -5025,6 +5031,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: 'اتصل بمقدم خدمة للبدء',
       user: 'مستخدم',
       quickReplies: 'ردود سريعة',
+      attachFile: 'إرفاق ملف',
       typing: 'الشخص الآخر يكتب...',
       selectConversation: 'اختر محادثة',
     },
@@ -5668,6 +5675,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: '联系提供商以开始',
       user: '用户',
       quickReplies: '快速回复',
+      attachFile: '附加文件',
       typing: '对方正在输入...',
       selectConversation: '选择对话',
     },
@@ -6311,6 +6319,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: 'プロバイダーに連絡して始めましょう',
       user: 'ユーザー',
       quickReplies: 'クイック返信',
+      attachFile: 'ファイルを添付',
       typing: '相手が入力中...',
       selectConversation: '会話を選択',
     },
@@ -6954,6 +6963,7 @@ export const translations: Record<Language, Translations> = {
       contactProviderToStart: '제공자에게 연락하여 시작하세요',
       user: '사용자',
       quickReplies: '빠른 답장',
+      attachFile: '파일 첨부',
       typing: '상대방이 입력 중...',
       selectConversation: '대화 선택',
     },

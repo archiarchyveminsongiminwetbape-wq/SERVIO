@@ -7,6 +7,8 @@ export type LocationType = 'in_person' | 'remote' | 'hybrid';
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
 export type PaymentMethod = 'card' | 'bank_transfer' | 'paypal' | 'cash';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'unpaid';
+export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise';
 
 export interface Profile {
   id: string;
@@ -120,10 +122,20 @@ export interface Review {
   author_id: string;
   rating: number;
   comment: string | null;
-  provider_response: string | null;
-  provider_response_at: string | null;
   created_at: string;
+  updated_at: string;
   author?: Profile | null;
+  responses?: ReviewResponse[];
+}
+
+export interface ReviewResponse {
+  id: string;
+  review_id: string;
+  responder_id: string;
+  response: string;
+  created_at: string;
+  updated_at: string;
+  responder?: Profile | null;
 }
 
 export interface Conversation {
@@ -143,8 +155,18 @@ export interface Message {
   conversation_id: string;
   sender_id: string;
   content: string;
-  attachment_url: string | null;
+  attachments: MessageAttachment[];
   read_at: string | null;
+  created_at: string;
+}
+
+export interface MessageAttachment {
+  id: string;
+  message_id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string;
+  file_size: number;
   created_at: string;
 }
 
@@ -239,6 +261,41 @@ export interface Notification {
   link: string | null;
   is_read: boolean;
   created_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  provider_profile_id: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+}
+
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  client_id: string;
+  provider_profile_id: string | null;
+  booking_id: string | null;
+  subscription_id: string | null;
+  type: 'booking' | 'subscription' | 'custom';
+  status: InvoiceStatus;
+  amount: number;
+  currency: string;
+  tax_amount: number;
+  total_amount: number;
+  due_date: string | null;
+  paid_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Payment {

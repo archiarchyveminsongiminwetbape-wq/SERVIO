@@ -8,7 +8,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
-import type { ProviderProfile, PortfolioItem, Review } from '@/types';
+import type { ProviderProfile, PortfolioItem, Review, ReviewResponse } from '@/types';
 import StarRating from '@/components/StarRating';
 import Lightbox from '@/components/Lightbox';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
@@ -136,6 +136,21 @@ export default function ProviderProfilePage() {
         .order('created_at', { ascending: false });
 
       const reviewsData = revRes.data ?? [];
+      
+      // Load responses for each review
+      const reviewsWithResponses = await Promise.all(
+        reviewsData.map(async (review) => {
+          const { data: responses } = await supabase
+            .from('review_responses')
+            .select('id, review_id, responder_id, response, created_at, updated_at, responder:profiles(id, full_name, avatar_url)')
+            .eq('review_id', review.id);
+          
+          return {
+            ...review,
+            responses: responses as ReviewResponse[] ?? [],
+          };
+        })
+      );
       const authorIds = Array.from(new Set(reviewsData.map((review) => review.author_id)));
       let authorProfiles: Array<{ id: string; full_name: string | null; avatar_url: string | null }> = [];
       if (authorIds.length > 0) {
@@ -147,7 +162,7 @@ export default function ProviderProfilePage() {
       }
 
       const authorMap = new Map(authorProfiles.map((author) => [author.id, author]));
-      const reviewsWithAuthors = reviewsData.map((review) => ({
+      const reviewsWithAuthors = reviewsWithResponses.map((review) => ({
         ...review,
         author: authorMap.get(review.author_id) ?? null,
       }));
@@ -314,18 +329,20 @@ export default function ProviderProfilePage() {
     if (!user || !provider || !responseText.trim()) return;
 
     setSubmittingResponse(true);
-    const { error } = await supabase
-      .from('reviews')
-      .update({
-        provider_response: responseText.trim(),
-        provider_response_at: new Date().toISOString(),
+    const { data, error } = await supabase
+      .from('review_responses')
+      .insert({
+        review_id: reviewId,
+        responder_id: user.id,
+        response: responseText.trim(),
       })
-      .eq('id', reviewId);
+      .select('id, review_id, responder_id, response, created_at, updated_at, responder:profiles(id, full_name, avatar_url)')
+      .single();
 
-    if (!error) {
+    if (!error && data) {
       setReviews(reviews.map(r => 
         r.id === reviewId 
-          ? { ...r, provider_response: responseText.trim(), provider_response_at: new Date().toISOString() }
+          ? { ...r, responses: [...(r.responses || []), data as ReviewResponse] }
           : r
       ));
       setRespondingToReview(null);
@@ -873,13 +890,31 @@ export default function ProviderProfilePage() {
                           {review.comment && (
                             <p className="mt-2 text-sm text-neutral-600">{review.comment}</p>
                           )}
-                          {review.provider_response && (
-                            <div className="mt-3 rounded-lg bg-neutral-50 p-3">
-                              <p className="text-xs font-semibold text-neutral-700">{t.provider.providerResponse}</p>
-                              <p className="mt-1 text-sm text-neutral-600">{review.provider_response}</p>
+                          {review.responses && review.responses.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {review.responses.map((response) => (
+                                <div key={response.id} className="rounded-lg bg-neutral-50 p-3">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    {response.responder?.avatar_url ? (
+                                      <img src={response.responder.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                                    ) : (
+                                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700">
+                                        {response.responder?.full_name?.[0]?.toUpperCase() ?? 'P'}
+                                      </div>
+                                    )}
+                                    <p className="text-xs font-semibold text-neutral-700">
+                                      {response.responder?.full_name || t.provider.providerResponse}
+                                    </p>
+                                    <span className="text-xs text-neutral-400">
+                                      {formatRelativeTime(response.created_at)}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-sm text-neutral-600">{response.response}</p>
+                                </div>
+                              ))}
                             </div>
                           )}
-                          {isOwnProfile && !review.provider_response && (
+                          {isOwnProfile && (
                             <button
                               onClick={() => setRespondingToReview(review.id)}
                               className="mt-3 text-sm font-medium text-primary-600 hover:text-primary-700"

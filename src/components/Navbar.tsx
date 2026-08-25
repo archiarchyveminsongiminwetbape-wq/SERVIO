@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, memo } from 'react';
-import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun, Globe, ChevronDown } from 'lucide-react';
+import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun, Globe, ChevronDown, Crown, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useI18n } from '@/context/I18nContext';
@@ -67,17 +67,31 @@ function Navbar() {
               {t.nav.search}
             </Link>
             {profile?.role === 'provider' && (
-              <Link
-                to="/provider/dashboard"
-                className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
-                  isActive('/provider/dashboard') 
-                    ? 'bg-primary-50 text-primary-700' 
-                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
-                }`}
-                aria-current={isActive('/provider/dashboard') ? 'page' : undefined}
-              >
-                {t.provider.dashboard}
-              </Link>
+              <>
+                <Link
+                  to="/provider/dashboard"
+                  className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
+                    isActive('/provider/dashboard') 
+                      ? 'bg-primary-50 text-primary-700' 
+                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
+                  }`}
+                  aria-current={isActive('/provider/dashboard') ? 'page' : undefined}
+                >
+                  {t.provider.dashboard}
+                </Link>
+                <Link
+                  to="/subscription"
+                  className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
+                    isActive('/subscription') 
+                      ? 'bg-accent-50 text-accent-700' 
+                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
+                  }`}
+                  aria-current={isActive('/subscription') ? 'page' : undefined}
+                >
+                  <Crown size={14} className="inline mr-1" />
+                  Premium
+                </Link>
+              </>
             )}
             {profile?.role === 'admin' && (
               <Link
@@ -113,6 +127,14 @@ function Navbar() {
               >
                 <Heart size={18} className="sm:hidden" />
                 <Heart size={20} className="hidden sm:block" />
+              </Link>
+              <Link
+                to="/recommendations"
+                className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
+                aria-label="Recommandations"
+              >
+                <Sparkles size={18} className="sm:hidden" />
+                <Sparkles size={20} className="hidden sm:block" />
               </Link>
               <NotificationBell />
               
