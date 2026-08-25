@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
   Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -131,7 +131,7 @@ export default function ProviderProfilePage() {
 
       const revRes = await supabase
         .from('reviews')
-        .select('id, provider_id, author_id, rating, comment, created_at, updated_at, provider_response, provider_response_at')
+        .select('id, provider_id, author_id, rating, comment, created_at, updated_at')
         .eq('provider_id', provData.id)
         .order('created_at', { ascending: false });
 
