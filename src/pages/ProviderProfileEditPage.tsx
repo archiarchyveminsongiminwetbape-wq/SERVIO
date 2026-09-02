@@ -74,6 +74,9 @@ export default function ProviderProfileEditPage() {
       .from('provider_profiles')
       .select('id, user_id, business_name, slug, headline, description, avatar_url, banner_url, category_id, skills, experience_years, languages, certifications, city, country, service_area, remote_service, phone, website, social_links, price_range, availability, validation_status, validation_note')
       .eq('user_id', user.id)
+      .order('rating_count', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     if (profileData) {

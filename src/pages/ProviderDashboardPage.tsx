@@ -131,7 +131,7 @@ export default function ProviderDashboardPage() {
     setLoading(true);
 
     const [provRes, catRes] = await Promise.all([
-      supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).maybeSingle(),
+      supabase.from('provider_profiles').select('id, user_id, business_name, slug, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).order('rating_count', { ascending: false }).order('created_at', { ascending: true }).limit(1).maybeSingle(),
       supabase.from('categories').select('id, name, slug, icon, parent_id, sort_order').order('sort_order'),
     ]);
 
@@ -170,9 +170,9 @@ export default function ProviderDashboardPage() {
     const [portRes, revRes, bookingRes, invoiceRes] = providerId
       ? await Promise.all([
           supabase.from('portfolio_items').select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at').eq('provider_id', providerId).order('sort_order'),
-          supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, updated_at, provider_response, provider_response_at, author:profiles(id, full_name, avatar_url)').eq('provider_id', providerId).order('created_at', { ascending: false }),
-          supabase.from('bookings').select('id, client_id, provider_id, scheduled_at, status, service_type, duration, location_type, location_address, notes, price, currency, payment_method, payment_status, created_at, client:profiles(id, full_name, email, avatar_url)').eq('provider_id', providerId).order('scheduled_at', { ascending: true }),
-          supabase.from('invoices').select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_at, created_at, client:profiles(id, full_name, email), booking:bookings(id, service_type, scheduled_at)').eq('provider_id', providerId).order('created_at', { ascending: false }),
+          supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, provider_response, provider_response_at').eq('provider_id', providerId).order('created_at', { ascending: false }),
+          supabase.from('bookings').select('id, client_id, provider_id, scheduled_at, status, service_type, duration_minutes, location_type, location_address, notes, price, currency, payment_method, payment_status, created_at, client:profiles(id, full_name, email, avatar_url)').eq('provider_id', providerId).order('scheduled_at', { ascending: true }),
+          supabase.from('invoices').select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_date, created_at').eq('provider_id', providerId).order('created_at', { ascending: false }),
         ])
       : [
           { data: [] },
@@ -287,6 +287,9 @@ export default function ProviderDashboardPage() {
         .from('provider_profiles')
         .select('id')
         .eq('user_id', user.id)
+        .order('rating_count', { ascending: false })
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle();
 
       if (findError) {
@@ -866,7 +869,7 @@ export default function ProviderDashboardPage() {
       .from('invoices')
       .update({ 
         status: 'paid',
-        paid_at: new Date().toISOString()
+        paid_date: new Date().toISOString()
       })
       .eq('id', invoiceId);
 
@@ -1045,7 +1048,7 @@ export default function ProviderDashboardPage() {
           />
           <BentoStatCard 
             icon={Star} 
-            value={provider.rating_avg.toFixed(1)} 
+            value={Number(provider.rating_avg ?? 0).toFixed(1)} 
             label={`${provider.rating_count} avis`}
             variant="primary"
           />

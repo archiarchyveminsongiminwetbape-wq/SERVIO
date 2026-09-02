@@ -27,6 +27,8 @@ export default function LoginPage() {
 
     if (profileRole === 'admin') {
       navigate('/admin');
+    } else if (profileRole === 'provider') {
+      navigate('/provider/dashboard');
     } else {
       navigate('/');
     }

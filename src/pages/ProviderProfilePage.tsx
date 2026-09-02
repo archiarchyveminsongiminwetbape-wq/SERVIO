@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
   Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play, Edit3
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -87,10 +87,12 @@ export default function ProviderProfilePage() {
       if (!slug) return;
       setLoading(true);
 
+      const normalizedSlug = slug.trim().toLowerCase();
       const { data: provData, error: provError } = await supabase
         .from('provider_profiles')
-        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at, category:categories(id, name, slug)')
-        .eq('slug', slug)
+        .select('id, user_id, business_name, headline, avatar_url, banner_url, city, country, remote_service, skills, badges, rating_avg, rating_count, price_range, availability, slug, category_id, experience_years, languages, validation_status, is_featured, description, website, phone, social_links, created_at')
+        .eq('slug', normalizedSlug)
+        .limit(1)
         .maybeSingle();
 
       if (!provData) {
@@ -98,6 +100,16 @@ export default function ProviderProfilePage() {
         console.log('Error details:', JSON.stringify(provError, null, 2));
         setLoading(false);
         return;
+      }
+
+      let category = null;
+      if (provData.category_id) {
+        const { data: categoryData } = await supabase
+          .from('categories')
+          .select('id, name, slug, parent_id, icon, description, sort_order, created_at')
+          .eq('id', provData.category_id)
+          .maybeSingle();
+        category = categoryData;
       }
 
       let ownerAvatarUrl: string | null = null;
@@ -112,6 +124,7 @@ export default function ProviderProfilePage() {
 
       setProvider({
         ...(provData as ProviderProfile),
+        category,
         avatar_url: provData.avatar_url || ownerAvatarUrl,
       });
 
@@ -655,7 +668,20 @@ export default function ProviderProfilePage() {
             </div>
           </div>
 
-          {!isOwnProfile && (
+          {isOwnProfile ? (
+            <div className="flex flex-wrap gap-2 pb-2">
+              <button
+                onClick={() => navigate('/provider/edit')}
+                className="btn-primary text-sm sm:text-base"
+              >
+                <Edit3 size={16} />
+                Modifier mon profil
+              </button>
+              <button onClick={shareProfile} className="btn-secondary">
+                <Share2 size={16} />
+              </button>
+            </div>
+          ) : (
             <div className="flex flex-wrap gap-2 pb-2">
               <button
                 onClick={() => setShowMessageModal(true)}

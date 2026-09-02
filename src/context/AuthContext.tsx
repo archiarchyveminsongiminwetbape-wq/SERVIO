@@ -62,6 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('provider_profiles')
         .select('id')
         .eq('user_id', userId)
+        .order('rating_count', { ascending: false })
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle(),
     ]);
 
