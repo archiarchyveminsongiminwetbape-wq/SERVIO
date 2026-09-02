@@ -27,7 +27,7 @@ export default function UserBookingsPage() {
 
     const { data } = await supabase
       .from('bookings')
-      .select('id, client_id, provider_id, scheduled_at, status, service_type, duration, location_type, location_address, notes, price, currency, payment_method, created_at, provider:provider_profiles(business_name, avatar_url, slug, phone)')
+      .select('id, client_id, provider_id, scheduled_at, status, service_type, duration, location_type, location_address, notes, price, currency, payment_method, payment_status, created_at, provider:provider_profiles(business_name, avatar_url, slug, phone)')
       .eq('client_id', user.id)
       .order('scheduled_at', { ascending: true });
 
@@ -173,6 +173,9 @@ export default function UserBookingsPage() {
                           ({booking.payment_method === 'cash' ? t.bookings.payment.cash : booking.payment_method === 'card' ? t.bookings.payment.card : t.bookings.payment.bankTransfer})
                         </span>
                       )}
+                      <span className={`badge ${booking.payment_status === 'completed' ? 'bg-success-50 text-success-700' : booking.payment_status === 'processing' ? 'bg-primary-50 text-primary-700' : booking.payment_status === 'refunded' ? 'bg-error-50 text-error-700' : 'bg-warning-50 text-warning-700'}`}>
+                        {booking.payment_status === 'completed' ? 'Paiement libéré' : booking.payment_status === 'processing' ? 'Escrow sécurisé' : booking.payment_status === 'refunded' ? 'Remboursé' : 'En attente de paiement'}
+                      </span>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">

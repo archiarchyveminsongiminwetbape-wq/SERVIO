@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Video, User, Check, X, Loader2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
@@ -24,8 +25,32 @@ export default function BookingPage() {
   const [serviceType, setServiceType] = useState('Consultation');
   const [duration, setDuration] = useState(60);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'bank_transfer'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'bank_transfer' | 'orange_money' | 'mtn_money'>('cash');
   const [price, setPrice] = useState<number>(0);
+  const [quoteAccepted, setQuoteAccepted] = useState(false);
+
+  const exportQuote = () => {
+    if (!provider || !selectedSlot) return;
+
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('SERVIO - Devis de mission', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Référence: ${quoteReference}`, 14, 32);
+    doc.text(`Prestataire: ${provider.business_name}`, 14, 40);
+    doc.text(`Client: ${profile?.full_name || 'Client SERVIO'}`, 14, 48);
+    doc.text(`Service: ${serviceType || 'Consultation'}`, 14, 56);
+    doc.text(`Date: ${new Date(selectedSlot.date).toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 64);
+    doc.text(`Horaire: ${selectedSlot.start_time} - ${selectedSlot.end_time}`, 14, 72);
+    doc.text(`Durée: ${duration} minutes`, 14, 80);
+    doc.text(`Mode: ${locationType === 'remote' ? 'À distance' : locationType === 'in_person' ? 'En présentiel' : 'Hybride'}`, 14, 88);
+    doc.text(`Montant: ${price}€`, 14, 96);
+    doc.text(`Paiement: ${paymentMethod === 'cash' ? 'Espèces / paiement direct' : paymentMethod === 'card' ? 'Carte bancaire' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_money' ? 'MTN Money' : 'Virement bancaire'}`, 14, 104);
+    doc.text('Escrow: Sécurisé par SERVIO — paiement retenu jusqu’à validation finale de la mission.', 14, 112);
+    doc.text('Signature client: ______________________________', 14, 140);
+    doc.text(`Notes: ${notes || 'Aucune note particulière'}`, 14, 150, { maxWidth: 180 });
+    doc.save(`devis-${provider.business_name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -89,15 +114,27 @@ export default function BookingPage() {
     }
   }, [duration]);
 
+  const quoteReference = `SERV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+
   async function handleSubmitBooking() {
-    if (!user || !provider || !selectedSlot) return;
+    if (!user || !provider || !selectedSlot || !quoteAccepted) return;
     setSubmitting(true);
 
     const bookingDate = new Date(selectedSlot.date);
     const [hours, minutes] = selectedSlot.start_time.split(':');
     bookingDate.setHours(parseInt(hours), parseInt(minutes));
 
-    const { error } = await supabase.from('bookings').insert({
+    const secureNotes = [
+      notes || '',
+      `Devis SERVIO: ${quoteReference}`,
+      `Escrow sécurisé: ${paymentMethod === 'cash' ? 'paiement hors escrow' : 'paiement retenu jusqu’à validation de mission'}`,
+    ].filter(Boolean).join('\n\n');
+
+    const paymentIntentReference = `pi_${Date.now()}`;
+    const contractReference = `CTR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const providerPayment = paymentMethod === 'card' ? 'stripe' : paymentMethod === 'orange_money' ? 'orange_money' : paymentMethod === 'mtn_money' ? 'mtn_money' : 'manual';
+
+    const { data: bookingData, error } = await supabase.from('bookings').insert({
       client_id: user.id,
       provider_id: provider.id,
       service_type: serviceType,
@@ -105,19 +142,82 @@ export default function BookingPage() {
       duration_minutes: duration,
       location_type: locationType,
       location_address: locationType === 'in_person' || locationType === 'hybrid' ? address : null,
-      notes: notes || null,
+      notes: secureNotes || null,
       status: 'pending',
       price: price,
       currency: 'EUR',
       payment_method: paymentMethod,
-      payment_status: paymentMethod === 'cash' ? 'pending' : 'pending',
-    });
+      payment_status: paymentMethod === 'card' ? 'processing' : paymentMethod === 'cash' ? 'pending' : 'held',
+      metadata: {
+        payment_intent_reference: paymentIntentReference,
+        payment_provider: providerPayment,
+        escrow_enabled: true,
+        quote_reference: quoteReference,
+        contract_reference: contractReference,
+        contract_status: 'draft',
+        contract_signed_at: null,
+        payment_data: {
+          method: paymentMethod,
+          amount: price,
+          currency: 'EUR',
+          status: paymentMethod === 'card' ? 'processing' : paymentMethod === 'cash' ? 'pending' : 'held',
+        },
+      },
+    }).select('id').single();
 
     if (error) {
       console.error('Error creating booking:', error);
       alert(t.common.error);
       setSubmitting(false);
-    } else {
+      return;
+    }
+
+    if (paymentMethod === 'card') {
+      try {
+        const response = await fetch('/api/checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: price,
+            currency: 'eur',
+            bookingId: bookingData?.id,
+            userId: user.id,
+            providerId: provider.id,
+            clientEmail: user.email,
+            metadata: {
+              payment_intent_reference: paymentIntentReference,
+              quote_reference: quoteReference,
+              provider_id: provider.id,
+              booking_id: bookingData?.id,
+            },
+          }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload?.url) {
+          throw new Error(payload?.error || 'Checkout unavailable');
+        }
+
+        window.location.href = payload.url;
+        return;
+      } catch (checkoutError) {
+        console.error('Checkout error:', checkoutError);
+        await supabase.from('bookings').update({ payment_status: 'failed', status: 'cancelled' }).eq('id', bookingData?.id);
+        alert('Le paiement par carte n’a pas pu être démarré. Veuillez réessayer.');
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    if (paymentMethod === 'orange_money' || paymentMethod === 'mtn_money') {
+      await supabase.from('bookings').update({
+        payment_status: 'processing',
+        status: 'pending',
+        notes: `${secureNotes}\n\nPaiement mobile: ${paymentMethod === 'orange_money' ? 'Orange Money' : 'MTN Money'} — validation manuelle requise.`,
+      }).eq('id', bookingData?.id);
+    }
+
+    if (provider.user_id) {
       // Send email notification to provider
       if (provider.user_id) {
         const { data: providerProfile } = await supabase
@@ -179,6 +279,12 @@ export default function BookingPage() {
             {t.booking.successMessage.replace('{provider}', provider.business_name)}
           </p>
           <div className="mt-6 space-y-2">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Escrow sécurisé activé : le paiement est retenu jusqu’à validation finale de la mission.
+            </div>
+            <button onClick={exportQuote} className="btn-secondary w-full">
+              Télécharger le devis
+            </button>
             <button onClick={() => navigate('/messages')} className="btn-primary w-full">
               {t.booking.viewMessages}
             </button>
@@ -192,36 +298,57 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:py-8">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{t.booking.title}</h1>
-        <p className="mt-1 text-neutral-600">{t.booking.with} {provider.business_name}</p>
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary-600">
+          <span className="h-2 w-2 rounded-full bg-primary-500" />
+          {t.booking.title}
+        </div>
+        <h1 className="text-xl sm:text-3xl font-bold text-neutral-900">{t.booking.title}</h1>
+        <p className="mt-2 text-neutral-600">{t.booking.with} {provider.business_name}</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-[0.9fr_1.7fr]">
         {/* Provider Info */}
         <div className="md:col-span-1">
-          <div className="card p-4 sm:p-6">
-            {provider.avatar_url ? (
-              <img src={provider.avatar_url} alt="" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover mx-auto" />
-            ) : (
-              <div className="mx-auto flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-primary-100 text-2xl sm:text-3xl font-bold text-primary-700">
-                {provider.business_name[0]}
-              </div>
-            )}
-            <h3 className="mt-3 sm:mt-4 text-center font-semibold text-neutral-900 text-base sm:text-lg">{provider.business_name}</h3>
+          <div className="overflow-hidden rounded-[28px] border border-primary-100 bg-gradient-to-br from-primary-50 via-white to-cyan-50 p-4 shadow-[0_24px_60px_rgba(59,130,246,0.12)] sm:p-6">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-white p-1 shadow-md sm:h-24 sm:w-24">
+              {provider.avatar_url ? (
+                <img src={provider.avatar_url} alt="" className="h-full w-full rounded-[22px] object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center rounded-[22px] bg-gradient-to-br from-primary-500 to-primary-600 text-2xl sm:text-3xl font-bold text-white">
+                  {provider.business_name[0]}
+                </div>
+              )}
+            </div>
+            <h3 className="mt-4 text-center font-semibold text-neutral-900 text-base sm:text-lg">{provider.business_name}</h3>
             <p className="mt-1 text-center text-sm text-neutral-600">{provider.headline}</p>
             {provider.city && (
-              <div className="mt-2 sm:mt-3 flex items-center justify-center gap-1 text-sm text-neutral-500">
+              <div className="mt-3 flex items-center justify-center gap-1 text-sm text-neutral-500">
                 <MapPin size={14} />
                 {provider.city}
               </div>
             )}
+
+            <div className="mt-5 space-y-3 rounded-2xl border border-primary-100 bg-white/80 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-500">Durée</span>
+                <span className="font-semibold text-neutral-900">{duration} min</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-500">Tarif</span>
+                <span className="font-semibold text-primary-700">{price}€</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-500">Mode</span>
+                <span className="font-semibold text-neutral-900">{locationType}</span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Booking Form */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-1">
           {step === 'select' && (
             <div className="card p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-4">{t.booking.selectSlot}</h3>
@@ -446,6 +573,28 @@ export default function BookingPage() {
                       {paymentMethod === 'card' && <Check size={16} className="text-primary-600" />}
                     </button>
                     <button
+                      onClick={() => setPaymentMethod('orange_money')}
+                      className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+                        paymentMethod === 'orange_money'
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span className="text-sm text-neutral-700">Orange Money</span>
+                      {paymentMethod === 'orange_money' && <Check size={16} className="text-primary-600" />}
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod('mtn_money')}
+                      className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+                        paymentMethod === 'mtn_money'
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span className="text-sm text-neutral-700">MTN Money</span>
+                      {paymentMethod === 'mtn_money' && <Check size={16} className="text-primary-600" />}
+                    </button>
+                    <button
                       onClick={() => setPaymentMethod('bank_transfer')}
                       className={`w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
                         paymentMethod === 'bank_transfer'
@@ -459,15 +608,50 @@ export default function BookingPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-primary-50 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-neutral-700">{t.booking.totalPrice}</span>
-                    <span className="text-lg font-semibold text-primary-700">{price}€</span>
+                <div className="rounded-2xl border border-primary-100 bg-primary-50/60 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-700">Devis de mission</p>
+                      <p className="mt-1 text-sm text-neutral-600">Référence {quoteReference}</p>
+                    </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-primary-700">Valable 48h</span>
                   </div>
-                  <div className="mt-1 text-xs text-neutral-500">
-                    {t.booking.durationLabel} {duration} min
+
+                  <div className="space-y-2 text-sm text-neutral-700">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Service</span>
+                      <span className="font-medium text-neutral-900">{serviceType || 'Consultation'}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Durée</span>
+                      <span className="font-medium text-neutral-900">{duration} min</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Mode</span>
+                      <span className="font-medium text-neutral-900">{locationType === 'remote' ? 'À distance' : locationType === 'in_person' ? 'En présentiel' : 'Hybride'}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Prix estimé</span>
+                      <span className="text-lg font-bold text-primary-700">{price}€</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-primary-200 bg-white/80 p-3 text-xs text-neutral-600">
+                    Le prestataire confirme l’intervention sur la date sélectionnée. Le paiement est sécurisé et libéré une fois la mission validée.
                   </div>
                 </div>
+
+                <label className="mt-4 flex items-start gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    checked={quoteAccepted}
+                    onChange={(e) => setQuoteAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span>
+                    J’accepte le devis, la date proposée et les conditions de mission avant validation.
+                  </span>
+                </label>
               </div>
 
               <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
@@ -476,10 +660,10 @@ export default function BookingPage() {
                 </button>
                 <button
                   onClick={handleSubmitBooking}
-                  disabled={submitting || ((locationType === 'in_person' || locationType === 'hybrid') && !address)}
-                  className="btn-primary w-full sm:w-auto"
+                  disabled={submitting || !quoteAccepted || ((locationType === 'in_person' || locationType === 'hybrid') && !address)}
+                  className="btn-primary w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {submitting ? <Loader2 size={18} className="animate-spin" /> : t.booking.confirmButton}
+                  {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Valider le devis'}
                 </button>
               </div>
             </div>

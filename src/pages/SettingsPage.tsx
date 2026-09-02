@@ -91,16 +91,47 @@ export default function SettingsPage() {
 
     if (confirm(t.user.deleteAccountWarning)) {
       try {
-        // Call the Vercel API route to delete the user completely
-        const response = await fetch('/api/delete-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user.id }),
-        });
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-        const data = await response.json();
+        const deleteWithFallback = async () => {
+          const localResponse = await fetch('/api/delete-user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId: user.id }),
+          });
+
+          if (localResponse.ok) {
+            return localResponse;
+          }
+
+          const localData = await localResponse.json().catch(() => ({}));
+          if (!supabaseUrl || !supabaseAnonKey) {
+            throw new Error(localData.error || t.settings.deleteAccountError);
+          }
+
+          const edgeResponse = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseAnonKey}`,
+              apikey: supabaseAnonKey,
+            },
+            body: JSON.stringify({ userId: user.id }),
+          });
+
+          if (!edgeResponse.ok) {
+            const edgeData = await edgeResponse.json().catch(() => ({}));
+            throw new Error(edgeData.error || localData.error || t.settings.deleteAccountError);
+          }
+
+          return edgeResponse;
+        };
+
+        const response = await deleteWithFallback();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
           console.error('Error calling delete-user API:', data);
@@ -108,14 +139,12 @@ export default function SettingsPage() {
           return;
         }
 
-        // Sign out the user after successful deletion
         await signOut();
         navigate('/');
-        
         alert(t.settings.deleteAccountSuccess);
       } catch (error) {
         console.error('Error deleting account:', error);
-        alert(t.common.error);
+        alert(error instanceof Error ? error.message : t.common.error);
       }
     }
   };

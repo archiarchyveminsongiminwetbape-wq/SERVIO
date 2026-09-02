@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, CheckCheck, Trash2, MessageCircle, Star, Shield, AlertCircle, Clock, Loader2 } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, MessageCircle, Star, Shield, AlertCircle, Clock, Loader2, CalendarCheck2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';
@@ -125,6 +125,8 @@ export default function NotificationsPage() {
         return Star;
       case 'report':
         return AlertCircle;
+      case 'booking':
+        return CalendarCheck2;
       default:
         return Bell;
     }
@@ -140,6 +142,8 @@ export default function NotificationsPage() {
         return 'text-accent-600 bg-accent-50';
       case 'report':
         return 'text-error-600 bg-error-50';
+      case 'booking':
+        return 'text-amber-600 bg-amber-50';
       default:
         return 'text-neutral-600 bg-neutral-50';
     }
@@ -160,6 +164,7 @@ export default function NotificationsPage() {
     { value: 'review', label: t.notifications.reviews },
     { value: 'validation', label: t.notifications.validation },
     { value: 'report', label: t.notifications.reports },
+    { value: 'booking', label: 'Missions' },
     { value: 'system', label: t.notifications.system },
   ];
 

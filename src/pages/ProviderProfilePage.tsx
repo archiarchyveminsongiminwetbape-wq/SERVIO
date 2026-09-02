@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
   Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -55,9 +55,13 @@ export default function ProviderProfilePage() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [messageError, setMessageError] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportError, setReportError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewComment, setReviewComment] = useState('');
@@ -75,6 +79,8 @@ export default function ProviderProfilePage() {
   const [portfolioTagFilter, setPortfolioTagFilter] = useState('');
   const [portfolioYearFilter, setPortfolioYearFilter] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [completedMissions, setCompletedMissions] = useState(0);
+  const [canLeaveVerifiedReview, setCanLeaveVerifiedReview] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -129,6 +135,15 @@ export default function ProviderProfilePage() {
       //   });
       // }
 
+      const { data: completedBookings } = await supabase
+        .from('bookings')
+        .select('id, client_id, provider_id, status')
+        .eq('provider_id', provData.id)
+        .eq('status', 'completed');
+
+      const completedMissionCount = completedBookings?.length ?? 0;
+      setCompletedMissions(completedMissionCount);
+
       const revRes = await supabase
         .from('reviews')
         .select('id, provider_id, author_id, rating, comment, created_at, updated_at')
@@ -136,7 +151,8 @@ export default function ProviderProfilePage() {
         .order('created_at', { ascending: false });
 
       const reviewsData = revRes.data ?? [];
-      
+      const verifiedAuthorIds = new Set((completedBookings ?? []).map((booking) => booking.client_id));
+
       // Load responses for each review
       const reviewsWithResponses = await Promise.all(
         reviewsData.map(async (review) => {
@@ -144,9 +160,10 @@ export default function ProviderProfilePage() {
             .from('review_responses')
             .select('id, review_id, responder_id, response, created_at, updated_at, responder:profiles(id, full_name, avatar_url)')
             .eq('review_id', review.id);
-          
+
           return {
             ...review,
+            is_verified: verifiedAuthorIds.has(review.author_id),
             responses: responses as ReviewResponse[] ?? [],
           };
         })
@@ -180,6 +197,16 @@ export default function ProviderProfilePage() {
           .eq('author_id', user.id)
           .maybeSingle();
         setHasReviewed(!!existingReview);
+
+        const { data: completedUserBooking } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('provider_id', provData.id)
+          .eq('client_id', user.id)
+          .eq('status', 'completed')
+          .limit(1);
+
+        setCanLeaveVerifiedReview(Boolean(completedUserBooking && completedUserBooking.length > 0));
       }
 
       // Check favorite
@@ -207,6 +234,43 @@ export default function ProviderProfilePage() {
     } else {
       await supabase.from('favorites').insert({ user_id: user.id, provider_id: provider.id });
       setIsFavorited(true);
+    }
+  };
+
+  const handleReportProfile = async () => {
+    if (!user || !provider) {
+      navigate('/login');
+      return;
+    }
+    if (!reportReason.trim()) {
+      setReportError('Veuillez préciser le motif du signalement.');
+      return;
+    }
+
+    setReporting(true);
+    setReportError(null);
+
+    try {
+      const { error } = await supabase.from('reports').insert({
+        report_type: 'profile',
+        target_id: provider.id,
+        reporter_id: user.id,
+        reason: reportReason.trim(),
+        status: 'open',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setShowReportModal(false);
+      setReportReason('');
+      setReportError(null);
+    } catch (error: any) {
+      console.error('Profile report error:', error);
+      setReportError(error?.message || 'Une erreur est survenue lors du signalement.');
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -284,8 +348,29 @@ export default function ProviderProfilePage() {
       navigate('/login');
       return;
     }
+
     if (!reviewComment.trim()) {
       setReviewError((t.provider as any).reviewCommentRequired || 'Veuillez saisir un avis.');
+      return;
+    }
+
+    const { data: completedUserBooking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('provider_id', provider.id)
+      .eq('client_id', user.id)
+      .eq('status', 'completed')
+      .limit(1);
+
+    if (bookingError) {
+      setReviewError(bookingError.message || 'Une erreur est survenue lors de la vérification de votre mission.');
+      setSubmittingReview(false);
+      return;
+    }
+
+    if (!completedUserBooking || completedUserBooking.length === 0) {
+      setReviewError('Les avis sont vérifiés uniquement après une mission complétée.');
+      setSubmittingReview(false);
       return;
     }
 
@@ -462,28 +547,87 @@ export default function ProviderProfilePage() {
   const avail = availabilityInfo[provider.availability] ?? availabilityInfo.available;
   const isOwnProfile = user?.id === provider.user_id;
 
+  const verificationChecks = (() => {
+    const checks = new Set<string>(provider.verification_checks ?? []);
+
+    if (provider.validation_status === 'approved') {
+      checks.add('Identité vérifiée');
+      checks.add('Profil validé');
+      checks.add('Expérience et compétences confirmées');
+    } else if (provider.validation_status === 'pending') {
+      checks.add('Validation en cours');
+      checks.add('Délai indicatif : 24 à 48h');
+    } else if (provider.validation_status === 'changes_requested') {
+      checks.add('Modifications demandées');
+      checks.add('Documents ou informations manquants');
+    } else if (provider.validation_status === 'rejected') {
+      checks.add('Profil non validé');
+      checks.add('Vérification refusée');
+    }
+
+    if (provider.city) checks.add('Localisation renseignée');
+    if (provider.phone) checks.add('Téléphone vérifié');
+    if (provider.website) checks.add('Site web renseigné');
+    if ((provider.skills?.length ?? 0) > 0) checks.add('Compétences déclarées');
+    if ((provider.experience_years ?? 0) > 0) checks.add('Expérience confirmée');
+
+    return Array.from(checks).slice(0, 6);
+  })();
+
+  const validationSummary = (() => {
+    if (provider.validation_status === 'approved') {
+      return {
+        title: 'Profil vérifié',
+        tone: 'success',
+        text: 'Ce profil a été validé sur les éléments clés : identité, présentation et compétences.',
+      };
+    }
+
+    if (provider.validation_status === 'changes_requested') {
+      return {
+        title: 'Validation incomplète',
+        tone: 'warning',
+        text: 'Des informations complémentaires sont nécessaires avant validation. Le délai indicatif reste de 24 à 48h après soumission.',
+      };
+    }
+
+    if (provider.validation_status === 'rejected') {
+      return {
+        title: 'Profil non validé',
+        tone: 'error',
+        text: 'Le profil n’a pas été validé pour le moment et doit être complété ou corrigé.',
+      };
+    }
+
+    return {
+      title: 'Validation en cours',
+      tone: 'neutral',
+      text: 'Notre équipe vérifie le profil, la qualité de la présentation et les informations du prestataire. Délai indicatif : 24 à 48h.',
+    };
+  })();
+
   return (
     <div className="animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Banner */}
-      <div className="relative h-32 sm:h-40 md:h-48 overflow-hidden bg-neutral-200">
-        {provider.banner_url && (
+      <div className="relative h-32 overflow-hidden bg-neutral-200 sm:h-40 md:h-52">
+        {provider.banner_url ? (
           <img src={provider.banner_url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-primary-200 via-primary-100 to-cyan-100" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-900/10 to-transparent" />
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Profile header */}
-        <div className="relative -mt-10 sm:-mt-14 flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="relative -mt-10 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end">
           <div className="flex-shrink-0">
             {provider.avatar_url ? (
               <img
                 src={provider.avatar_url}
                 alt={provider.business_name}
-                className="h-20 w-20 sm:h-28 sm:w-28 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+                className="h-20 w-20 rounded-[1.6rem] object-cover ring-4 ring-white shadow-[0_22px_48px_rgba(15,23,42,0.18)] sm:h-28 sm:w-28"
               />
             ) : (
-              <div className="flex h-20 w-20 sm:h-28 sm:w-28 items-center justify-center rounded-2xl bg-primary-100 text-3xl sm:text-4xl font-bold text-primary-700 ring-4 ring-white shadow-lg">
+              <div className="flex h-20 w-20 items-center justify-center rounded-[1.6rem] bg-gradient-to-br from-primary-500 to-primary-600 text-3xl font-bold text-white ring-4 ring-white shadow-[0_22px_48px_rgba(15,23,42,0.18)] sm:h-28 sm:w-28 sm:text-4xl">
                 {provider.business_name[0]?.toUpperCase()}
               </div>
             )}
@@ -491,14 +635,14 @@ export default function ProviderProfilePage() {
 
           <div className="flex-1 pb-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">{provider.business_name}</h1>
-              <div className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+              <h1 className="text-xl font-bold text-neutral-900 sm:text-3xl">{provider.business_name}</h1>
+              <div className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm ring-1 ring-neutral-200">
                 <span className={`h-1.5 w-1.5 rounded-full ${avail.color}`} />
                 {getAvailabilityLabel(provider.availability)}
               </div>
             </div>
-            <p className="mt-1 text-sm sm:text-base text-neutral-600">{provider.headline}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-neutral-500">
+            <p className="mt-1 text-sm text-neutral-600 sm:text-base">{provider.headline}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500 sm:gap-x-4 sm:text-sm">
               {provider.city && (
                 <span className="flex items-center gap-1"><MapPin size={14} /> {provider.city}</span>
               )}
@@ -506,6 +650,7 @@ export default function ProviderProfilePage() {
                 <span className="flex items-center gap-1"><Briefcase size={14} /> {provider.experience_years} {t.provider.yearsOfExperienceLabel}</span>
               )}
               <StarRating rating={provider.rating_avg} count={provider.rating_count} showValue />
+              <span className="flex items-center gap-1"><Briefcase size={14} /> {completedMissions} missions</span>
               <span className="flex items-center gap-1"><Eye size={14} /> {provider.profile_views || 0} {t.common.views}</span>
             </div>
           </div>
@@ -522,7 +667,7 @@ export default function ProviderProfilePage() {
               </button>
               <button
                 onClick={toggleFavorite}
-                className={`btn-secondary ${isFavorited ? 'text-error-600' : ''}`}
+                className={`btn-secondary ${isFavorited ? 'border-red-200 bg-red-50 text-red-600' : ''}`}
               >
                 <Heart size={16} className="sm:hidden" />
                 <Heart size={18} className="hidden sm:block" />
@@ -554,6 +699,38 @@ export default function ProviderProfilePage() {
             })}
           </div>
         )}
+
+        <div className={`mt-4 rounded-2xl border p-4 ${
+          validationSummary.tone === 'success'
+            ? 'border-success-200 bg-success-50'
+            : validationSummary.tone === 'warning'
+            ? 'border-amber-200 bg-amber-50'
+            : validationSummary.tone === 'error'
+            ? 'border-error-200 bg-error-50'
+            : 'border-primary-200 bg-primary-50'
+        }`}>
+          <div className="flex items-center gap-2">
+            <BadgeCheck size={18} className={
+              validationSummary.tone === 'success'
+                ? 'text-success-600'
+                : validationSummary.tone === 'warning'
+                ? 'text-amber-600'
+                : validationSummary.tone === 'error'
+                ? 'text-error-600'
+                : 'text-primary-600'
+            } />
+            <p className="text-sm font-semibold text-neutral-900">{validationSummary.title}</p>
+          </div>
+          <p className="mt-2 text-sm text-neutral-700">{validationSummary.text}</p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {verificationChecks.map((check) => (
+              <span key={check} className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-medium text-neutral-700">
+                {check}
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className="mt-6 sm:mt-8 border-b border-neutral-200 overflow-x-auto">
@@ -781,8 +958,18 @@ export default function ProviderProfilePage() {
             <div className="mx-auto max-w-3xl">
               {!isOwnProfile && user && !hasReviewed && (
                 <div className="mb-6">
+                  {!canLeaveVerifiedReview && (
+                    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      Les avis sont vérifiés uniquement après une mission complétée. Une réservation terminée permettra d’écrire un avis.
+                    </div>
+                  )}
+
                   {!showReviewForm ? (
-                    <button onClick={() => setShowReviewForm(true)} className="btn-primary w-full">
+                    <button
+                      onClick={() => setShowReviewForm(true)}
+                      disabled={!canLeaveVerifiedReview}
+                      className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                    >
                       <Plus size={18} />
                       {t.provider.leaveReview}
                     </button>
@@ -882,8 +1069,15 @@ export default function ProviderProfilePage() {
                           </div>
                         )}
                         <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-neutral-900">{review.author?.full_name ?? t.provider.anonymous}</p>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-neutral-900">{review.author?.full_name ?? t.provider.anonymous}</p>
+                              {review.is_verified && (
+                                <span className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-success-700">
+                                  Avis vérifié
+                                </span>
+                              )}
+                            </div>
                             <span className="text-xs text-neutral-500">{formatRelativeTime(review.created_at)}</span>
                           </div>
                           <StarRating rating={review.rating} size={14} />
@@ -1038,7 +1232,10 @@ export default function ProviderProfilePage() {
 
               {!isOwnProfile && (
                 <div className="flex justify-end border-t border-neutral-100 pt-4">
-                  <button className="btn-ghost text-neutral-400 hover:text-error-600">
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="btn-ghost text-neutral-400 hover:text-error-600"
+                  >
                     <Flag size={16} />
                     {t.provider.reportProfile}
                   </button>
@@ -1057,6 +1254,40 @@ export default function ProviderProfilePage() {
         onClose={() => setIsLightboxOpen(false)}
         alt={provider?.business_name || 'Portfolio image'}
       />
+
+      {/* Report profile modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowReportModal(false)}>
+          <div className="card max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900">{t.provider.reportProfile}</h3>
+              <button onClick={() => setShowReportModal(false)} className="text-neutral-400 hover:text-neutral-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <label className="label">Motif du signalement</label>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="input-field resize-none"
+              rows={4}
+              placeholder="Décrivez le problème constaté sur ce profil ou cet avis..."
+            />
+            {reportError && (
+              <p className="mt-2 text-sm text-error-600">{reportError}</p>
+            )}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setShowReportModal(false)} className="btn-secondary">{t.common.cancel}</button>
+              <button onClick={handleReportProfile} disabled={reporting || !reportReason.trim()} className="btn-primary disabled:cursor-not-allowed disabled:opacity-50">
+                {reporting ? <Loader2 size={16} className="animate-spin" /> : <Flag size={16} />}
+                Signaler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Message modal */}
       {showMessageModal && (

@@ -383,9 +383,18 @@ export default function ProviderProfileEditPage() {
                 className="input-field"
               >
                 <option value="">{t.provider.selectCategory}</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
+                {categories
+                  .filter((cat) => !cat.parent_id)
+                  .map((parent) => (
+                    <optgroup key={parent.id} label={parent.name}>
+                      <option value={parent.id}>{parent.name}</option>
+                      {categories
+                        .filter((sub) => sub.parent_id === parent.id)
+                        .map((sub) => (
+                          <option key={sub.id} value={sub.id}>{sub.name}</option>
+                        ))}
+                    </optgroup>
+                  ))}
               </select>
             </div>
             <div>

@@ -15,6 +15,16 @@ import { useI18n } from '@/context/I18nContext';
 const ITEMS_PER_PAGE = 24;
 const REQUEST_DEBOUNCE_MS = 300;
 const CACHE_TTL = 300000; // 5 minutes
+const BLOCKED_PROVIDER_SLUGS = new Set([
+  'archi-0722',
+  'jean-9497',
+  'jean-2315',
+  'jean-9186',
+  'jean-2452',
+  'jean-8485',
+  'jean-9711',
+  'jean-0157',
+]);
 
 export default function SearchPage() {
   const { t } = useI18n();
@@ -90,20 +100,13 @@ export default function SearchPage() {
     try {
       let q = supabase
         .from('provider_profiles')
-        .select('id, business_name, slug, headline, avatar_url, banner_url, category_id, skills, rating_avg, rating_count, city, remote_service, availability, badges, price_range, is_featured, experience_years, languages, validation_status', { count: 'exact' })
+        .select('id, business_name, slug, headline, avatar_url, banner_url, category_id, skills, rating_avg, rating_count, city, remote_service, availability, badges, price_range, is_featured, experience_years, languages, validation_status, category:categories(id, name, slug, parent_id)', { count: 'exact' })
         .not('slug', 'is', null);
 
       // ===== OPTIMIZED FILTERS =====
       if (query.trim()) {
         const searchQuery = query.trim().toLowerCase();
         q = q.or(`business_name.ilike.%${searchQuery}%,headline.ilike.%${searchQuery}%,skills.cs.{${searchQuery}}`);
-      }
-      if (categorySlug) {
-        const cat = categoryTaxonomy.find((c) => c.slug === categorySlug);
-        if (cat) {
-          // Filter by category_id instead of category_slug since category_slug column doesn't exist
-          q = q.eq('category_id', cat.id);
-        }
       }
       if (city.trim()) {
         q = q.ilike('city', `%${city}%`);
@@ -163,18 +166,31 @@ export default function SearchPage() {
       q = q.range(offset, offset + ITEMS_PER_PAGE - 1);
 
       const { data, error: fetchError, count } = await q;
-      
+
       if (fetchError) {
         throw fetchError;
       }
-      
-      const providersData = data as ProviderProfile[] ?? [];
-      
+
+      const providersData = (data as ProviderProfile[] ?? []).filter((provider) => {
+        if (provider.slug && BLOCKED_PROVIDER_SLUGS.has(provider.slug)) {
+          return false;
+        }
+
+        if (!matchesCategoryFilter(provider)) return false;
+        if (!matchesPriceRange(provider)) return false;
+        if (responseTime) {
+          const responseHours = Number(responseTime);
+          if (!Number.isNaN(responseHours) && responseHours > 0) {
+            return true;
+          }
+        }
+        return true;
+      });
+
       if (pageNum === 1) {
         setProviders(providersData);
-        setTotalCount(count ?? 0);
-        // Cache the results
-        setCache(cacheKey, { providers: providersData, count: count ?? 0 }, CACHE_TTL);
+        setTotalCount(count ?? providersData.length);
+        setCache(cacheKey, { providers: providersData, count: count ?? providersData.length }, CACHE_TTL);
       } else {
         setProviders(prev => [...prev, ...providersData]);
       }
@@ -275,6 +291,43 @@ export default function SearchPage() {
     setSkillsFilter([]);
     setBadgesFilter([]);
     setSortBy('featured');
+  };
+
+  const getPriceBand = (priceValue?: string | null) => {
+    if (!priceValue) return 'all';
+    const normalized = (priceValue || '').replace(/\s+/g, '').toLowerCase();
+    if (normalized.includes('€€€') || normalized.includes('€€€€') || normalized.includes('premium')) return 'premium';
+    if (normalized.includes('€€')) return 'standard';
+    if (normalized.includes('€')) return 'budget';
+    return 'all';
+  };
+
+  const matchesPriceRange = (provider: ProviderProfile) => {
+    if (!priceRange) return true;
+    const band = getPriceBand(provider.price_range);
+
+    if (priceRange === 'budget') return band === 'budget';
+    if (priceRange === 'standard') return band === 'standard';
+    if (priceRange === 'premium') return band === 'premium';
+    return true;
+  };
+
+  const matchesCategoryFilter = (provider: ProviderProfile) => {
+    if (!categorySlug && !selectedSubCat) return true;
+
+    const providerSlug = provider.category?.slug?.toLowerCase();
+
+    if (selectedSubCat) {
+      return providerSlug === selectedSubCat.toLowerCase();
+    }
+
+    if (!categorySlug) return true;
+
+    const topCategory = categoryTaxonomy.find((cat) => cat.slug === categorySlug);
+    if (!topCategory) return true;
+
+    const topCategorySlugs = [topCategory.slug, ...topCategory.subcategories.map((sub) => sub.slug)];
+    return topCategorySlugs.includes(providerSlug || '');
   };
 
   const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime || skillsFilter.length > 0 || badgesFilter.length > 0;
@@ -424,8 +477,11 @@ export default function SearchPage() {
                     className="input-field"
                   >
                     <option value="">{t.common.all}</option>
+                    <option value="3">3 étoiles et plus</option>
+                    <option value="3.5">3,5 étoiles et plus</option>
                     <option value="4">4 étoiles et plus</option>
                     <option value="4.5">4,5 étoiles et plus</option>
+                    <option value="4.8">4,8 étoiles et plus</option>
                   </select>
                 </div>
 
@@ -437,8 +493,9 @@ export default function SearchPage() {
                     className="input-field"
                   >
                     <option value="">{t.common.all}</option>
-                    <option value="available">Disponible</option>
+                    <option value="available">Disponible maintenant</option>
                     <option value="busy">Sur mission</option>
+                    <option value="unavailable">Indisponible</option>
                   </select>
                 </div>
 
@@ -450,9 +507,9 @@ export default function SearchPage() {
                     className="input-field"
                   >
                     <option value="">{t.common.all}</option>
-                    <option value="€">€ (Économique)</option>
-                    <option value="€€">€€ (Standard)</option>
-                    <option value="€€€">€€€ (Premium)</option>
+                    <option value="budget">€ (Budget)</option>
+                    <option value="standard">€€ (Standard)</option>
+                    <option value="premium">€€€ (Premium)</option>
                   </select>
                 </div>
 

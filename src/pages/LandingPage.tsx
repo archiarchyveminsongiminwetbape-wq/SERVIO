@@ -20,6 +20,8 @@ export default function LandingPage() {
     ? categoryTaxonomy 
     : categoryTaxonomy.slice(0, 12);
 
+  const trustItems = ['Startups', 'PMEs', 'Agences', 'Indépendants', 'Boutiques', 'Équipes'];
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
@@ -37,51 +39,105 @@ export default function LandingPage() {
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-primary-900/30 to-transparent" />
-        
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary-500/20 blur-3xl animate-pulse" />
-          <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary-400/20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
+
+        <div className="orb left-[-80px] top-20 h-48 w-48 bg-primary-400/25" />
+        <div className="orb right-[-80px] bottom-20 h-52 w-52 bg-cyan-300/20" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-12 sm:py-16 md:py-20 lg:py-24 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-4 sm:mb-6 md:mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
-              <Sparkles size={14} className="sm:hidden" />
-              <Sparkles size={16} className="hidden sm:block" />
-              {t.landing.platformBadge}
+          <div className="hero-3d-shell grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="mx-auto max-w-4xl text-center lg:text-left">
+              <div className="mb-4 sm:mb-6 md:mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
+                <Sparkles size={14} className="sm:hidden" />
+                <Sparkles size={16} className="hidden sm:block" />
+                {t.landing.platformBadge}
+              </div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white animate-slide-up">
+                {t.landing.heroTitle}
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-primary-100">{t.landing.heroSubtitle}</span>
+              </h1>
+              <p className="mx-auto mt-3 sm:mt-4 md:mt-6 lg:mt-8 max-w-2xl text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed text-primary-100 animate-slide-up lg:mx-0" style={{ animationDelay: '0.1s' }}>
+                {t.landing.heroDescription}
+              </p>
+
+              <form onSubmit={handleSearch} className="mx-auto mt-4 sm:mt-6 md:mt-8 lg:mt-12 animate-slide-up lg:mx-0" style={{ animationDelay: '0.2s' }}>
+                <GlassCard variant={darkMode ? 'dark' : 'default'} className="hero-3d-card flex max-w-2xl flex-col sm:flex-row items-center gap-2 sm:gap-3 p-2">
+                  <GlassInput
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t.search.placeholder}
+                    variant={darkMode ? 'dark' : 'default'}
+                    icon={<Search size={18} className="sm:hidden" />}
+                    iconDesktop={<Search size={20} className="hidden sm:block" />}
+                    className="flex-1"
+                  />
+                  <button type="submit" className="btn-primary rounded-xl sm:rounded-2xl px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 w-full sm:w-auto text-sm sm:text-base">
+                    {t.common.search}
+                    <ArrowRight size={16} className="hidden sm:inline" />
+                  </button>
+                </GlassCard>
+              </form>
+
+              <div className="mt-4 sm:mt-6 md:mt-8 lg:mt-10 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 md:gap-x-6 gap-y-2 sm:gap-y-3 text-xs sm:text-sm text-primary-100 animate-slide-up lg:justify-start" style={{ animationDelay: '0.3s' }}>
+                <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-full backdrop-blur-sm"><ShieldCheck size={12} className="sm:hidden" /><ShieldCheck size={14} className="sm:hidden" /><ShieldCheck size={18} className="hidden md:inline" /> {t.landing.verifiedProfiles}</span>
+                <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><MessageSquare size={14} className="sm:hidden" /><MessageSquare size={18} className="hidden sm:inline" /> {t.landing.integratedMessaging}</span>
+                <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><Star size={14} className="sm:hidden" /><Star size={18} className="hidden sm:inline" /> {t.landing.realReviews}</span>
+              </div>
+
+              <div className="mt-6 sm:mt-8 animate-slide-up lg:mx-0" style={{ animationDelay: '0.35s' }}>
+                <div className="trust-strip mx-auto max-w-2xl lg:mx-0">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-200/90">Trusted by</span>
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                    {trustItems.map((item) => (
+                      <span key={item} className="mini-metric">{item}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white animate-slide-up">
-              {t.landing.heroTitle}
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-primary-100">{t.landing.heroSubtitle}</span>
-            </h1>
-            <p className="mx-auto mt-3 sm:mt-4 md:mt-6 lg:mt-8 max-w-2xl text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed text-primary-100 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              {t.landing.heroDescription}
-            </p>
 
-            <form onSubmit={handleSearch} className="mx-auto mt-4 sm:mt-6 md:mt-8 lg:mt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <GlassCard variant={darkMode ? 'dark' : 'default'} className="flex max-w-2xl flex-col sm:flex-row items-center gap-2 sm:gap-3 p-2">
-                <GlassInput
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t.search.placeholder}
-                  variant={darkMode ? 'dark' : 'default'}
-                  icon={<Search size={18} className="sm:hidden" />}
-                  iconDesktop={<Search size={20} className="hidden sm:block" />}
-                  className="flex-1"
-                />
-                <button type="submit" className="btn-primary rounded-xl sm:rounded-2xl px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 w-full sm:w-auto text-sm sm:text-base">
-                  {t.common.search}
-                  <ArrowRight size={16} className="hidden sm:inline" />
-                </button>
-              </GlassCard>
-            </form>
+            <div className="hidden lg:block">
+              <div className="floating-panel delay-1 relative mx-auto flex w-[92%] max-w-md flex-col gap-4 rounded-[2rem] border border-white/20 bg-white/10 p-4 text-white shadow-2xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-primary-100">Prestation populaire</p>
+                    <h3 className="mt-2 text-2xl font-bold">Service digital</h3>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-success-400/20 text-success-300">
+                    <ShieldCheck size={24} />
+                  </div>
+                </div>
 
-            <div className="mt-4 sm:mt-6 md:mt-8 lg:mt-10 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 md:gap-x-6 gap-y-2 sm:gap-y-3 text-xs sm:text-sm text-primary-100 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-full backdrop-blur-sm"><ShieldCheck size={12} className="sm:hidden" /><ShieldCheck size={14} className="sm:hidden" /><ShieldCheck size={18} className="hidden md:inline" /> {t.landing.verifiedProfiles}</span>
-              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><MessageSquare size={14} className="sm:hidden" /><MessageSquare size={18} className="hidden sm:inline" /> {t.landing.integratedMessaging}</span>
-              <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><Star size={14} className="sm:hidden" /><Star size={18} className="hidden sm:inline" /> {t.landing.realReviews}</span>
+                <div className="rounded-2xl bg-slate-950/35 p-4 ring-1 ring-white/10">
+                  <div className="flex items-center justify-between text-sm text-primary-100">
+                    <span>Prestataires vérifiés</span>
+                    <span className="font-semibold text-white">Disponible</span>
+                  </div>
+                  <div className="mt-3 h-2.5 rounded-full bg-white/10">
+                    <div className="h-2.5 w-[82%] rounded-full bg-gradient-to-r from-primary-300 via-primary-400 to-cyan-300" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <p className="text-xs text-primary-100">Réponse moyenne</p>
+                    <p className="mt-2 text-xl font-bold">&lt; 24h</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <p className="text-xs text-primary-100">Qualité</p>
+                    <p className="mt-2 text-xl font-bold">Élevée</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="floating-panel delay-2 relative mx-auto mt-6 flex w-[72%] -translate-x-10 flex-col gap-2 rounded-[1.6rem] border border-primary-100/20 bg-slate-950/35 p-4 text-white shadow-lg">
+                <div className="flex items-center justify-between text-sm text-primary-100">
+                  <span>Nouvelle demande</span>
+                  <span className="rounded-full bg-success-500/20 px-2 py-1 text-xs text-success-300">Live</span>
+                </div>
+                <p className="text-lg font-semibold">Service sur mesure</p>
+                <p className="text-sm text-primary-100">Distance • Réponse rapide • Sélection simple</p>
+              </div>
             </div>
           </div>
         </div>

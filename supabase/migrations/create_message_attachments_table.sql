@@ -18,11 +18,13 @@ ALTER TABLE message_attachments ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
 -- Anyone can read attachments (if they can read the message)
+DROP POLICY IF EXISTS "Attachments are viewable by everyone" ON message_attachments;
 CREATE POLICY "Attachments are viewable by everyone"
   ON message_attachments FOR SELECT
   USING (true);
 
 -- Only the message sender can insert attachments
+DROP POLICY IF EXISTS "Users can insert attachments to their messages" ON message_attachments;
 CREATE POLICY "Users can insert attachments to their messages"
   ON message_attachments FOR INSERT
   WITH CHECK (
@@ -34,6 +36,7 @@ CREATE POLICY "Users can insert attachments to their messages"
   );
 
 -- Only the message sender can delete attachments
+DROP POLICY IF EXISTS "Users can delete their own attachments" ON message_attachments;
 CREATE POLICY "Users can delete their own attachments"
   ON message_attachments FOR DELETE
   USING (

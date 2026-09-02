@@ -51,18 +51,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function fetchProfile(userId: string) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+  async function fetchProfile(userId: string): Promise<Profile | null> {
+    const [{ data, error }, { data: providerData, error: providerError }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase
+        .from('provider_profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ]);
 
     if (error) {
       console.error('Error fetching profile:', error);
     }
-    setProfile(data as Profile | null);
+    if (providerError) {
+      console.error('Error checking provider profile:', providerError);
+    }
+
+    const resolvedProfile = data
+      ? ({ ...data, role: providerData ? 'provider' : data.role } as Profile)
+      : null;
+
+    setProfile(resolvedProfile);
     setLoading(false);
+    return resolvedProfile;
   }
 
   async function signUp(email: string, password: string, metadata: { full_name: string; role: string }) {
@@ -122,14 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      await fetchProfile(session.user.id);
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      return { error: null, profileRole: data?.role ?? null };
+      const resolvedProfile = await fetchProfile(session.user.id);
+      return { error: null, profileRole: resolvedProfile?.role ?? null };
     }
 
     return { error: null, profileRole: null };

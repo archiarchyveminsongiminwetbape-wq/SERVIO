@@ -67,7 +67,6 @@ END $$;
 
 -- Recréer le trigger pour updated_at
 DROP TRIGGER IF EXISTS update_categories_updated_at ON categories;
-DROP FUNCTION IF EXISTS update_updated_at_column();
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

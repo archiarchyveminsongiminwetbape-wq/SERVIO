@@ -14,8 +14,7 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- 2. Enable RLS on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- 2. Supabase manages RLS ownership for storage.objects.
 
 -- 3. Public Read Access for all buckets
 DROP POLICY IF EXISTS "Public Access for avatars" ON storage.objects;

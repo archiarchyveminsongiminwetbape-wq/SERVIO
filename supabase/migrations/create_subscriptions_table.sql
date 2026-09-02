@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  provider_profile_id UUID NOT NULL REFERENCES provider_profiles(id) ON DELETE CASCADE,
+  provider_id UUID NOT NULL REFERENCES provider_profiles(id) ON DELETE CASCADE,
   plan TEXT NOT NULL CHECK (plan IN ('free', 'basic', 'pro', 'enterprise')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'trialing', 'past_due', 'cancelled', 'unpaid')),
   current_period_start TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -14,9 +14,19 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   stripe_customer_id TEXT
 );
 
+ALTER TABLE IF EXISTS subscriptions
+  ADD COLUMN IF NOT EXISTS provider_id UUID;
+
+UPDATE subscriptions
+SET provider_id = COALESCE(provider_id, user_id)
+WHERE provider_id IS NULL;
+
+ALTER TABLE IF EXISTS subscriptions
+  ALTER COLUMN provider_id SET NOT NULL;
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_provider_profile_id ON subscriptions(provider_profile_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_provider_id ON subscriptions(provider_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_plan ON subscriptions(plan);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
@@ -24,31 +34,50 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscript
 -- Enable RLS
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 
--- Create policies
--- Users can read their own subscriptions
-CREATE POLICY "Users can read their own subscriptions"
-  ON subscriptions FOR SELECT
-  USING (auth.uid() = user_id);
+-- Create policies only if missing
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'Users can read their own subscriptions'
+  ) THEN
+    CREATE POLICY "Users can read their own subscriptions"
+      ON subscriptions FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
 
--- Users can insert their own subscriptions
-CREATE POLICY "Users can insert their own subscriptions"
-  ON subscriptions FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'Users can insert their own subscriptions'
+  ) THEN
+    CREATE POLICY "Users can insert their own subscriptions"
+      ON subscriptions FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
 
--- Users can update their own subscriptions
-CREATE POLICY "Users can update their own subscriptions"
-  ON subscriptions FOR UPDATE
-  USING (auth.uid() = user_id);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'Users can update their own subscriptions'
+  ) THEN
+    CREATE POLICY "Users can update their own subscriptions"
+      ON subscriptions FOR UPDATE
+      USING (auth.uid() = user_id);
+  END IF;
 
--- Admins can read all subscriptions
-CREATE POLICY "Admins can read all subscriptions"
-  ON subscriptions FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'subscriptions' AND policyname = 'Admins can read all subscriptions'
+  ) THEN
+    CREATE POLICY "Admins can read all subscriptions"
+      ON subscriptions FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM profiles
+          WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+        )
+      );
+  END IF;
+END $$;
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_subscriptions_updated_at()
@@ -59,17 +88,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to automatically update updated_at
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at_trigger ON subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at_trigger
   BEFORE UPDATE ON subscriptions
   FOR EACH ROW
   EXECUTE FUNCTION update_subscriptions_updated_at();
 
--- Function to check and update subscription status
 CREATE OR REPLACE FUNCTION update_subscription_status()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Check if subscription has expired
   IF NEW.current_period_end < NOW() AND NEW.status = 'active' THEN
     NEW.status := 'past_due';
   END IF;
@@ -77,7 +104,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to check subscription status
+DROP TRIGGER IF EXISTS check_subscription_status_trigger ON subscriptions;
 CREATE TRIGGER check_subscription_status_trigger
   BEFORE UPDATE ON subscriptions
   FOR EACH ROW

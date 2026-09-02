@@ -7,15 +7,14 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get the user ID from the request body
-    const { userId } = await req.json()
-    
+    const body = await req.json().catch(() => ({}))
+    const { userId } = body
+
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'User ID is required' }),
@@ -23,15 +22,20 @@ serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client with service role key
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: 'Supabase server configuration is missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Delete user from auth
     const { error: authError } = await supabase.auth.admin.deleteUser(userId)
-    
+
     if (authError) {
       console.error('Error deleting auth user:', authError)
       return new Response(
@@ -40,9 +44,8 @@ serve(async (req) => {
       )
     }
 
-    // Call the RPC function to delete database records
-    const { error: dbError } = await supabase.rpc('delete_user_by_id', { target_user_id: userId })
-    
+    const { error: dbError } = await supabase.rpc('delete_user_account', { user_id: userId })
+
     if (dbError) {
       console.error('Error deleting database records:', dbError)
       return new Response(
@@ -58,7 +61,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

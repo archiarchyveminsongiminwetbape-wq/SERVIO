@@ -32,11 +32,11 @@ function Navbar() {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 ${darkMode ? 'glass-nav-dark' : 'glass-nav'}`} role="navigation" aria-label={t.nav.home} dir={isRTL ? 'rtl' : 'ltr'}>
+    <nav className={`sticky top-0 z-50 border-b ${darkMode ? 'border-white/10 bg-slate-950/70 backdrop-blur-xl' : 'border-primary-100/60 bg-white/75 backdrop-blur-xl shadow-[0_10px_30px_rgba(15,23,42,0.06)]'}`} role="navigation" aria-label={t.nav.home} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6 sm:gap-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight" aria-label="SERVIO - Accueil">
-            <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30">
+            <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-cyan-500 text-white shadow-lg shadow-primary-500/30 ring-2 ring-white/40">
               <Briefcase size={20} className="sm:hidden" />
               <Briefcase size={24} className="hidden sm:block" />
             </span>
@@ -48,7 +48,7 @@ function Navbar() {
               to="/"
               className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                 isActive('/') 
-                  ? 'bg-primary-50 text-primary-700' 
+                  ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
               aria-current={isActive('/') ? 'page' : undefined}
@@ -59,7 +59,7 @@ function Navbar() {
               to="/search"
               className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                 isActive('/search') 
-                  ? 'bg-primary-50 text-primary-700' 
+                  ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
               }`}
               aria-current={isActive('/search') ? 'page' : undefined}
@@ -72,7 +72,7 @@ function Navbar() {
                   to="/provider/dashboard"
                   className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                     isActive('/provider/dashboard') 
-                      ? 'bg-primary-50 text-primary-700' 
+                      ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                       : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                   }`}
                   aria-current={isActive('/provider/dashboard') ? 'page' : undefined}
@@ -83,7 +83,7 @@ function Navbar() {
                   to="/subscription"
                   className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                     isActive('/subscription') 
-                      ? 'bg-accent-50 text-accent-700' 
+                      ? 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 ring-1 ring-amber-200' 
                       : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                   }`}
                   aria-current={isActive('/subscription') ? 'page' : undefined}
@@ -98,7 +98,7 @@ function Navbar() {
                 to="/admin"
                 className={`rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                   isActive('/admin') 
-                    ? 'bg-primary-50 text-primary-700' 
+                    ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100' 
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
                 }`}
                 aria-current={isActive('/admin') ? 'page' : undefined}

@@ -1,19 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+export const supabaseEnv = {
+  url: (import.meta.env.VITE_SUPABASE_URL || '').trim(),
+  anonKey: (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim(),
+  serviceRoleKey: (import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '').trim(),
+};
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    'Missing Supabase environment variables. ' +
-    'Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment. ' +
-    'The app will not function correctly without a valid Supabase connection.'
+export const hasSupabaseConfig = Boolean(supabaseEnv.url && supabaseEnv.anonKey);
+
+if (!hasSupabaseConfig) {
+  console.warn(
+    'Supabase is not configured yet. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before running the app in production.'
   );
 }
 
+export const getSupabaseConfig = () => ({
+  url: supabaseEnv.url,
+  anonKey: supabaseEnv.anonKey,
+  serviceRoleKey: supabaseEnv.serviceRoleKey,
+});
+
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
+  supabaseEnv.url || 'https://placeholder.supabase.co',
+  supabaseEnv.anonKey || 'placeholder-anon-key',
   {
     auth: {
       persistSession: true,

@@ -4,8 +4,8 @@ export type ValidationStatus = 'pending' | 'approved' | 'rejected' | 'changes_re
 export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type LocationType = 'in_person' | 'remote' | 'hybrid';
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
-export type PaymentMethod = 'card' | 'bank_transfer' | 'paypal' | 'cash';
+export type PaymentStatus = 'pending' | 'processing' | 'held' | 'completed' | 'failed' | 'refunded';
+export type PaymentMethod = 'card' | 'bank_transfer' | 'paypal' | 'cash' | 'orange_money' | 'mtn_money';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'unpaid';
 export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise';
@@ -62,9 +62,12 @@ export interface ProviderProfile {
   validated_at: string | null;
   validated_by: string | null;
   badges: string[];
+  verification_checks?: string[];
   rating_avg: number;
   rating_count: number;
   profile_views: number;
+  completed_missions?: number;
+  verified_reviews_count?: number;
   is_featured: boolean;
   created_at: string;
   updated_at: string;
@@ -124,6 +127,7 @@ export interface Review {
   comment: string | null;
   created_at: string;
   updated_at: string;
+  is_verified?: boolean;
   author?: Profile | null;
   responses?: ReviewResponse[];
 }
@@ -255,7 +259,7 @@ export interface AdminAction {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'message' | 'validation' | 'review' | 'report' | 'system';
+  type: 'message' | 'validation' | 'review' | 'report' | 'system' | 'booking';
   title: string;
   body: string | null;
   link: string | null;
@@ -282,7 +286,7 @@ export interface Invoice {
   id: string;
   invoice_number: string;
   client_id: string;
-  provider_profile_id: string | null;
+  provider_id: string | null;
   booking_id: string | null;
   subscription_id: string | null;
   type: 'booking' | 'subscription' | 'custom';
@@ -308,7 +312,7 @@ export interface Payment {
   payment_method: PaymentMethod;
   payment_provider: string | null;
   provider_payment_id: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -318,7 +322,7 @@ export interface Payment {
   booking?: Booking | null;
 }
 
-export interface Invoice {
+export interface InvoiceDetail {
   id: string;
   booking_id: string;
   client_id: string;

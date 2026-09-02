@@ -4,12 +4,12 @@ import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
   CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin,
-  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon
+  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon, BadgeCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
-import { uploadAvatar, uploadBanner, uploadPortfolioPhoto } from '@/lib/storage';
+import { uploadAvatar, uploadBanner, uploadPortfolioPhoto, uploadContractPdf } from '@/lib/storage';
 import { sendEmail, generateBookingConfirmationEmail, generateBookingRequestEmail } from '@/lib/email';
 import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
@@ -129,14 +129,13 @@ export default function ProviderDashboardPage() {
   async function loadData() {
     if (!user) return;
     setLoading(true);
-    const [provRes, catRes, portRes, revRes, bookingRes, invoiceRes] = await Promise.all([
+
+    const [provRes, catRes] = await Promise.all([
       supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).maybeSingle(),
       supabase.from('categories').select('id, name, slug, icon, parent_id, sort_order').order('sort_order'),
-      supabase.from('portfolio_items').select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at').eq('provider_id', user.id).order('sort_order'),
-      supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, updated_at, provider_response, provider_response_at, author:profiles(id, full_name, avatar_url)').eq('provider_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('bookings').select('id, client_id, provider_id, scheduled_at, status, service_type, duration, location_type, location_address, notes, price, currency, payment_method, created_at, client:profiles(id, full_name, email, avatar_url)').eq('provider_id', user.id).order('scheduled_at', { ascending: true }),
-      supabase.from('invoices').select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_at, created_at, client:profiles(id, full_name, email), booking:bookings(id, service_type, scheduled_at)').eq('provider_id', user.id).order('created_at', { ascending: false }),
     ]);
+
+    const providerId = provRes.data?.id;
 
     if (provRes.data) {
       setProvider(provRes.data as ProviderProfile);
@@ -167,6 +166,21 @@ export default function ProviderDashboardPage() {
         setAvailabilitySchedule((provRes.data as any).availability_schedule);
       }
     }
+
+    const [portRes, revRes, bookingRes, invoiceRes] = providerId
+      ? await Promise.all([
+          supabase.from('portfolio_items').select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at').eq('provider_id', providerId).order('sort_order'),
+          supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, updated_at, provider_response, provider_response_at, author:profiles(id, full_name, avatar_url)').eq('provider_id', providerId).order('created_at', { ascending: false }),
+          supabase.from('bookings').select('id, client_id, provider_id, scheduled_at, status, service_type, duration, location_type, location_address, notes, price, currency, payment_method, payment_status, created_at, client:profiles(id, full_name, email, avatar_url)').eq('provider_id', providerId).order('scheduled_at', { ascending: true }),
+          supabase.from('invoices').select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_at, created_at, client:profiles(id, full_name, email), booking:bookings(id, service_type, scheduled_at)').eq('provider_id', providerId).order('created_at', { ascending: false }),
+        ])
+      : [
+          { data: [] },
+          { data: [] },
+          { data: [] },
+          { data: [] },
+        ];
+
     setCategories(catRes.data as Category[] ?? []);
     setPortfolio(portRes.data as PortfolioItem[] ?? []);
     setReviews(revRes.data as Review[] ?? []);
@@ -227,9 +241,9 @@ export default function ProviderDashboardPage() {
       .from('provider_profiles')
       .insert({
         user_id: user.id,
-        business_name: profile.full_name ?? 'Mon entreprise',
+        business_name: profile.full_name ?? 'Votre entreprise',
         slug,
-        headline: 'Nouveau prestataire',
+        headline: 'Votre activité / expertise',
         description: '',
         skills: [],
         languages: ['Français'],
@@ -290,7 +304,7 @@ export default function ProviderDashboardPage() {
           .from('provider_profiles')
           .insert({
             user_id: user.id,
-            business_name: (profile as any)?.full_name || 'Mon entreprise',
+            business_name: (profile as any)?.full_name || 'Votre entreprise',
             slug,
             validation_status: 'pending'
           })
@@ -324,7 +338,7 @@ export default function ProviderDashboardPage() {
     // Validate URLs
     for (const l of projectLinks) {
       try {
-        // eslint-disable-next-line no-new
+         
         new URL(l.url);
       } catch (e) {
         setSaveMsg({ type: 'error', text: `URL invalide : ${l.url}` });
@@ -670,16 +684,112 @@ export default function ProviderDashboardPage() {
     await loadAvailabilitySlots();
   }
 
+  async function finalizeSignedContract(booking: any, contractDocumentUrl?: string) {
+    const currentMetadata = booking.metadata || {};
+    const paymentData = currentMetadata.payment_data || {};
+    const contractReference = currentMetadata.contract_reference || `CTR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const signedAt = new Date().toISOString();
+
+    const nextMetadata = {
+      ...currentMetadata,
+      contract_reference: contractReference,
+      contract_status: 'signed',
+      contract_signed_at: signedAt,
+      contract_document_url: contractDocumentUrl || currentMetadata.contract_document_url || null,
+      payment_data: {
+        ...paymentData,
+        method: booking.payment_method || paymentData.method || 'manual',
+        amount: booking.price || paymentData.amount || 0,
+        currency: booking.currency || paymentData.currency || 'EUR',
+        status: booking.payment_status || paymentData.status || 'pending',
+        provider: currentMetadata.payment_provider || 'manual',
+        provider_payment_id: currentMetadata.provider_payment_id || currentMetadata.payment_intent_reference || null,
+      },
+    };
+
+    await supabase
+      .from('bookings')
+      .update({ metadata: nextMetadata })
+      .eq('id', booking.id);
+
+    return {
+      contract_reference: contractReference,
+      signed_at: signedAt,
+      contract_document_url: contractDocumentUrl || currentMetadata.contract_document_url || null,
+    };
+  }
+
+  async function downloadMissionContract(booking: any) {
+    const { jsPDF } = await import('jspdf');
+    const metadata = booking.metadata || {};
+    const paymentData = metadata.payment_data || {};
+    const contractReference = metadata.contract_reference || `CTR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('SERVIO - Contrat de mission', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Référence contrat: ${contractReference}`, 14, 32);
+    doc.text(`Client: ${booking.client?.full_name || 'Client'}`, 14, 40);
+    doc.text(`Prestataire: ${provider?.business_name || 'Prestataire'}`, 14, 48);
+    doc.text(`Service: ${booking.service_type || 'Consultation'}`, 14, 56);
+    doc.text(`Date: ${new Date(booking.scheduled_at).toLocaleString('fr-FR')}`, 14, 64);
+    doc.text(`Montant: ${booking.price || 0} ${booking.currency || 'EUR'}`, 14, 72);
+    doc.text(`Mode de paiement: ${booking.payment_method || paymentData.method || 'non défini'}`, 14, 80);
+    doc.text(`Prestataire de paiement: ${metadata.payment_provider || paymentData.provider || 'non défini'}`, 14, 88);
+    doc.text(`Référence paiement: ${metadata.payment_intent_reference || metadata.provider_payment_id || paymentData.provider_payment_id || 'non disponible'}`, 14, 96);
+    doc.text(`Escrow: ${booking.payment_status === 'held' || booking.payment_status === 'completed' ? 'Paiement sécurisé et retenu' : 'Statut standard'}`, 14, 104);
+    doc.text('Conditions: La mission est validée après acceptation du devis et validation du prestataire.', 14, 120, { maxWidth: 180 });
+    doc.text('Signature prestataire: ______________________________', 14, 150);
+    doc.text('Signature client: ______________________________', 14, 160);
+
+    const pdfBlob = doc.output('blob');
+    const contractUrl = await uploadContractPdf(pdfBlob, booking.id, provider?.id || booking.provider_id);
+    await finalizeSignedContract(booking, contractUrl);
+    doc.save(`contrat-mission-${contractReference.toLowerCase()}.pdf`);
+  }
+
   async function updateBookingStatus(bookingId: string, status: 'confirmed' | 'rejected' | 'completed' | 'cancelled') {
     setSaving(true);
+
+    const booking = bookings.find(b => b.id === bookingId);
+
+    if (status === 'completed' && booking) {
+      try {
+        const response = await fetch('/api/contract-finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: booking.id,
+            providerId: provider?.id,
+            userId: user?.id,
+            paymentMethod: booking.payment_method,
+            amount: booking.price,
+            currency: booking.currency || 'EUR',
+            contractReference: booking.metadata?.contract_reference || undefined,
+          }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Validation finale refusée');
+        }
+      } catch (finalizeError) {
+        console.error('Backend final validation failed:', finalizeError);
+        setSaveMsg({ type: 'error', text: finalizeError instanceof Error ? finalizeError.message : 'Validation finale refusée' });
+        setSaving(false);
+        return;
+      }
+    }
+
+    const nextPaymentStatus = status === 'completed' ? 'completed' : status === 'cancelled' ? 'refunded' : status === 'rejected' ? 'failed' : 'held';
     const { error } = await supabase
       .from('bookings')
-      .update({ status })
+      .update({ status, payment_status: nextPaymentStatus })
       .eq('id', bookingId);
 
     if (!error) {
       // Send notification to client
-      const booking = bookings.find(b => b.id === bookingId);
       if (booking) {
         const statusMessages = {
           confirmed: 'Votre réservation a été confirmée',
@@ -718,8 +828,9 @@ export default function ProviderDashboardPage() {
           await sendEmail(emailOptions);
         }
 
-        // Generate invoice when booking is completed
+        // Finalize signed contract and invoice when booking is completed
         if (status === 'completed' && booking.price) {
+          await finalizeSignedContract(booking);
           await generateInvoice(booking);
         }
       }
@@ -821,6 +932,14 @@ export default function ProviderDashboardPage() {
   };
   const si = statusInfo[provider.validation_status] ?? statusInfo.pending;
   const StatusIcon = si.icon;
+  const validationDetailText =
+    provider.validation_status === 'approved'
+      ? 'Profil validé : identité, présentation et compétence vérifiées.'
+      : provider.validation_status === 'changes_requested'
+      ? 'Modifications demandées : complétez les informations manquantes pour accélérer la validation.'
+      : provider.validation_status === 'rejected'
+      ? 'Validation refusée : vérifiez les informations et corrigez les éléments signalés.'
+      : 'Validation en cours : délai indicatif 24 à 48h pour la vérification du profil et des informations.';
 
   // Profile completion calculation
   const completionFields = [
@@ -876,6 +995,14 @@ export default function ProviderDashboardPage() {
           <StatusIcon size={14} />
           {si.label}
         </span>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-primary-200 bg-primary-50 p-4">
+        <div className="flex items-center gap-2">
+          <BadgeCheck size={18} className="text-primary-600" />
+          <p className="text-sm font-semibold text-neutral-900">Statut de validation</p>
+        </div>
+        <p className="mt-2 text-sm text-neutral-700">{validationDetailText}</p>
       </div>
 
       {/* Tabs */}
@@ -1724,6 +1851,21 @@ export default function ProviderDashboardPage() {
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-neutral-900">Réservations</h3>
             <p className="mt-1 text-sm text-neutral-500">Gérez vos réservations de clients</p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Total</p>
+                <p className="mt-2 text-2xl font-bold text-neutral-900">{bookings.length}</p>
+              </div>
+              <div className="rounded-2xl border border-warning-200 bg-warning-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-warning-700">En attente</p>
+                <p className="mt-2 text-2xl font-bold text-warning-900">{bookings.filter((b) => b.status === 'pending').length}</p>
+              </div>
+              <div className="rounded-2xl border border-success-200 bg-success-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-success-700">Escrow sécurisé</p>
+                <p className="mt-2 text-2xl font-bold text-success-900">{bookings.filter((b) => b.payment_status === 'held' || b.payment_status === 'completed').length}</p>
+              </div>
+            </div>
             
             <div className="mt-6 space-y-4">
               {bookings.length === 0 ? (
@@ -1782,36 +1924,47 @@ export default function ProviderDashboardPage() {
                            booking.status === 'rejected' ? 'Refusée' :
                            booking.status === 'cancelled' ? 'Annulée' : booking.status}
                         </span>
-                        {booking.status === 'pending' && (
-                          <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          {(booking.status === 'pending' || booking.status === 'confirmed') && (
                             <button
-                              onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                              onClick={() => downloadMissionContract(booking)}
+                              className="btn-secondary text-xs"
+                            >
+                              <FileText size={14} />
+                              Contrat
+                            </button>
+                          )}
+                          {booking.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                disabled={saving}
+                                className="btn-secondary text-xs"
+                              >
+                                <Check size={14} />
+                                Accepter
+                              </button>
+                              <button
+                                onClick={() => updateBookingStatus(booking.id, 'rejected')}
+                                disabled={saving}
+                                className="btn-secondary text-xs text-error-600 hover:bg-error-50"
+                              >
+                                <X size={14} />
+                                Refuser
+                              </button>
+                            </div>
+                          )}
+                          {booking.status === 'confirmed' && (
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'completed')}
                               disabled={saving}
                               className="btn-secondary text-xs"
                             >
-                              <Check size={14} />
-                              Accepter
+                              <CheckCircle2 size={14} />
+                              Marquer terminée
                             </button>
-                            <button
-                              onClick={() => updateBookingStatus(booking.id, 'rejected')}
-                              disabled={saving}
-                              className="btn-secondary text-xs text-error-600 hover:bg-error-50"
-                            >
-                              <X size={14} />
-                              Refuser
-                            </button>
-                          </div>
-                        )}
-                        {booking.status === 'confirmed' && (
-                          <button
-                            onClick={() => updateBookingStatus(booking.id, 'completed')}
-                            disabled={saving}
-                            className="btn-secondary text-xs"
-                          >
-                            <CheckCircle2 size={14} />
-                            Marquer terminée
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1919,9 +2072,18 @@ export default function ProviderDashboardPage() {
                   className="input-field"
                 >
                   <option value="">Sélectionner...</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
+                  {categories
+                    .filter((cat) => !cat.parent_id)
+                    .map((parent) => (
+                      <optgroup key={parent.id} label={parent.name}>
+                        <option value={parent.id}>{parent.name}</option>
+                        {categories
+                          .filter((sub) => sub.parent_id === parent.id)
+                          .map((sub) => (
+                            <option key={sub.id} value={sub.id}>{sub.name}</option>
+                          ))}
+                      </optgroup>
+                    ))}
                 </select>
               </div>
               <div className="sm:col-span-2">
@@ -1931,7 +2093,7 @@ export default function ProviderDashboardPage() {
                   value={form.headline as string ?? ''}
                   onChange={(e) => setForm({ ...form, headline: e.target.value })}
                   className="input-field"
-                  placeholder="Ex: Photographe professionnel — Portraits, Mariages"
+                  placeholder="Votre spécialité ou votre valeur ajoutée"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -1941,7 +2103,7 @@ export default function ProviderDashboardPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className="input-field resize-none"
                   rows={5}
-                  placeholder="Décrivez votre activité, votre expérience, ce qui vous différencie..."
+                  placeholder="Décrivez votre activité, votre expertise et votre mode de travail."
                 />
               </div>
               <div>
@@ -1951,7 +2113,7 @@ export default function ProviderDashboardPage() {
                   value={skillsInput}
                   onChange={(e) => setSkillsInput(e.target.value)}
                   className="input-field"
-                  placeholder="Portrait, Mariage, Retouche"
+                  placeholder="Compétence 1, compétence 2, compétence 3"
                 />
               </div>
               <div>
@@ -1961,7 +2123,7 @@ export default function ProviderDashboardPage() {
                   value={languagesInput}
                   onChange={(e) => setLanguagesInput(e.target.value)}
                   className="input-field"
-                  placeholder="Français, Anglais"
+                  placeholder="Langues parlées"
                 />
               </div>
               <div>
@@ -1981,7 +2143,7 @@ export default function ProviderDashboardPage() {
                   value={form.certifications as string ?? ''}
                   onChange={(e) => setForm({ ...form, certifications: e.target.value })}
                   className="input-field"
-                  placeholder="CAP, Master, etc."
+                  placeholder="Diplômes, certifications ou accréditations"
                 />
               </div>
             </div>

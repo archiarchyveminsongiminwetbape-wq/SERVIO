@@ -40,9 +40,11 @@ ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.availability_slots ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for bookings
+DROP POLICY IF EXISTS "bookings_select_client" ON public.bookings;
 CREATE POLICY "bookings_select_client" ON public.bookings
   FOR SELECT TO authenticated USING (auth.uid() = client_id);
 
+DROP POLICY IF EXISTS "bookings_select_provider" ON public.bookings;
 CREATE POLICY "bookings_select_provider" ON public.bookings
   FOR SELECT TO authenticated USING (
     EXISTS (
@@ -51,12 +53,15 @@ CREATE POLICY "bookings_select_provider" ON public.bookings
     )
   );
 
+DROP POLICY IF EXISTS "bookings_select_admin" ON public.bookings;
 CREATE POLICY "bookings_select_admin" ON public.bookings
   FOR SELECT TO authenticated USING (public.is_admin());
 
+DROP POLICY IF EXISTS "bookings_insert_client" ON public.bookings;
 CREATE POLICY "bookings_insert_client" ON public.bookings
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = client_id);
 
+DROP POLICY IF EXISTS "bookings_update_provider" ON public.bookings;
 CREATE POLICY "bookings_update_provider" ON public.bookings
   FOR UPDATE TO authenticated USING (
     EXISTS (
@@ -65,13 +70,16 @@ CREATE POLICY "bookings_update_provider" ON public.bookings
     )
   );
 
+DROP POLICY IF EXISTS "bookings_update_client" ON public.bookings;
 CREATE POLICY "bookings_update_client" ON public.bookings
   FOR UPDATE TO authenticated USING (auth.uid() = client_id);
 
+DROP POLICY IF EXISTS "bookings_update_admin" ON public.bookings;
 CREATE POLICY "bookings_update_admin" ON public.bookings
   FOR UPDATE TO authenticated USING (public.is_admin());
 
 -- Create policies for availability slots
+DROP POLICY IF EXISTS "availability_slots_select_provider" ON public.availability_slots;
 CREATE POLICY "availability_slots_select_provider" ON public.availability_slots
   FOR SELECT TO authenticated USING (
     EXISTS (
@@ -80,9 +88,11 @@ CREATE POLICY "availability_slots_select_provider" ON public.availability_slots
     )
   );
 
+DROP POLICY IF EXISTS "availability_slots_select_all" ON public.availability_slots;
 CREATE POLICY "availability_slots_select_all" ON public.availability_slots
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "availability_slots_insert_provider" ON public.availability_slots;
 CREATE POLICY "availability_slots_insert_provider" ON public.availability_slots
   FOR INSERT TO authenticated WITH CHECK (
     EXISTS (
@@ -91,6 +101,7 @@ CREATE POLICY "availability_slots_insert_provider" ON public.availability_slots
     )
   );
 
+DROP POLICY IF EXISTS "availability_slots_update_provider" ON public.availability_slots;
 CREATE POLICY "availability_slots_update_provider" ON public.availability_slots
   FOR UPDATE TO authenticated USING (
     EXISTS (
@@ -99,6 +110,7 @@ CREATE POLICY "availability_slots_update_provider" ON public.availability_slots
     )
   );
 
+DROP POLICY IF EXISTS "availability_slots_delete_provider" ON public.availability_slots;
 CREATE POLICY "availability_slots_delete_provider" ON public.availability_slots
   FOR DELETE TO authenticated USING (
     EXISTS (
@@ -108,12 +120,12 @@ CREATE POLICY "availability_slots_delete_provider" ON public.availability_slots
   );
 
 -- Create indexes
-CREATE INDEX idx_bookings_client_id ON public.bookings(client_id);
-CREATE INDEX idx_bookings_provider_id ON public.bookings(provider_id);
-CREATE INDEX idx_bookings_scheduled_at ON public.bookings(scheduled_at);
-CREATE INDEX idx_bookings_status ON public.bookings(status);
-CREATE INDEX idx_availability_slots_provider_id ON public.availability_slots(provider_id);
-CREATE INDEX idx_availability_slots_date ON public.availability_slots(date);
+CREATE INDEX IF NOT EXISTS idx_bookings_client_id ON public.bookings(client_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_provider_id ON public.bookings(provider_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_scheduled_at ON public.bookings(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_bookings_status ON public.bookings(status);
+CREATE INDEX IF NOT EXISTS idx_availability_slots_provider_id ON public.availability_slots(provider_id);
+CREATE INDEX IF NOT EXISTS idx_availability_slots_date ON public.availability_slots(date);
 
 -- Grant permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
@@ -121,6 +133,7 @@ GRANT SELECT, INSERT, UPDATE ON public.bookings TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.availability_slots TO authenticated;
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_bookings_updated_at ON public.bookings;
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -132,5 +145,6 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_bookings_updated_at BEFORE UPDATE ON public.bookings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_availability_slots_updated_at ON public.availability_slots;
 CREATE TRIGGER update_availability_slots_updated_at BEFORE UPDATE ON public.availability_slots
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

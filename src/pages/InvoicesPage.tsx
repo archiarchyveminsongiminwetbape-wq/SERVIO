@@ -38,7 +38,7 @@ export default function InvoicesPage() {
     try {
       let query = supabase
         .from('invoices')
-        .select('id, invoice_number, client_id, provider_profile_id, booking_id, subscription_id, type, status, amount, currency, tax_amount, total_amount, due_date, paid_date, notes, created_at, updated_at')
+        .select('id, invoice_number, client_id, provider_id, booking_id, subscription_id, type, status, amount, currency, tax_amount, total_amount, due_date, paid_date, notes, created_at, updated_at')
         .eq('client_id', user.id);
 
       if (statusFilter !== 'all') {

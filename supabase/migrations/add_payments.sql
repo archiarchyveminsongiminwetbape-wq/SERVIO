@@ -44,9 +44,11 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for payments
+DROP POLICY IF EXISTS "payments_select_user" ON public.payments;
 CREATE POLICY "payments_select_user" ON public.payments
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "payments_select_provider" ON public.payments;
 CREATE POLICY "payments_select_provider" ON public.payments
   FOR SELECT TO authenticated USING (
     EXISTS (
@@ -56,19 +58,24 @@ CREATE POLICY "payments_select_provider" ON public.payments
     )
   );
 
+DROP POLICY IF EXISTS "payments_select_admin" ON public.payments;
 CREATE POLICY "payments_select_admin" ON public.payments
   FOR SELECT TO authenticated USING (public.is_admin());
 
+DROP POLICY IF EXISTS "payments_insert_user" ON public.payments;
 CREATE POLICY "payments_insert_user" ON public.payments
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "payments_update_admin" ON public.payments;
 CREATE POLICY "payments_update_admin" ON public.payments
   FOR UPDATE TO authenticated USING (public.is_admin());
 
 -- Create policies for invoices
+DROP POLICY IF EXISTS "invoices_select_user" ON public.invoices;
 CREATE POLICY "invoices_select_user" ON public.invoices
   FOR SELECT TO authenticated USING (auth.uid() = (SELECT user_id FROM public.payments WHERE id = invoices.payment_id));
 
+DROP POLICY IF EXISTS "invoices_select_provider" ON public.invoices;
 CREATE POLICY "invoices_select_provider" ON public.invoices
   FOR SELECT TO authenticated USING (
     EXISTS (
@@ -78,23 +85,26 @@ CREATE POLICY "invoices_select_provider" ON public.invoices
     )
   );
 
+DROP POLICY IF EXISTS "invoices_select_admin" ON public.invoices;
 CREATE POLICY "invoices_select_admin" ON public.invoices
   FOR SELECT TO authenticated USING (public.is_admin());
 
+DROP POLICY IF EXISTS "invoices_insert_admin" ON public.invoices;
 CREATE POLICY "invoices_insert_admin" ON public.invoices
   FOR INSERT TO authenticated WITH CHECK (public.is_admin());
 
+DROP POLICY IF EXISTS "invoices_update_admin" ON public.invoices;
 CREATE POLICY "invoices_update_admin" ON public.invoices
   FOR UPDATE TO authenticated USING (public.is_admin());
 
 -- Create indexes
-CREATE INDEX idx_payments_booking_id ON public.payments(booking_id);
-CREATE INDEX idx_payments_user_id ON public.payments(user_id);
-CREATE INDEX idx_payments_status ON public.payments(status);
-CREATE INDEX idx_payments_created_at ON public.payments(created_at DESC);
-CREATE INDEX idx_invoices_payment_id ON public.invoices(payment_id);
-CREATE INDEX idx_invoices_booking_id ON public.invoices(booking_id);
-CREATE INDEX idx_invoices_status ON public.invoices(status);
+CREATE INDEX IF NOT EXISTS idx_payments_booking_id ON public.payments(booking_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON public.payments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_payment_id ON public.invoices(payment_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_booking_id ON public.invoices(booking_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON public.invoices(status);
 
 -- Grant permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
@@ -102,14 +112,16 @@ GRANT SELECT, INSERT ON public.payments TO authenticated;
 GRANT SELECT ON public.invoices TO authenticated;
 
 -- Add updated_at trigger
+DROP TRIGGER IF EXISTS update_payments_updated_at ON public.payments;
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON public.payments
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_invoices_updated_at ON public.invoices;
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON public.invoices
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to generate invoice numbers
-CREATE OR REPLACE FUNCTION generate_invoice_number()
+CREATE OR REPLACE FUNCTION generate_invoice_number_value()
 RETURNS text AS $$
 DECLARE
   invoice_num text;

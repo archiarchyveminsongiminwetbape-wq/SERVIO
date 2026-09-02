@@ -2,6 +2,20 @@
 import { supabase, handleApiSuccess, handleApiFailure, ApiResponse } from './index';
 import type { ProviderProfile } from '@/types';
 
+const BLOCKED_PROVIDER_SLUGS = new Set([
+  'archi-0722',
+  'jean-9497',
+  'jean-2315',
+  'jean-9186',
+  'jean-2452',
+  'jean-8485',
+  'jean-9711',
+  'jean-0157',
+]);
+
+const filterBlockedProviders = (providers: ProviderProfile[] = []) =>
+  providers.filter((provider) => !(provider.slug && BLOCKED_PROVIDER_SLUGS.has(provider.slug)));
+
 export const providersApi = {
   // Get all providers with filters
   async getProviders(filters?: {
@@ -51,7 +65,7 @@ export const providersApi = {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
-      return handleApiSuccess(data || []);
+      return handleApiSuccess(filterBlockedProviders(data || []));
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -232,7 +246,7 @@ export const providersApi = {
         .limit(20);
 
       if (error) throw error;
-      return handleApiSuccess(data || []);
+      return handleApiSuccess(filterBlockedProviders(data || []));
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -252,7 +266,7 @@ export const providersApi = {
         .limit(limit);
 
       if (error) throw error;
-      return handleApiSuccess(data || []);
+      return handleApiSuccess(filterBlockedProviders(data || []));
     } catch (error) {
       return handleApiFailure(error);
     }

@@ -214,7 +214,7 @@ export default function MessagesPage() {
     setUploading(true);
 
     try {
-      let attachmentData: MessageAttachment[] = [];
+      const attachmentData: MessageAttachment[] = [];
 
       // Upload files
       for (const file of attachments) {

@@ -12,7 +12,7 @@
 CREATE TABLE IF NOT EXISTS public.notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  type text NOT NULL CHECK (type IN ('message','validation','review','report','system')),
+  type text NOT NULL CHECK (type IN ('message','validation','review','report','system','booking')),
   title text NOT NULL,
   body text,
   link text,
@@ -133,3 +133,56 @@ DROP TRIGGER IF EXISTS trg_notify_new_review ON public.reviews;
 CREATE TRIGGER trg_notify_new_review
   AFTER INSERT ON public.reviews
   FOR EACH ROW EXECUTE FUNCTION public.notify_new_review();
+
+-- Trigger: notify both parties when a booking status changes
+CREATE OR REPLACE FUNCTION public.notify_booking_status_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  client_user_id uuid;
+  provider_user_id uuid;
+  status_label text;
+BEGIN
+  SELECT user_id INTO provider_user_id FROM public.provider_profiles WHERE id = NEW.provider_id;
+  client_user_id := NEW.client_id;
+
+  status_label := CASE NEW.status
+    WHEN 'pending' THEN 'En attente'
+    WHEN 'confirmed' THEN 'Confirmée'
+    WHEN 'completed' THEN 'Terminée'
+    WHEN 'cancelled' THEN 'Annulée'
+    WHEN 'rejected' THEN 'Refusée'
+    ELSE NEW.status
+  END;
+
+  IF provider_user_id IS NOT NULL THEN
+    PERFORM public.create_notification(
+      provider_user_id,
+      'booking',
+      'Mise à jour de mission',
+      'Votre réservation est maintenant : ' || status_label,
+      '/provider/dashboard'
+    );
+  END IF;
+
+  IF client_user_id IS NOT NULL THEN
+    PERFORM public.create_notification(
+      client_user_id,
+      'booking',
+      'Mise à jour de mission',
+      'Votre réservation est maintenant : ' || status_label,
+      '/bookings'
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_booking_status_change ON public.bookings;
+CREATE TRIGGER trg_notify_booking_status_change
+  AFTER UPDATE OF status ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.notify_booking_status_change();

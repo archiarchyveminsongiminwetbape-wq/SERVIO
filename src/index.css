@@ -13,8 +13,62 @@ html {
 
 body {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.18), transparent 25%),
+    linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+  color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.hero-3d-shell {
+  position: relative;
+  perspective: 1200px;
+}
+
+.hero-3d-card {
+  transform: rotateX(8deg) rotateY(-9deg);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(16px);
+}
+
+.floating-panel {
+  animation: float 8s ease-in-out infinite;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.floating-panel.delay-1 {
+  animation-delay: 1s;
+}
+
+.floating-panel.delay-2 {
+  animation-delay: 2s;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(10px);
+  opacity: 0.55;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.25);
 }
 
 ::-webkit-scrollbar {
@@ -58,6 +112,14 @@ body {
 
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
+  .trust-strip {
+    @apply rounded-2xl border border-white/15 bg-white/10 p-4 shadow-[0_16px_32px_rgba(15,23,42,0.12)] backdrop-blur-md;
+  }
+
+  .mini-metric {
+    @apply inline-flex items-center rounded-full border border-white/15 bg-slate-950/15 px-3 py-1.5 text-xs font-medium text-primary-50/90 shadow-sm;
   }
 
   .label {

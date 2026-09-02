@@ -12,7 +12,7 @@ ALTER TABLE public.portfolio_items
   ON DELETE CASCADE;
 
 -- Create a helper function to get or create provider profile for a user
-CREATE OR REPLACE FUNCTION public.get_or_create_provider_profile(user_id uuid, business_name text DEFAULT 'Mon entreprise')
+CREATE OR REPLACE FUNCTION public.get_or_create_provider_profile(target_user_id uuid, business_name text DEFAULT 'Mon entreprise')
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -23,7 +23,7 @@ DECLARE
   slug text;
 BEGIN
   -- Try to get existing provider profile
-  SELECT id INTO provider_id FROM provider_profiles WHERE user_id = user_id LIMIT 1;
+  SELECT id INTO provider_id FROM provider_profiles WHERE provider_profiles.user_id = target_user_id LIMIT 1;
   
   IF provider_id IS NOT NULL THEN
     RETURN provider_id;
@@ -33,7 +33,7 @@ BEGIN
   slug := lower(regexp_replace(business_name, '[^a-zA-Z0-9]', '-', 'g')) || '-' || substr(md5(random()::text), 1, 8);
   
   INSERT INTO provider_profiles (user_id, business_name, slug, validation_status)
-  VALUES (user_id, business_name, slug, 'pending')
+  VALUES (target_user_id, business_name, slug, 'pending')
   RETURNING id INTO provider_id;
   
   RETURN provider_id;

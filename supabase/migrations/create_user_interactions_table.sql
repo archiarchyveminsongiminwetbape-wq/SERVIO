@@ -20,16 +20,19 @@ ALTER TABLE user_interactions ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
 -- Users can read their own interactions
+DROP POLICY IF EXISTS "Users can read their own interactions" ON user_interactions;
 CREATE POLICY "Users can read their own interactions"
   ON user_interactions FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Users can insert their own interactions
+DROP POLICY IF EXISTS "Users can insert their own interactions" ON user_interactions;
 CREATE POLICY "Users can insert their own interactions"
   ON user_interactions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Admins can read all interactions
+DROP POLICY IF EXISTS "Admins can read all interactions" ON user_interactions;
 CREATE POLICY "Admins can read all interactions"
   ON user_interactions FOR SELECT
   USING (

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 const AVATAR_BUCKETS = ['avatars', 'profiles', 'portfolio-media', 'media'];
 const BANNER_BUCKETS = ['banners', 'profiles', 'portfolio-media', 'media'];
 const MEDIA_BUCKETS = ['portfolio-media', 'media', 'portfolio-photos', 'public'];
+const CONTRACT_BUCKETS = ['contracts', 'documents', 'media', 'public'];
 
 /**
  * Compresses an image file on the client side before upload
@@ -184,4 +185,45 @@ export async function uploadPortfolioPhoto(file: File, userId: string): Promise<
     userId,
     preferredBuckets: MEDIA_BUCKETS,
   });
+}
+
+export async function uploadContractPdf(file: Blob | File, bookingId: string, providerId: string): Promise<string> {
+  if (!file) throw new Error('Aucun PDF de contrat fourni');
+  if (!bookingId) throw new Error('Identifiant du booking requis');
+  if (!providerId) throw new Error('Identifiant du prestataire requis');
+
+  const fileBlob = file instanceof Blob ? file : new Blob([file], { type: 'application/pdf' });
+  const fileName = `${bookingId}-${Date.now()}.pdf`;
+  const filePath = `${providerId}/contracts/${fileName}`;
+
+  let lastError: any = null;
+
+  for (const bucket of CONTRACT_BUCKETS) {
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, fileBlob, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: 'application/pdf',
+        });
+
+      if (error) {
+        lastError = error;
+        continue;
+      }
+
+      if (data) {
+        const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        if (publicData?.publicUrl) {
+          return publicData.publicUrl;
+        }
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  const errorMessage = lastError?.message || 'Erreur inconnue d’upload du contrat';
+  throw new Error(`Erreur lors de l'enregistrement du contrat PDF: ${errorMessage}`);
 }

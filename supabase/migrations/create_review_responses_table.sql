@@ -18,21 +18,25 @@ ALTER TABLE review_responses ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
 -- Anyone can read responses
+DROP POLICY IF EXISTS "Responses are viewable by everyone" ON review_responses;
 CREATE POLICY "Responses are viewable by everyone"
   ON review_responses FOR SELECT
   USING (true);
 
 -- Only the responder can update their own response
+DROP POLICY IF EXISTS "Users can update their own responses" ON review_responses;
 CREATE POLICY "Users can update their own responses"
   ON review_responses FOR UPDATE
   USING (auth.uid() = responder_id);
 
 -- Only the responder can delete their own response
+DROP POLICY IF EXISTS "Users can delete their own responses" ON review_responses;
 CREATE POLICY "Users can delete their own responses"
   ON review_responses FOR DELETE
   USING (auth.uid() = responder_id);
 
 -- Anyone can insert a response (providers and admins)
+DROP POLICY IF EXISTS "Anyone can insert responses" ON review_responses;
 CREATE POLICY "Anyone can insert responses"
   ON review_responses FOR INSERT
   WITH CHECK (true);
@@ -47,6 +51,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically update updated_at
+DROP TRIGGER IF EXISTS update_review_responses_updated_at_trigger ON review_responses;
 CREATE TRIGGER update_review_responses_updated_at_trigger
   BEFORE UPDATE ON review_responses
   FOR EACH ROW
