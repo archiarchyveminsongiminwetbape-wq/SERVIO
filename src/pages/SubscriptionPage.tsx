@@ -146,22 +146,39 @@ export default function SubscriptionPage() {
     setSuccess(null);
 
     try {
+      const { data: existingSubscriptions, error: existingSubscriptionError } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (existingSubscriptionError) throw existingSubscriptionError;
+
       const periodStart = new Date().toISOString();
       const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { error: upsertError } = await supabase
-        .from('subscriptions')
-        .upsert({
-          user_id: user.id,
-          provider_id: providerId,
-          plan,
-          status: 'active',
-          current_period_start: periodStart,
-          current_period_end: periodEnd,
-          cancel_at_period_end: false,
-          updated_at: periodStart,
-        }, { onConflict: 'user_id' });
+      const subscriptionPayload = {
+        provider_id: providerId,
+        plan,
+        status: 'active',
+        current_period_start: periodStart,
+        current_period_end: periodEnd,
+        cancel_at_period_end: false,
+        updated_at: periodStart,
+      };
 
-      if (upsertError) throw upsertError;
+      if (existingSubscriptions && existingSubscriptions.length > 0) {
+        const { error: updateError } = await supabase
+          .from('subscriptions')
+          .update(subscriptionPayload)
+          .eq('id', existingSubscriptions[0].id);
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('subscriptions')
+          .insert({ user_id: user.id, ...subscriptionPayload });
+        if (insertError) throw insertError;
+      }
 
       await loadSubscription();
       setSuccess(`Le plan ${plans.find((item) => item.id === plan)?.name ?? plan} a été activé avec succès.`);
