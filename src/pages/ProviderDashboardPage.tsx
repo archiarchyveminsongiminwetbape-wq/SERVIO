@@ -32,6 +32,7 @@ export default function ProviderDashboardPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'free' | 'basic' | 'pro' | 'enterprise'>('free');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -167,15 +168,17 @@ export default function ProviderDashboardPage() {
       }
     }
 
-    const [portRes, revRes, bookingRes, invoiceRes] = providerId
+    const [portRes, revRes, bookingRes, invoiceRes, subscriptionRes] = providerId
       ? await Promise.all([
           supabase.from('portfolio_items').select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at').eq('provider_id', providerId).order('sort_order'),
           supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, provider_response, provider_response_at').eq('provider_id', providerId).order('created_at', { ascending: false }),
           supabase.from('bookings').select('id, client_id, provider_id, scheduled_at, status, service_type, duration_minutes, location_type, location_address, notes, price, currency, payment_method, payment_status, created_at, client:profiles(id, full_name, email, avatar_url)').eq('provider_id', providerId).order('scheduled_at', { ascending: true }),
           supabase.from('invoices').select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_date, created_at').eq('provider_id', providerId).order('created_at', { ascending: false }),
+          supabase.from('subscriptions').select('plan').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
         ])
       : [
           { data: [] },
+          { data: null },
           { data: [] },
           { data: [] },
           { data: [] },
@@ -186,6 +189,7 @@ export default function ProviderDashboardPage() {
     setReviews(revRes.data as Review[] ?? []);
     setBookings(bookingRes.data as any[] ?? []);
     setInvoices(invoiceRes.data as any[] ?? []);
+    setSubscriptionPlan((subscriptionRes.data?.plan as typeof subscriptionPlan) ?? 'free');
     setLoading(false);
   }
 
@@ -326,6 +330,16 @@ export default function ProviderDashboardPage() {
 
     if (!targetProviderId) {
       setSaveMsg({ type: 'error', text: 'Aucun profil prestataire trouvé. Veuillez créer votre profil prestataire d\'abord.' });
+      return;
+    }
+
+    if (!editingItem && subscriptionPlan === 'free' && portfolio.length >= 5) {
+      setSaveMsg({ type: 'error', text: 'Le plan Gratuit est limité à 5 réalisations. Passez à un plan supérieur pour continuer.' });
+      return;
+    }
+
+    if (!itemForm.title.trim()) {
+      setSaveMsg({ type: 'error', text: 'Le titre de la réalisation est obligatoire.' });
       return;
     }
 
@@ -1186,7 +1200,7 @@ export default function ProviderDashboardPage() {
       {tab === 'portfolio' && (
         <div>
           <div className="mb-4 flex justify-between">
-            <h3 className="text-lg font-semibold text-neutral-900">Réalisations ({portfolio.length})</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">Réalisations ({portfolio.length}{subscriptionPlan === 'free' ? '/5' : ''})</h3>
             <button
               onClick={() => {
                 setEditingItem(null);

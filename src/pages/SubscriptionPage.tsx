@@ -159,7 +159,6 @@ export default function SubscriptionPage() {
       const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const subscriptionPayload = {
         provider_id: providerId,
-        provider_profile_id: providerId,
         plan,
         status: 'active',
         current_period_start: periodStart,

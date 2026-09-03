@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS user_interactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  provider_profile_id UUID NOT NULL REFERENCES provider_profiles(id) ON DELETE CASCADE,
+  provider_id UUID NOT NULL REFERENCES provider_profiles(id) ON DELETE CASCADE,
   interaction_type TEXT NOT NULL CHECK (interaction_type IN ('view', 'favorite', 'message', 'booking', 'review')),
   interaction_value INTEGER DEFAULT 1, -- Weight for the interaction (higher = more important)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -10,10 +10,10 @@ CREATE TABLE IF NOT EXISTS user_interactions (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_interactions_user_id ON user_interactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_interactions_provider_profile_id ON user_interactions(provider_profile_id);
+CREATE INDEX IF NOT EXISTS idx_user_interactions_provider_id ON user_interactions(provider_id);
 CREATE INDEX IF NOT EXISTS idx_user_interactions_type ON user_interactions(interaction_type);
 CREATE INDEX IF NOT EXISTS idx_user_interactions_created_at ON user_interactions(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_user_interactions_user_provider ON user_interactions(user_id, provider_profile_id);
+CREATE INDEX IF NOT EXISTS idx_user_interactions_user_provider ON user_interactions(user_id, provider_id);
 
 -- Enable RLS
 ALTER TABLE user_interactions ENABLE ROW LEVEL SECURITY;
@@ -45,7 +45,7 @@ CREATE POLICY "Admins can read all interactions"
 -- Function to get recommended providers for a user
 CREATE OR REPLACE FUNCTION get_recommended_providers(user_id_param UUID, limit_count INTEGER DEFAULT 10)
 RETURNS TABLE (
-  provider_profile_id UUID,
+  provider_id UUID,
   business_name TEXT,
   slug TEXT,
   headline TEXT,
@@ -64,7 +64,7 @@ BEGIN
   WITH user_categories AS (
     SELECT DISTINCT pp.category_id, COUNT(*) as category_count
     FROM user_interactions ui
-    JOIN provider_profiles pp ON ui.provider_profile_id = pp.id
+    JOIN provider_profiles pp ON ui.provider_id = pp.id
     WHERE ui.user_id = user_id_param
     AND ui.interaction_type IN ('favorite', 'booking', 'review')
     GROUP BY pp.category_id
@@ -74,7 +74,7 @@ BEGIN
   user_skills AS (
     SELECT DISTINCT unnest(pp.skills) as skill, COUNT(*) as skill_count
     FROM user_interactions ui
-    JOIN provider_profiles pp ON ui.provider_profile_id = pp.id
+    JOIN provider_profiles pp ON ui.provider_id = pp.id
     WHERE ui.user_id = user_id_param
     AND ui.interaction_type IN ('favorite', 'booking', 'review')
     GROUP BY unnest(pp.skills)
@@ -83,7 +83,7 @@ BEGIN
   ),
   scored_providers AS (
     SELECT 
-      pp.id as provider_profile_id,
+      pp.id as provider_id,
       pp.business_name,
       pp.slug,
       pp.headline,
@@ -112,7 +112,7 @@ BEGIN
     FROM provider_profiles pp
     WHERE pp.validation_status = 'approved'
     AND pp.id NOT IN (
-      SELECT provider_profile_id FROM user_interactions WHERE user_id = user_id_param
+      SELECT provider_id FROM user_interactions WHERE user_id = user_id_param
     )
   )
   SELECT *

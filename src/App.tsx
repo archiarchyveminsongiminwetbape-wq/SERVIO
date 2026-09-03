@@ -29,6 +29,8 @@ const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage'));
 const SubscriptionCheckoutPage = lazy(() => import('@/pages/SubscriptionCheckoutPage'));
 const RecommendationsPage = lazy(() => import('@/pages/RecommendationsPage'));
 const InvoicesPage = lazy(() => import('@/pages/InvoicesPage'));
+const ProviderProjectsPage = lazy(() => import('@/pages/ProviderProjectsPage'));
+const QuotesPage = lazy(() => import('@/pages/QuotesPage'));
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -82,6 +84,8 @@ function App() {
                         <Route path="/subscription/checkout" element={<SubscriptionCheckoutPage />} />
                         <Route path="/recommendations" element={<RecommendationsPage />} />
                         <Route path="/invoices" element={<InvoicesPage />} />
+                        <Route path="/quotes" element={<QuotesPage />} />
+                        <Route path="/provider/:slug/projects" element={<ProviderProjectsPage />} />
                         <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
                         <Route path="/provider/edit" element={<ProviderProfileEditPage />} />
                         <Route path="/admin" element={<AdminDashboardPage />} />

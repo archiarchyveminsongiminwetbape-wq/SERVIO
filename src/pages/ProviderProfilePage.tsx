@@ -3,12 +3,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
   Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play, Edit3
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play, Edit3, Quote, BarChart3
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
-import type { ProviderProfile, PortfolioItem, Review, ReviewResponse } from '@/types';
+import type { ProviderProfile, PortfolioItem, Review, ReviewResponse, Testimonial, Certification, ProviderStats } from '@/types';
 import StarRating from '@/components/StarRating';
 import Lightbox from '@/components/Lightbox';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
@@ -49,6 +49,9 @@ export default function ProviderProfilePage() {
   const [provider, setProvider] = useState<ProviderProfile | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [providerStats, setProviderStats] = useState<ProviderStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -62,7 +65,7 @@ export default function ProviderProfilePage() {
   const [reportError, setReportError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [reporting, setReporting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'about'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'reviews' | 'testimonials' | 'about'>('portfolio');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
@@ -196,9 +199,38 @@ export default function ProviderProfilePage() {
         ...review,
         author: authorMap.get(review.author_id) ?? null,
       }));
+      setReviews(reviewsWithAuthors);
 
-      setPortfolio(portRes.data as PortfolioItem[] ?? []);
-      setReviews(reviewsWithAuthors as Review[]);
+      // Load testimonials
+      const { data: testimonialsData } = await supabase
+        .from('testimonials')
+        .select('*')
+        .eq('provider_id', provData.id)
+        .eq('is_verified', true)
+        .order('is_featured', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      setTestimonials(testimonialsData as Testimonial[] ?? []);
+
+      // Load certifications
+      const { data: certificationsData } = await supabase
+        .from('certifications')
+        .select('*')
+        .eq('provider_id', provData.id)
+        .order('is_verified', { ascending: false })
+        .order('expiration_date', { ascending: false, nullsFirst: false });
+
+      setCertifications(certificationsData as Certification[] ?? []);
+
+      // Load provider stats
+      const { data: statsData } = await supabase
+        .from('provider_stats')
+        .select('*')
+        .eq('provider_id', provData.id)
+        .maybeSingle();
+
+      setProviderStats(statsData as ProviderStats | null);
+
       setLoading(false);
 
       // Check if current user already left a review
@@ -761,7 +793,7 @@ export default function ProviderProfilePage() {
         {/* Tabs */}
         <div className="mt-6 sm:mt-8 border-b border-neutral-200 overflow-x-auto">
           <div className="flex gap-1 min-w-max">
-            {(['portfolio', 'reviews', 'about'] as const).map((tab) => (
+            {(['portfolio', 'reviews', 'testimonials', 'about'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -771,6 +803,7 @@ export default function ProviderProfilePage() {
               >
                 {tab === 'portfolio' && `${t.provider.portfolio} (${portfolio.length})`}
                 {tab === 'reviews' && `${t.provider.reviews} (${reviews.length})`}
+                {tab === 'testimonials' && `Témoignages (${testimonials.length})`}
                 {tab === 'about' && t.provider.aboutTab}
                 {activeTab === tab && (
                   <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary-600" />
@@ -1179,6 +1212,68 @@ export default function ProviderProfilePage() {
             </div>
           )}
 
+          {activeTab === 'testimonials' && (
+            <div className="mx-auto max-w-3xl">
+              {testimonials.length > 0 ? (
+                <div className="space-y-6">
+                  {testimonials.map((testimonial) => (
+                    <div key={testimonial.id} className={`card p-6 ${testimonial.is_featured ? 'border-2 border-accent-200 bg-accent-50' : ''}`}>
+                      {testimonial.is_featured && (
+                        <div className="mb-4 flex items-center gap-2 text-accent-600">
+                          <Star size={16} fill="currentColor" />
+                          <span className="text-sm font-semibold">Témoignage mis en avant</span>
+                        </div>
+                      )}
+                      <div className="flex items-start gap-4">
+                        {testimonial.client_avatar_url ? (
+                          <img src={testimonial.client_avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-lg font-semibold text-primary-700">
+                            {testimonial.client_name[0]?.toUpperCase() ?? 'C'}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-neutral-900">{testimonial.client_name}</p>
+                              {testimonial.project_title && (
+                                <p className="text-sm text-neutral-600">{testimonial.project_title}</p>
+                              )}
+                            </div>
+                            {testimonial.project_date && (
+                              <span className="text-xs text-neutral-500">{formatDate(testimonial.project_date, locale)}</span>
+                            )}
+                          </div>
+                          <div className="mt-2 flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={16}
+                                className={i < testimonial.rating ? 'fill-amber-400 text-amber-400' : 'text-neutral-300'}
+                              />
+                            ))}
+                          </div>
+                          <div className="mt-3 relative">
+                            <Quote size={24} className="absolute -top-2 -left-2 text-neutral-200" />
+                            <p className="pl-6 text-sm text-neutral-700 italic">{testimonial.testimonial}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <Quote size={64} className="mx-auto text-neutral-300" />
+                  <h3 className="mt-4 text-lg font-semibold text-neutral-900">Aucun témoignage</h3>
+                  <p className="mt-2 text-sm text-neutral-500">
+                    Ce prestataire n'a pas encore de témoignages clients.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'about' && (
             <div className="mx-auto max-w-3xl space-y-6">
               {provider.description && (
@@ -1200,12 +1295,104 @@ export default function ProviderProfilePage() {
                   </div>
                 </div>
 
-                {provider.certifications && (
+                {certifications.length > 0 ? (
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                      <Award size={20} /> Certifications
+                    </h3>
+                    <div className="mt-3 space-y-3">
+                      {certifications.map((cert) => (
+                        <div key={cert.id} className={`card p-4 ${cert.is_verified ? 'border-success-200 bg-success-50' : 'border-neutral-200'}`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-neutral-900">{cert.title}</p>
+                                {cert.is_verified && (
+                                  <BadgeCheck size={16} className="text-success-600" />
+                                )}
+                              </div>
+                              <p className="mt-1 text-sm text-neutral-600">{cert.issuing_organization}</p>
+                              {cert.credential_id && (
+                                <p className="text-xs text-neutral-500">ID: {cert.credential_id}</p>
+                              )}
+                              {cert.description && (
+                                <p className="mt-2 text-sm text-neutral-700">{cert.description}</p>
+                              )}
+                              {cert.skills.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {cert.skills.map((skill) => (
+                                    <span key={skill} className="badge text-xs bg-primary-50 text-primary-700">{skill}</span>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="mt-2 flex items-center gap-4 text-xs text-neutral-500">
+                                {cert.issue_date && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar size={12} />
+                                    {formatDate(cert.issue_date, locale)}
+                                  </span>
+                                )}
+                                {cert.expiration_date && (
+                                  <span className={`flex items-center gap-1 ${new Date(cert.expiration_date) < new Date() ? 'text-error-600' : ''}`}>
+                                    <Clock size={12} />
+                                    Exp: {formatDate(cert.expiration_date, locale)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {cert.verification_url && (
+                              <a
+                                href={cert.verification_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary-600 hover:text-primary-700"
+                              >
+                                <ExternalLink size={16} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : provider.certifications ? (
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
                       <Award size={20} /> {t.provider.fields.certifications}
                     </h3>
                     <p className="mt-2 text-sm text-neutral-600">{provider.certifications}</p>
+                  </div>
+                ) : null}
+
+                {providerStats && (
+                  <div className="sm:col-span-2">
+                    <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                      <BarChart3 size={20} /> Statistiques de performance
+                    </h3>
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="card p-3 text-center">
+                        <p className="text-2xl font-bold text-primary-600">{providerStats.response_rate.toFixed(0)}%</p>
+                        <p className="text-xs text-neutral-600">Taux de réponse</p>
+                      </div>
+                      <div className="card p-3 text-center">
+                        <p className="text-2xl font-bold text-success-600">{providerStats.satisfaction_score.toFixed(1)}/10</p>
+                        <p className="text-xs text-neutral-600">Satisfaction</p>
+                      </div>
+                      <div className="card p-3 text-center">
+                        <p className="text-2xl font-bold text-accent-600">{providerStats.on_time_completion_rate.toFixed(0)}%</p>
+                        <p className="text-xs text-neutral-600">À l'heure</p>
+                      </div>
+                      <div className="card p-3 text-center">
+                        <p className="text-2xl font-bold text-neutral-600">{providerStats.completed_bookings}</p>
+                        <p className="text-xs text-neutral-600">Missions complétées</p>
+                      </div>
+                    </div>
+                    {providerStats.average_response_time_hours && (
+                      <div className="mt-3 flex items-center gap-2 text-sm text-neutral-600">
+                        <Clock size={14} />
+                        <span>Temps de réponse moyen: {providerStats.average_response_time_hours.toFixed(1)}h</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1238,9 +1425,9 @@ export default function ProviderProfilePage() {
                   </div>
                 )}
 
-                {(provider.phone || provider.website) && (
+                {(provider.phone || provider.website || provider.social_links) && (
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900">{(t.provider as any).contact || 'Contact'}</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900">{(t.provider as any).contact || 'Contact & Réseaux'}</h3>
                     <div className="mt-2 space-y-1 text-sm text-neutral-600">
                       {provider.phone && <p className="flex items-center gap-1.5"><Phone size={14} /> {provider.phone}</p>}
                       {provider.website && (
@@ -1250,6 +1437,70 @@ export default function ProviderProfilePage() {
                             {provider.website}
                           </a>
                         </p>
+                      )}
+                      {provider.social_links && Object.keys(provider.social_links).length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {provider.social_links.linkedin && (
+                            <a
+                              href={provider.social_links.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#0077b5] text-white text-sm hover:bg-[#006397] transition-colors"
+                            >
+                              LinkedIn
+                            </a>
+                          )}
+                          {provider.social_links.twitter && (
+                            <a
+                              href={provider.social_links.twitter}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1da1f2] text-white text-sm hover:bg-[#1a91da] transition-colors"
+                            >
+                              Twitter
+                            </a>
+                          )}
+                          {provider.social_links.instagram && (
+                            <a
+                              href={provider.social_links.instagram}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#dc2743] text-white text-sm hover:opacity-90 transition-opacity"
+                            >
+                              Instagram
+                            </a>
+                          )}
+                          {provider.social_links.facebook && (
+                            <a
+                              href={provider.social_links.facebook}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1877f2] text-white text-sm hover:bg-[#166fe5] transition-colors"
+                            >
+                              Facebook
+                            </a>
+                          )}
+                          {provider.social_links.youtube && (
+                            <a
+                              href={provider.social_links.youtube}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#ff0000] text-white text-sm hover:bg-[#e60000] transition-colors"
+                            >
+                              YouTube
+                            </a>
+                          )}
+                          {provider.social_links.github && (
+                            <a
+                              href={provider.social_links.github}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-sm hover:bg-neutral-800 transition-colors"
+                            >
+                              GitHub
+                            </a>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

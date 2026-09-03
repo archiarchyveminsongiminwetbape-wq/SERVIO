@@ -304,6 +304,91 @@ export interface Invoice {
   updated_at: string;
 }
 
+export interface Testimonial {
+  id: string;
+  provider_id: string;
+  client_id: string;
+  client_name: string;
+  client_avatar_url: string | null;
+  rating: number;
+  testimonial: string;
+  project_title: string | null;
+  project_date: string | null;
+  is_featured: boolean;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Certification {
+  id: string;
+  provider_id: string;
+  title: string;
+  issuing_organization: string;
+  credential_id: string | null;
+  issue_date: string | null;
+  expiration_date: string | null;
+  credential_url: string | null;
+  verification_url: string | null;
+  description: string | null;
+  skills: string[];
+  is_verified: boolean;
+  verification_status: 'pending' | 'verified' | 'rejected';
+  verified_at: string | null;
+  verified_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProviderStats {
+  id: string;
+  provider_id: string;
+  response_rate: number;
+  average_response_time_hours: number | null;
+  satisfaction_score: number;
+  on_time_completion_rate: number;
+  repeat_client_rate: number;
+  total_bookings: number;
+  completed_bookings: number;
+  cancelled_bookings: number;
+  total_reviews: number;
+  average_rating: number;
+  profile_views: number;
+  profile_views_last_30_days: number;
+  inquiries_last_30_days: number;
+  bookings_last_30_days: number;
+  revenue_last_30_days: number;
+  revenue_all_time: number;
+  last_updated: string;
+  created_at: string;
+}
+
+export interface Quote {
+  id: string;
+  provider_id: string;
+  client_id: string | null;
+  project_title: string;
+  project_description: string | null;
+  service_type: string;
+  estimated_hours: number | null;
+  hourly_rate: number | null;
+  fixed_price: number | null;
+  currency: string;
+  estimated_total: number | null;
+  valid_until: string | null;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+  terms: string | null;
+  notes: string | null;
+  client_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  created_at: string;
+  updated_at: string;
+  sent_at: string | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
+}
+
 export interface Payment {
   id: string;
   booking_id: string | null;
