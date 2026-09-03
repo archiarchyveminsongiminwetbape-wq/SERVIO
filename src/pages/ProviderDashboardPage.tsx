@@ -2610,7 +2610,8 @@ export default function ProviderDashboardPage() {
                       </div>
                     </div>
                   );
-              })}
+                })
+              )}
             </div>
           </div>
         </div>
