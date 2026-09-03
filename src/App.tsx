@@ -26,6 +26,7 @@ const FaqPage = lazy(() => import('@/pages/FaqPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const UserBookingsPage = lazy(() => import('@/pages/UserBookingsPage'));
 const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage'));
+const SubscriptionCheckoutPage = lazy(() => import('@/pages/SubscriptionCheckoutPage'));
 const RecommendationsPage = lazy(() => import('@/pages/RecommendationsPage'));
 const InvoicesPage = lazy(() => import('@/pages/InvoicesPage'));
 
@@ -78,6 +79,7 @@ function App() {
                         <Route path="/notifications" element={<NotificationsPage />} />
                         <Route path="/bookings" element={<UserBookingsPage />} />
                         <Route path="/subscription" element={<SubscriptionPage />} />
+                        <Route path="/subscription/checkout" element={<SubscriptionCheckoutPage />} />
                         <Route path="/recommendations" element={<RecommendationsPage />} />
                         <Route path="/invoices" element={<InvoicesPage />} />
                         <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />

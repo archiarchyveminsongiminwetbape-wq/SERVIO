@@ -190,6 +190,11 @@ export default function SubscriptionPage() {
     }
   }
 
+  function openCheckout(plan: SubscriptionPlan) {
+    if (plan === 'free') return;
+    navigate(`/subscription/checkout?plan=${plan}`);
+  }
+
   async function handleCancel() {
     if (!subscription) return;
     if (!confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) return;
@@ -305,7 +310,7 @@ export default function SubscriptionPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleUpgrade(plan.id)}
+                    onClick={() => openCheckout(plan.id)}
                     disabled={upgrading === plan.id}
                     className="w-full btn-primary flex items-center justify-center gap-2"
                   >
