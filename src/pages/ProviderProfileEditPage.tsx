@@ -66,7 +66,7 @@ export default function ProviderProfileEditPage() {
       .order('sort_order');
     
     if (categoriesData) {
-      setCategories(categoriesData);
+      setCategories(categoriesData as Category[]);
     }
 
     // Load provider profile
@@ -80,7 +80,7 @@ export default function ProviderProfileEditPage() {
       .maybeSingle();
 
     if (profileData) {
-      setProviderProfile(profileData);
+      setProviderProfile(profileData as unknown as ProviderProfile);
       setFormData({
         business_name: profileData.business_name || '',
         slug: profileData.slug || '',

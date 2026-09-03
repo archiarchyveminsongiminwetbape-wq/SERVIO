@@ -177,7 +177,7 @@ export default function ProviderProfilePage() {
           return {
             ...review,
             is_verified: verifiedAuthorIds.has(review.author_id),
-            responses: responses as ReviewResponse[] ?? [],
+            responses: responses as unknown as ReviewResponse[] ?? [],
           };
         })
       );
@@ -440,7 +440,7 @@ export default function ProviderProfilePage() {
     if (!error && data) {
       setReviews(reviews.map(r => 
         r.id === reviewId 
-          ? { ...r, responses: [...(r.responses || []), data as ReviewResponse] }
+          ? { ...r, responses: [...(r.responses || []), data as unknown as ReviewResponse] }
           : r
       ));
       setRespondingToReview(null);

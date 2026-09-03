@@ -4,7 +4,7 @@ import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
   CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin,
-  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon, BadgeCheck
+  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon, BadgeCheck, Check
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -138,7 +138,7 @@ export default function ProviderDashboardPage() {
     const providerId = provRes.data?.id;
 
     if (provRes.data) {
-      setProvider(provRes.data as ProviderProfile);
+      setProvider(provRes.data as unknown as ProviderProfile);
       setForm({
         business_name: provRes.data.business_name ?? '',
         headline: provRes.data.headline ?? '',
@@ -1062,13 +1062,13 @@ export default function ProviderDashboardPage() {
             icon={MessageCircle} 
             value={bookings.filter(b => b.status === 'pending').length} 
             label="Réservations en attente" 
-            variant="warning"
+            variant="default"
           />
           <BentoStatCard 
             icon={CheckCircle2} 
             value={bookings.filter(b => b.status === 'completed').length} 
             label="Réservations complétées" 
-            variant="success"
+            variant="primary"
           />
           <BentoStatCard 
             icon={CreditCard} 

@@ -9,8 +9,7 @@ export const reviewsApi = {
       const { data, error } = await supabase
         .from('reviews')
         .select(`
-          *,
-          reviewer:reviewer_id(full_name, avatar_url)
+          id, provider_id, author_id, rating, comment, provider_response, provider_response_at, created_at
         `)
         .eq('provider_id', providerId)
         .order('created_at', { ascending: false });
@@ -117,7 +116,7 @@ export const reviewsApi = {
       const { data, error } = await supabase
         .from('reviews')
         .select('*')
-        .eq('reviewer_id', userId)
+        .eq('author_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -133,7 +132,7 @@ export const reviewsApi = {
       const { data, error } = await supabase
         .from('reviews')
         .select('id')
-        .eq('reviewer_id', userId)
+        .eq('author_id', userId)
         .eq('provider_id', providerId)
         .single();
 
@@ -204,9 +203,7 @@ export const reviewsApi = {
       const { data, error } = await supabase
         .from('reviews')
         .select(`
-          *,
-          reviewer:reviewer_id(full_name, avatar_url),
-          provider:provider_id(business_name)
+          id, provider_id, author_id, rating, comment, provider_response, provider_response_at, created_at
         `)
         .order('created_at', { ascending: false })
         .limit(limit);

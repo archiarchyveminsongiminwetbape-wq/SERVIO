@@ -127,6 +127,8 @@ export interface Review {
   comment: string | null;
   created_at: string;
   updated_at: string;
+  provider_response?: string | null;
+  provider_response_at?: string | null;
   is_verified?: boolean;
   author?: Profile | null;
   responses?: ReviewResponse[];
@@ -270,7 +272,7 @@ export interface Notification {
 export interface Subscription {
   id: string;
   user_id: string;
-  provider_profile_id: string;
+  provider_id: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
   current_period_start: string;

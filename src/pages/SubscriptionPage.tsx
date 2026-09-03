@@ -78,13 +78,26 @@ const plans: Array<{
   },
 ];
 
+function getSupabaseErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === 'object') {
+    const details = error as { message?: string; details?: string; hint?: string; code?: string };
+    return [details.message, details.details, details.hint, details.code ? `Code: ${details.code}` : '']
+      .filter(Boolean)
+      .join(' — ') || fallback;
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function SubscriptionPage() {
   const { user, profile } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [providerId, setProviderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -97,54 +110,64 @@ export default function SubscriptionPage() {
   async function loadSubscription() {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-    setSubscription(data as Subscription | null);
+    setError(null);
+
+    const [{ data: subscriptionData, error: subscriptionError }, { data: providerData, error: providerError }] = await Promise.all([
+      supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('provider_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (subscriptionError) setError(subscriptionError.message);
+    if (providerError) setError(providerError.message);
+    setProviderId(providerData?.id ?? null);
+    setSubscription(subscriptionData as Subscription | null);
     setLoading(false);
   }
 
   async function handleUpgrade(plan: SubscriptionPlan) {
-    if (!user || !profile) return;
+    if (!user || !profile || !providerId) {
+      setError('Votre profil prestataire doit être configuré avant de souscrire à un plan.');
+      return;
+    }
     setUpgrading(plan);
+    setError(null);
+    setSuccess(null);
 
     try {
-      // In a real implementation, this would integrate with Stripe
-      // For now, we'll simulate the upgrade
-      const { data: existingSub } = await supabase
+      const periodStart = new Date().toISOString();
+      const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { error: upsertError } = await supabase
         .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .upsert({
+          user_id: user.id,
+          provider_id: providerId,
+          plan,
+          status: 'active',
+          current_period_start: periodStart,
+          current_period_end: periodEnd,
+          cancel_at_period_end: false,
+          updated_at: periodStart,
+        }, { onConflict: 'user_id' });
 
-      if (existingSub) {
-        await supabase
-          .from('subscriptions')
-          .update({
-            plan,
-            status: 'active',
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          })
-          .eq('id', existingSub.id);
-      } else {
-        await supabase
-          .from('subscriptions')
-          .insert({
-            user_id: user.id,
-            provider_profile_id: profile.id,
-            plan,
-            status: 'active',
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          });
-      }
+      if (upsertError) throw upsertError;
 
       await loadSubscription();
+      setSuccess(`Le plan ${plans.find((item) => item.id === plan)?.name ?? plan} a été activé avec succès.`);
     } catch (error) {
       console.error('Error upgrading subscription:', error);
+      setError(getSupabaseErrorMessage(error, 'Impossible de modifier l’abonnement.'));
     } finally {
       setUpgrading(null);
     }
@@ -186,6 +209,18 @@ export default function SubscriptionPage() {
             Débloquez tout le potentiel de votre profil professionnel
           </p>
         </div>
+
+          {error && (
+            <div className="mb-8 rounded-lg border border-error-200 bg-error-50 p-4 text-center text-sm text-error-700">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-8 rounded-lg border border-success-200 bg-success-50 p-4 text-center text-sm text-success-700">
+              {success}
+            </div>
+          )}
 
         {subscription && subscription.cancel_at_period_end && (
           <div className="mb-8 rounded-lg bg-warning-50 border border-warning-200 p-4 text-center">
