@@ -77,6 +77,7 @@ export default function SubscriptionCheckoutPage() {
 
     const payload = {
       provider_id: providerId,
+      provider_profile_id: providerId,
       plan: selectedPlan,
       status: 'active',
       current_period_start: periodStart,
