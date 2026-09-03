@@ -2492,7 +2492,12 @@ export default function ProviderDashboardPage() {
                 invoices.map((invoice) => {
                   const metadata = invoice.metadata as any || {};
                   const items = metadata.items || [];
-                  const { subtotal, taxAmount, total } = calculateInvoiceTotal();
+                  
+                  // Calculate totals for this specific invoice
+                  const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unit_price), 0);
+                  const taxRate = metadata.tax_rate || 0;
+                  const taxAmount = subtotal * (taxRate / 100);
+                  const total = subtotal + taxAmount;
                   
                   return (
                     <div key={invoice.id} className="rounded-lg border border-neutral-200 p-4 hover:border-neutral-300 transition-colors">
