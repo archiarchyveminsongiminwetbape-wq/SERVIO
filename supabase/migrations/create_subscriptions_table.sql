@@ -14,16 +14,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   stripe_customer_id TEXT
 );
 
-ALTER TABLE IF EXISTS subscriptions
-  ADD COLUMN IF NOT EXISTS provider_id UUID;
-
-UPDATE subscriptions
-SET provider_id = COALESCE(provider_id, user_id)
-WHERE provider_id IS NULL;
-
-ALTER TABLE IF EXISTS subscriptions
-  ALTER COLUMN provider_id SET NOT NULL;
-
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_provider_id ON subscriptions(provider_id);
