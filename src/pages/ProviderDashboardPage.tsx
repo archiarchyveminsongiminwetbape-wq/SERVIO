@@ -95,6 +95,21 @@ export default function ProviderDashboardPage() {
     sunday: { start: '09:00', end: '12:00', available: false },
   });
 
+  // Invoice form state
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [invoiceForm, setInvoiceForm] = useState({
+    client_name: '',
+    client_email: '',
+    client_address: '',
+    invoice_number: '',
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    items: [] as { description: string; quantity: number; unit_price: number }[],
+    tax_rate: 20,
+    notes: '',
+    currency: 'EUR'
+  });
   // Availability slots management
   const [availabilitySlots, setAvailabilitySlots] = useState<any[]>([]);
   const [showSlotForm, setShowSlotForm] = useState(false);
@@ -284,8 +299,15 @@ export default function ProviderDashboardPage() {
   }
 
   async function savePortfolioItem() {
+    console.log('=== savePortfolioItem called ===');
+    console.log('Current provider:', provider);
+    console.log('Current user:', user);
+    console.log('Editing item:', editingItem);
+    console.log('Item form:', itemForm);
+    
     let targetProviderId = provider?.id;
     if (!targetProviderId && user) {
+      console.log('No provider_id found, searching for existing provider profile...');
       // Try to find existing provider profile
       const { data: existingProvider, error: findError } = await supabase
         .from('provider_profiles')
@@ -303,8 +325,10 @@ export default function ProviderDashboardPage() {
       }
 
       if (existingProvider) {
+        console.log('Found existing provider:', existingProvider);
         targetProviderId = existingProvider.id;
       } else {
+        console.log('No existing provider, creating new one...');
         // Create a new provider profile
         const slug = slugify((profile as any)?.full_name || 'prestataire') + '-' + Date.now().toString().slice(-4);
         const { data: newProvider, error: newProviderError } = await supabase
@@ -324,21 +348,27 @@ export default function ProviderDashboardPage() {
           return;
         }
 
+        console.log('Created new provider:', newProvider);
         targetProviderId = newProvider.id;
       }
     }
 
     if (!targetProviderId) {
+      console.error('No targetProviderId found');
       setSaveMsg({ type: 'error', text: 'Aucun profil prestataire trouvé. Veuillez créer votre profil prestataire d\'abord.' });
       return;
     }
 
+    console.log('Using targetProviderId:', targetProviderId);
+
     if (!editingItem && subscriptionPlan === 'free' && portfolio.length >= 5) {
+      console.log('Free plan limit reached');
       setSaveMsg({ type: 'error', text: 'Le plan Gratuit est limité à 5 réalisations. Passez à un plan supérieur pour continuer.' });
       return;
     }
 
     if (!itemForm.title.trim()) {
+      console.log('Title is empty');
       setSaveMsg({ type: 'error', text: 'Le titre de la réalisation est obligatoire.' });
       return;
     }
@@ -358,12 +388,13 @@ export default function ProviderDashboardPage() {
          
         new URL(l.url);
       } catch (e) {
+        console.error('Invalid URL:', l.url);
         setSaveMsg({ type: 'error', text: `URL invalide : ${l.url}` });
         return;
       }
     }
 
-    console.log('Using provider_id:', targetProviderId);
+    console.log('Prepared data:', { photos, videos, videoThumbnails, tags, technologiesUsed, projectLinks });
     setSaving(true);
     setSaveMsg(null);
 
@@ -394,9 +425,13 @@ export default function ProviderDashboardPage() {
       result: itemForm.result || null,
     };
 
+    console.log('Payload to save:', fullPayload);
+
     if (editingItem) {
+      console.log('Updating existing item:', editingItem.id);
       // Prevent updating items that don't belong to this user's provider
       if (editingItem.provider_id !== targetProviderId) {
+        console.error('Item does not belong to provider');
         setSaveMsg({ type: 'error', text: 'Impossible de modifier : cette réalisation n\'appartient pas à votre profil.' });
         setSaving(false);
         return;
@@ -406,21 +441,28 @@ export default function ProviderDashboardPage() {
         .update(fullPayload)
         .eq('id', editingItem.id);
 
+      console.log('Update result:', error || 'Success');
+
       // Fallback if schema doesn't yet have context/objective/role/process/result columns
       if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
+        console.log('Fallback to base payload due to schema error');
         const retry = await supabase
           .from('portfolio_items')
           .update(basePayload)
           .eq('id', editingItem.id);
         error = retry.error;
+        console.log('Retry result:', error || 'Success');
       }
 
-      if (error) setSaveMsg({ type: 'error', text: error.message });
-      else {
-        setSaveMsg({ type: 'success', text: t.auth.signupSuccess });
+      if (error) {
+        console.error('Final error:', error);
+        setSaveMsg({ type: 'error', text: error.message });
+      } else {
+        setSaveMsg({ type: 'success', text: 'Réalisation mise à jour avec succès' });
         await loadData();
       }
     } else {
+      console.log('Creating new item');
       let { error } = await supabase
         .from('portfolio_items')
         .insert({
@@ -429,8 +471,11 @@ export default function ProviderDashboardPage() {
         })
         .select();
 
+      console.log('Insert result:', error || 'Success');
+
       // Fallback if schema doesn't yet have context/objective/role/process/result columns
       if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
+        console.log('Fallback to base payload due to schema error');
         const retry = await supabase
           .from('portfolio_items')
           .insert({
@@ -439,11 +484,14 @@ export default function ProviderDashboardPage() {
           })
           .select();
         error = retry.error;
+        console.log('Retry result:', error || 'Success');
       }
 
-      if (error) setSaveMsg({ type: 'error', text: error.message });
-      else {
-        setSaveMsg({ type: 'success', text: t.auth.signupSuccess });
+      if (error) {
+        console.error('Final error:', error);
+        setSaveMsg({ type: 'error', text: error.message });
+      } else {
+        setSaveMsg({ type: 'success', text: 'Réalisation créée avec succès' });
         await loadData();
       }
     }
@@ -891,6 +939,164 @@ export default function ProviderDashboardPage() {
       await loadData();
     }
     setSaving(false);
+  }
+
+  async function createInvoice() {
+    if (!provider) {
+      setSaveMsg({ type: 'error', text: 'Aucun profil prestataire trouvé' });
+      return;
+    }
+
+    // Calculate totals
+    const subtotal = invoiceForm.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    const taxAmount = subtotal * (invoiceForm.tax_rate / 100);
+    const totalAmount = subtotal + taxAmount;
+
+    // Generate invoice number if not provided
+    const invoiceNumber = invoiceForm.invoice_number || `INV-${Date.now()}`;
+
+    setSaving(true);
+    setSaveMsg(null);
+
+    const { error } = await supabase.from('invoices').insert({
+      invoice_number: invoiceNumber,
+      client_id: null, // Will be linked to client if exists
+      provider_id: provider.id,
+      type: 'custom',
+      status: 'draft',
+      amount: totalAmount,
+      tax_amount: taxAmount,
+      total_amount: totalAmount,
+      currency: invoiceForm.currency,
+      due_date: invoiceForm.due_date,
+      notes: invoiceForm.notes,
+      // Store items as JSON in notes or create a separate table
+      metadata: {
+        client_name: invoiceForm.client_name,
+        client_email: invoiceForm.client_email,
+        client_address: invoiceForm.client_address,
+        issue_date: invoiceForm.issue_date,
+        items: invoiceForm.items,
+        tax_rate: invoiceForm.tax_rate
+      }
+    });
+
+    if (error) {
+      setSaveMsg({ type: 'error', text: error.message });
+    } else {
+      setSaveMsg({ type: 'success', text: 'Facture créée avec succès' });
+      await loadData();
+      setShowInvoiceForm(false);
+      resetInvoiceForm();
+    }
+    setSaving(false);
+  }
+
+  async function updateInvoice(invoiceId: string) {
+    const subtotal = invoiceForm.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    const taxAmount = subtotal * (invoiceForm.tax_rate / 100);
+    const totalAmount = subtotal + taxAmount;
+
+    setSaving(true);
+    setSaveMsg(null);
+
+    const { error } = await supabase
+      .from('invoices')
+      .update({
+        invoice_number: invoiceForm.invoice_number,
+        amount: totalAmount,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        currency: invoiceForm.currency,
+        due_date: invoiceForm.due_date,
+        notes: invoiceForm.notes,
+        metadata: {
+          client_name: invoiceForm.client_name,
+          client_email: invoiceForm.client_email,
+          client_address: invoiceForm.client_address,
+          issue_date: invoiceForm.issue_date,
+          items: invoiceForm.items,
+          tax_rate: invoiceForm.tax_rate
+        }
+      })
+      .eq('id', invoiceId);
+
+    if (error) {
+      setSaveMsg({ type: 'error', text: error.message });
+    } else {
+      setSaveMsg({ type: 'success', text: 'Facture mise à jour avec succès' });
+      await loadData();
+      setShowInvoiceForm(false);
+      resetInvoiceForm();
+      setEditingInvoice(null);
+    }
+    setSaving(false);
+  }
+
+  async function deleteInvoice(invoiceId: string) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) return;
+    
+    const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
+    if (!error) {
+      await loadData();
+    }
+  }
+
+  async function sendInvoice(invoiceId: string) {
+    setSaving(true);
+    const { error } = await supabase
+      .from('invoices')
+      .update({ status: 'sent' })
+      .eq('id', invoiceId);
+
+    if (!error) {
+      setSaveMsg({ type: 'success', text: 'Facture envoyée au client' });
+      await loadData();
+    } else {
+      setSaveMsg({ type: 'error', text: error.message });
+    }
+    setSaving(false);
+  }
+
+  function resetInvoiceForm() {
+    setInvoiceForm({
+      client_name: '',
+      client_email: '',
+      client_address: '',
+      invoice_number: '',
+      issue_date: new Date().toISOString().split('T')[0],
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      items: [],
+      tax_rate: 20,
+      notes: '',
+      currency: 'EUR'
+    });
+  }
+
+  function addInvoiceItem() {
+    setInvoiceForm({
+      ...invoiceForm,
+      items: [...invoiceForm.items, { description: '', quantity: 1, unit_price: 0 }]
+    });
+  }
+
+  function updateInvoiceItem(index: number, field: string, value: any) {
+    const newItems = [...invoiceForm.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setInvoiceForm({ ...invoiceForm, items: newItems });
+  }
+
+  function removeInvoiceItem(index: number) {
+    setInvoiceForm({
+      ...invoiceForm,
+      items: invoiceForm.items.filter((_, i) => i !== index)
+    });
+  }
+
+  function calculateInvoiceTotal() {
+    const subtotal = invoiceForm.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    const taxAmount = subtotal * (invoiceForm.tax_rate / 100);
+    return { subtotal, taxAmount, total: subtotal + taxAmount };
   }
 
   async function deletePortfolioItem(id: string) {
@@ -1994,10 +2200,286 @@ export default function ProviderDashboardPage() {
 
       {/* Invoices management */}
       {tab === 'invoices' && (
-        <div className="mx-auto max-w-4xl space-y-6">
+        <div className="mx-auto max-w-5xl space-y-6">
+          {/* Invoice Statistics */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="card p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-primary-100 text-primary-600">
+                  <CreditCard size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-600">Total factures</p>
+                  <p className="text-2xl font-bold text-neutral-900">{invoices.length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="card p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-success-100 text-success-600">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-600">Payées</p>
+                  <p className="text-2xl font-bold text-neutral-900">{invoices.filter((i) => i.status === 'paid').length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="card p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-warning-100 text-warning-600">
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-600">En attente</p>
+                  <p className="text-2xl font-bold text-neutral-900">{invoices.filter((i) => i.status === 'sent' || i.status === 'draft').length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="card p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-accent-100 text-accent-600">
+                  <TrendingUp size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-600">Revenus</p>
+                  <p className="text-2xl font-bold text-neutral-900">
+                    {invoices.filter((i) => i.status === 'paid').reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0).toFixed(2)} €
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Invoice Form */}
+          {showInvoiceForm && (
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-neutral-900">
+                  {editingInvoice ? 'Modifier la facture' : 'Nouvelle facture'}
+                </h3>
+                <button onClick={() => { setShowInvoiceForm(false); resetInvoiceForm(); setEditingInvoice(null); }} className="btn-ghost">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {saveMsg && (
+                <div className={`mb-4 p-3 rounded-lg ${saveMsg.type === 'success' ? 'bg-success-50 text-success-700' : 'bg-error-50 text-error-700'}`}>
+                  {saveMsg.text}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Numéro de facture</label>
+                  <input
+                    type="text"
+                    value={invoiceForm.invoice_number}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, invoice_number: e.target.value })}
+                    className="input-field"
+                    placeholder="INV-XXXXX"
+                  />
+                </div>
+                <div>
+                  <label className="label">Devise</label>
+                  <select
+                    value={invoiceForm.currency}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, currency: e.target.value })}
+                    className="input-field"
+                  >
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="XAF">XAF (FCFA)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Date d'émission</label>
+                  <input
+                    type="date"
+                    value={invoiceForm.issue_date}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, issue_date: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Date d'échéance</label>
+                  <input
+                    type="date"
+                    value={invoiceForm.due_date}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="label">Nom du client</label>
+                  <input
+                    type="text"
+                    value={invoiceForm.client_name}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })}
+                    className="input-field"
+                    placeholder="Nom complet"
+                  />
+                </div>
+                <div>
+                  <label className="label">Email du client</label>
+                  <input
+                    type="email"
+                    value={invoiceForm.client_email}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, client_email: e.target.value })}
+                    className="input-field"
+                    placeholder="client@example.com"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label">Adresse du client</label>
+                  <textarea
+                    value={invoiceForm.client_address}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, client_address: e.target.value })}
+                    className="input-field resize-none"
+                    rows={2}
+                    placeholder="Adresse complète"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="label mb-0">Articles</label>
+                  <button onClick={addInvoiceItem} className="btn-secondary text-sm">
+                    <Plus size={16} className="mr-1" />
+                    Ajouter un article
+                  </button>
+                </div>
+                
+                {invoiceForm.items.length === 0 ? (
+                  <div className="text-center py-8 border-2 border-dashed border-neutral-200 rounded-lg">
+                    <FileText size={32} className="mx-auto text-neutral-300 mb-2" />
+                    <p className="text-sm text-neutral-500">Aucun article. Cliquez sur "Ajouter un article" pour commencer.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {invoiceForm.items.map((item, index) => (
+                      <div key={index} className="flex gap-3 items-start">
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) => updateInvoiceItem(index, 'description', e.target.value)}
+                            className="input-field"
+                            placeholder="Description de l'article"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateInvoiceItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                            className="input-field"
+                            placeholder="Qté"
+                            min="1"
+                          />
+                        </div>
+                        <div className="w-32">
+                          <input
+                            type="number"
+                            value={item.unit_price}
+                            onChange={(e) => updateInvoiceItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                            className="input-field"
+                            placeholder="Prix unitaire"
+                            step="0.01"
+                          />
+                        </div>
+                        <div className="w-28 text-right py-2">
+                          {(item.quantity * item.unit_price).toFixed(2)} {invoiceForm.currency}
+                        </div>
+                        <button
+                          onClick={() => removeInvoiceItem(index)}
+                          className="text-error-600 hover:bg-error-50 rounded-lg p-2 mt-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Taux de TVA (%)</label>
+                  <input
+                    type="number"
+                    value={invoiceForm.tax_rate}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, tax_rate: parseFloat(e.target.value) || 0 })}
+                    className="input-field"
+                    step="0.1"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label">Notes</label>
+                  <textarea
+                    value={invoiceForm.notes}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, notes: e.target.value })}
+                    className="input-field resize-none"
+                    rows={3}
+                    placeholder="Notes ou conditions de paiement..."
+                  />
+                </div>
+              </div>
+
+              {/* Totals */}
+              {invoiceForm.items.length > 0 && (
+                <div className="mt-6 p-4 bg-neutral-50 rounded-lg">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-neutral-600">Sous-total</span>
+                    <span className="font-medium">{calculateInvoiceTotal().subtotal.toFixed(2)} {invoiceForm.currency}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-neutral-600">TVA ({invoiceForm.tax_rate}%)</span>
+                    <span className="font-medium">{calculateInvoiceTotal().taxAmount.toFixed(2)} {invoiceForm.currency}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-neutral-200">
+                    <span>Total</span>
+                    <span className="text-primary-600">{calculateInvoiceTotal().total.toFixed(2)} {invoiceForm.currency}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => { setShowInvoiceForm(false); resetInvoiceForm(); setEditingInvoice(null); }}
+                  className="btn-secondary"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => editingInvoice ? updateInvoice(editingInvoice.id) : createInvoice()}
+                  disabled={saving || invoiceForm.items.length === 0}
+                  className="btn-primary"
+                >
+                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                  {editingInvoice ? 'Mettre à jour' : 'Créer la facture'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Invoices List */}
           <div className="card p-6">
-            <h3 className="text-lg font-semibold text-neutral-900">Factures</h3>
-            <p className="mt-1 text-sm text-neutral-500">Gérez vos factures clients</p>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900">Factures</h3>
+                <p className="mt-1 text-sm text-neutral-500">Gérez vos factures clients</p>
+              </div>
+              <button
+                onClick={() => setShowInvoiceForm(true)}
+                className="btn-primary"
+              >
+                <Plus size={18} className="mr-2" />
+                Nouvelle facture
+              </button>
+            </div>
             
             <div className="mt-6 space-y-4">
               {invoices.length === 0 ? (
@@ -2007,60 +2489,123 @@ export default function ProviderDashboardPage() {
                   <p className="text-xs text-neutral-400">Les factures sont générées automatiquement après la complétion des réservations</p>
                 </div>
               ) : (
-                invoices.map((invoice) => (
-                  <div key={invoice.id} className="rounded-lg border border-neutral-200 p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-lg font-semibold text-primary-700">
-                          <CreditCard size={20} />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-neutral-900">{invoice.invoice_number}</p>
-                          <p className="text-sm text-neutral-500">{invoice.client?.full_name || 'Client'}</p>
-                          <div className="mt-2 flex flex-wrap gap-2 text-sm text-neutral-600">
-                            <span className="flex items-center gap-1">
-                              <Calendar size={14} />
-                              {new Date(invoice.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock size={14} />
-                              Échéance: {new Date(invoice.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                            </span>
+                invoices.map((invoice) => {
+                  const metadata = invoice.metadata as any || {};
+                  const items = metadata.items || [];
+                  const { subtotal, taxAmount, total } = calculateInvoiceTotal();
+                  
+                  return (
+                    <div key={invoice.id} className="rounded-lg border border-neutral-200 p-4 hover:border-neutral-300 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-lg font-semibold text-primary-700">
+                            <CreditCard size={20} />
                           </div>
-                          {invoice.booking && (
-                            <p className="mt-1 text-sm text-neutral-600">Réservation: {invoice.booking.service_type || 'Service'}</p>
-                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-neutral-900">{invoice.invoice_number}</p>
+                              <span className={`badge ${
+                                invoice.status === 'paid' ? 'bg-success-50 text-success-700' :
+                                invoice.status === 'sent' ? 'bg-primary-50 text-primary-700' :
+                                invoice.status === 'overdue' ? 'bg-error-50 text-error-700' :
+                                invoice.status === 'draft' ? 'bg-neutral-100 text-neutral-600' :
+                                'bg-neutral-100 text-neutral-600'
+                              }`}>
+                                {invoice.status === 'paid' ? 'Payée' :
+                                 invoice.status === 'sent' ? 'Envoyée' :
+                                 invoice.status === 'overdue' ? 'En retard' :
+                                 invoice.status === 'draft' ? 'Brouillon' :
+                                 invoice.status === 'cancelled' ? 'Annulée' : invoice.status}
+                              </span>
+                            </div>
+                            <p className="text-sm text-neutral-500">{metadata.client_name || invoice.client?.full_name || 'Client'}</p>
+                            {metadata.client_email && (
+                              <p className="text-xs text-neutral-400">{metadata.client_email}</p>
+                            )}
+                            <div className="mt-2 flex flex-wrap gap-3 text-sm text-neutral-600">
+                              <span className="flex items-center gap-1">
+                                <Calendar size={14} />
+                                {new Date(invoice.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock size={14} />
+                                Échéance: {new Date(invoice.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                              </span>
+                              {invoice.booking && (
+                                <span className="flex items-center gap-1">
+                                  <MessageCircle size={14} />
+                                  Réservation: {invoice.booking.service_type || 'Service'}
+                                </span>
+                              )}
+                            </div>
+                            {items.length > 0 && (
+                              <div className="mt-2 text-xs text-neutral-500">
+                                {items.length} article{items.length > 1 ? 's' : ''}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className={`badge ${
-                          invoice.status === 'paid' ? 'bg-success-50 text-success-700' :
-                          invoice.status === 'sent' ? 'bg-primary-50 text-primary-700' :
-                          invoice.status === 'overdue' ? 'bg-error-50 text-error-700' :
-                          'bg-neutral-100 text-neutral-600'
-                        }`}>
-                          {invoice.status === 'paid' ? 'Payée' :
-                           invoice.status === 'sent' ? 'Envoyée' :
-                           invoice.status === 'overdue' ? 'En retard' :
-                           invoice.status === 'draft' ? 'Brouillon' :
-                           invoice.status === 'cancelled' ? 'Annulée' : invoice.status}
-                        </span>
-                        <p className="text-lg font-semibold text-neutral-900">{invoice.amount} {invoice.currency}</p>
-                        {invoice.status === 'sent' && (
-                          <button
-                            onClick={() => markInvoiceAsPaid(invoice.id)}
-                            disabled={saving}
-                            className="btn-secondary text-xs"
-                          >
-                            <CheckCircle2 size={14} />
-                            Marquer payée
-                          </button>
-                        )}
+                        <div className="flex flex-col items-end gap-2">
+                          <p className="text-xl font-bold text-neutral-900">{invoice.total_amount || invoice.amount} {invoice.currency}</p>
+                          <div className="flex gap-2">
+                            {invoice.status === 'draft' && (
+                              <>
+                                <button
+                                  onClick={() => sendInvoice(invoice.id)}
+                                  disabled={saving}
+                                  className="btn-secondary text-xs"
+                                >
+                                  <Send size={14} />
+                                  Envoyer
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingInvoice(invoice);
+                                    setInvoiceForm({
+                                      client_name: metadata.client_name || '',
+                                      client_email: metadata.client_email || '',
+                                      client_address: metadata.client_address || '',
+                                      invoice_number: invoice.invoice_number,
+                                      issue_date: metadata.issue_date || new Date().toISOString().split('T')[0],
+                                      due_date: invoice.due_date,
+                                      items: metadata.items || [],
+                                      tax_rate: metadata.tax_rate || 20,
+                                      notes: invoice.notes || '',
+                                      currency: invoice.currency
+                                    });
+                                    setShowInvoiceForm(true);
+                                  }}
+                                  className="btn-secondary text-xs"
+                                >
+                                  <Edit3 size={14} />
+                                  Modifier
+                                </button>
+                              </>
+                            )}
+                            {invoice.status === 'sent' && (
+                              <button
+                                onClick={() => markInvoiceAsPaid(invoice.id)}
+                                disabled={saving}
+                                className="btn-secondary text-xs text-success-600 hover:bg-success-50"
+                              >
+                                <CheckCircle2 size={14} />
+                                Marquer payée
+                              </button>
+                            )}
+                            {(invoice.status === 'draft' || invoice.status === 'sent') && (
+                              <button
+                                onClick={() => deleteInvoice(invoice.id)}
+                                className="btn-ghost text-error-600 hover:bg-error-50 text-xs"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  );
+              })}
             </div>
           </div>
         </div>

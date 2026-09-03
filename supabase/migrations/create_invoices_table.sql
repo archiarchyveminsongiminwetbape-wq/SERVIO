@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   due_date TIMESTAMP WITH TIME ZONE,
   paid_date TIMESTAMP WITH TIME ZONE,
   notes TEXT,
+  metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -43,6 +44,9 @@ ALTER TABLE IF EXISTS invoices
 
 ALTER TABLE IF EXISTS invoices
   ADD COLUMN IF NOT EXISTS status TEXT;
+
+ALTER TABLE IF EXISTS invoices
+  ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
 
 UPDATE invoices
 SET type = COALESCE(type, 'booking')
