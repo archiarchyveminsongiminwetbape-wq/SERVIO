@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { uploadAvatar, uploadBanner, uploadPortfolioPhoto, uploadContractPdf } from '@/lib/storage';
 import { sendEmail, generateBookingConfirmationEmail, generateBookingRequestEmail } from '@/lib/email';
+import { generateServiceDescription, extractSkillsFromDescription } from '@/lib/ai';
 import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
@@ -2840,23 +2841,85 @@ export default function ProviderDashboardPage() {
               </div>
               <div className="sm:col-span-2">
                 <label className="label">Présentation</label>
-                <textarea
-                  value={form.description as string ?? ''}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="input-field resize-none"
-                  rows={5}
-                  placeholder="Décrivez votre activité, votre expertise et votre mode de travail."
-                />
+                <div className="flex gap-2">
+                  <textarea
+                    value={form.description as string ?? ''}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    className="input-field resize-none flex-1"
+                    rows={5}
+                    placeholder="Décrivez votre activité, votre expertise et votre mode de travail."
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!provider) return;
+                      try {
+                        setSaving(true);
+                        const categoryName = categories.find(c => c.id === form.category_id)?.name || '';
+                        const skills = skillsInput.split(',').map(s => s.trim()).filter(Boolean);
+                        const experience = form.experience_years as string || '';
+                        const generatedDescription = await generateServiceDescription(
+                          provider.business_name || '',
+                          categoryName,
+                          skills,
+                          experience,
+                          'clients professionnels'
+                        );
+                        setForm({ ...form, description: generatedDescription });
+                        setSaveMsg({ type: 'success', text: 'Description générée avec succès' });
+                        setTimeout(() => setSaveMsg(null), 3000);
+                      } catch (error) {
+                        setSaveMsg({ type: 'error', text: 'Erreur lors de la génération de la description' });
+                        setTimeout(() => setSaveMsg(null), 3000);
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    disabled={saving}
+                    className="btn-secondary px-3"
+                    title="Générer avec l'IA"
+                  >
+                    <FileText size={16} />
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="label">Compétences (séparées par des virgules)</label>
-                <input
-                  type="text"
-                  value={skillsInput}
-                  onChange={(e) => setSkillsInput(e.target.value)}
-                  className="input-field"
-                  placeholder="Compétence 1, compétence 2, compétence 3"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={skillsInput}
+                    onChange={(e) => setSkillsInput(e.target.value)}
+                    className="input-field flex-1"
+                    placeholder="Compétence 1, compétence 2, compétence 3"
+                  />
+                  <button
+                    onClick={async () => {
+                      const description = form.description as string || '';
+                      if (!description) {
+                        setSaveMsg({ type: 'error', text: 'Veuillez d\'abord remplir la description' });
+                        setTimeout(() => setSaveMsg(null), 3000);
+                        return;
+                      }
+                      try {
+                        setSaving(true);
+                        const extractedSkills = await extractSkillsFromDescription(description);
+                        setSkillsInput(extractedSkills.join(', '));
+                        setSaveMsg({ type: 'success', text: 'Compétences extraites avec succès' });
+                        setTimeout(() => setSaveMsg(null), 3000);
+                      } catch (error) {
+                        setSaveMsg({ type: 'error', text: 'Erreur lors de l\'extraction des compétences' });
+                        setTimeout(() => setSaveMsg(null), 3000);
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    disabled={saving}
+                    className="btn-secondary px-3"
+                    title="Extraire les compétences de la description"
+                  >
+                    <BadgeCheck size={16} />
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="label">Langues parlées</label>

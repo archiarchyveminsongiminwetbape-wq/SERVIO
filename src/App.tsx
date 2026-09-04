@@ -6,6 +6,7 @@ import { I18nProvider } from '@/context/I18nContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CategorySeeder from '@/components/CategorySeeder';
+import AIChatbot from '@/components/AIChatbot';
 
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const SearchPage = lazy(() => import('@/pages/SearchPage'));
@@ -40,6 +41,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <main className="flex-1">{children}</main>
         <Footer />
       </div>
+      <AIChatbot />
     </div>
   );
 }
