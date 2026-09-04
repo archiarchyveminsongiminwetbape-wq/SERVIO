@@ -81,6 +81,8 @@ export default function QuotesPage() {
     } catch (error) {
       console.error('Error sending quote:', error);
     }
+  }
+
   async function handleDeleteQuote(quoteId: string) {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce devis ?')) return;
 

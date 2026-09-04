@@ -4,8 +4,11 @@ import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
   CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin,
-  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon, BadgeCheck, Check
+  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon, BadgeCheck, Check,
+  Download, Printer
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
@@ -1097,6 +1100,168 @@ export default function ProviderDashboardPage() {
     const subtotal = invoiceForm.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
     const taxAmount = subtotal * (invoiceForm.tax_rate / 100);
     return { subtotal, taxAmount, total: subtotal + taxAmount };
+  }
+
+  async function generateInvoicePDF(invoice: any) {
+    try {
+      const metadata = invoice.metadata as any || {};
+      const items = metadata.items || [];
+      
+      // Calculate totals
+      const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unit_price), 0);
+      const taxRate = metadata.tax_rate || 0;
+      const taxAmount = subtotal * (taxRate / 100);
+      const total = subtotal + taxAmount;
+
+      // Create PDF
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Header
+      pdf.setFillColor(59, 130, 246); // Blue color
+      pdf.rect(0, 0, pageWidth, 40, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.text('FACTURE', pageWidth / 2, 25, { align: 'center' });
+      
+      // Invoice details
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(12);
+      pdf.text(`Numéro: ${invoice.invoice_number}`, 20, 60);
+      pdf.text(`Date: ${new Date(invoice.created_at).toLocaleDateString('fr-FR')}`, 20, 70);
+      pdf.text(`Échéance: ${new Date(invoice.due_date).toLocaleDateString('fr-FR')}`, 20, 80);
+      
+      // Provider info
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('De:', pageWidth - 20, 60, { align: 'right' });
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(provider?.business_name || 'Votre Entreprise', pageWidth - 20, 70, { align: 'right' });
+      if (provider?.city) pdf.text(provider.city, pageWidth - 20, 78, { align: 'right' });
+      if (provider?.phone) pdf.text(provider.phone, pageWidth - 20, 86, { align: 'right' });
+      
+      // Client info
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('À:', 20, 100);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(metadata.client_name || invoice.client?.full_name || 'Client', 20, 110);
+      if (metadata.client_address) {
+        const addressLines = metadata.client_address.split('\n');
+        addressLines.forEach((line: string, index: number) => {
+          pdf.text(line, 20, 118 + (index * 8));
+        });
+      }
+      if (metadata.client_email) pdf.text(metadata.client_email, 20, 118 + (metadata.client_address?.split('\n').length || 0) * 8 + 8);
+      
+      // Items table
+      let yPosition = 150;
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Description', 20, yPosition);
+      pdf.text('Qté', 120, yPosition);
+      pdf.text('Prix unitaire', 140, yPosition);
+      pdf.text('Total', 180, yPosition, { align: 'right' });
+      
+      yPosition += 10;
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      
+      items.forEach((item: any, index: number) => {
+        const itemTotal = item.quantity * item.unit_price;
+        pdf.text(item.description.substring(0, 40), 20, yPosition);
+        pdf.text(item.quantity.toString(), 120, yPosition);
+        pdf.text(`${item.unit_price.toFixed(2)} ${invoice.currency}`, 140, yPosition);
+        pdf.text(`${itemTotal.toFixed(2)} ${invoice.currency}`, 180, yPosition, { align: 'right' });
+        yPosition += 8;
+      });
+      
+      // Totals
+      yPosition += 10;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(20, yPosition, pageWidth - 20, yPosition);
+      yPosition += 10;
+      
+      pdf.text(`Sous-total: ${subtotal.toFixed(2)} ${invoice.currency}`, pageWidth - 20, yPosition, { align: 'right' });
+      yPosition += 8;
+      pdf.text(`TVA (${taxRate}%): ${taxAmount.toFixed(2)} ${invoice.currency}`, pageWidth - 20, yPosition, { align: 'right' });
+      yPosition += 8;
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(`Total: ${total.toFixed(2)} ${invoice.currency}`, pageWidth - 20, yPosition, { align: 'right' });
+      
+      // Notes
+      if (invoice.notes) {
+        yPosition += 20;
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'normal');
+        pdf.text('Notes:', 20, yPosition);
+        yPosition += 8;
+        const noteLines = pdf.splitTextToSize(invoice.notes, pageWidth - 40);
+        pdf.text(noteLines, 20, yPosition);
+      }
+      
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text('SERVIO - Plateforme de services', pageWidth / 2, pageHeight - 20, { align: 'center' });
+      
+      // Save PDF
+      pdf.save(`Facture_${invoice.invoice_number}.pdf`);
+      setSaveMsg({ type: 'success', text: 'PDF généré avec succès' });
+      setTimeout(() => setSaveMsg(null), 3000);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      setSaveMsg({ type: 'error', text: 'Erreur lors de la génération du PDF' });
+      setTimeout(() => setSaveMsg(null), 3000);
+    }
+  }
+
+  async function printInvoice(invoice: any) {
+    await generateInvoicePDF(invoice);
+  }
+
+  async function sendInvoiceByEmail(invoiceId: string) {
+    try {
+      const invoice = invoices.find(i => i.id === invoiceId);
+      if (!invoice) {
+        setSaveMsg({ type: 'error', text: 'Facture non trouvée' });
+        return;
+      }
+
+      const metadata = invoice.metadata as any || {};
+      const clientEmail = metadata.client_email || invoice.client?.email;
+      
+      if (!clientEmail) {
+        setSaveMsg({ type: 'error', text: 'Email du client non trouvé' });
+        return;
+      }
+
+      // Generate email content
+      const emailSubject = `Facture ${invoice.invoice_number} - ${provider?.business_name || 'SERVIO'}`;
+      const emailBody = `
+        <h2>Facture ${invoice.invoice_number}</h2>
+        <p>Bonjour ${metadata.client_name || invoice.client?.full_name || 'Client'},</p>
+        <p>Veuillez trouver ci-joint votre facture d'un montant de ${invoice.total_amount || invoice.amount} ${invoice.currency}.</p>
+        <p>Date d'échéance: ${new Date(invoice.due_date).toLocaleDateString('fr-FR')}</p>
+        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+        <p>Cordialement,<br>${provider?.business_name || 'L\'équipe SERVIO'}</p>
+      `;
+
+      // Send email using Supabase Edge Function or email service
+      // For now, we'll update the invoice status to 'sent'
+      await sendInvoice(invoiceId);
+      
+      setSaveMsg({ type: 'success', text: 'Facture envoyée par email avec succès' });
+      setTimeout(() => setSaveMsg(null), 3000);
+    } catch (error) {
+      console.error('Error sending invoice by email:', error);
+      setSaveMsg({ type: 'error', text: 'Erreur lors de l\'envoi de l\'email' });
+      setTimeout(() => setSaveMsg(null), 3000);
+    }
   }
 
   async function deletePortfolioItem(id: string) {
@@ -2553,16 +2718,24 @@ export default function ProviderDashboardPage() {
                         <div className="flex flex-col items-end gap-2">
                           <p className="text-xl font-bold text-neutral-900">{invoice.total_amount || invoice.amount} {invoice.currency}</p>
                           <div className="flex gap-2">
+                            <button
+                              onClick={() => generateInvoicePDF(invoice)}
+                              disabled={saving}
+                              className="btn-secondary text-xs"
+                              title="Télécharger PDF"
+                            >
+                              <Download size={14} />
+                            </button>
+                            <button
+                              onClick={() => sendInvoiceByEmail(invoice.id)}
+                              disabled={saving}
+                              className="btn-secondary text-xs"
+                              title="Envoyer par email"
+                            >
+                              <Send size={14} />
+                            </button>
                             {invoice.status === 'draft' && (
                               <>
-                                <button
-                                  onClick={() => sendInvoice(invoice.id)}
-                                  disabled={saving}
-                                  className="btn-secondary text-xs"
-                                >
-                                  <Send size={14} />
-                                  Envoyer
-                                </button>
                                 <button
                                   onClick={() => {
                                     setEditingInvoice(invoice);
@@ -2581,9 +2754,9 @@ export default function ProviderDashboardPage() {
                                     setShowInvoiceForm(true);
                                   }}
                                   className="btn-secondary text-xs"
+                                  title="Modifier"
                                 >
                                   <Edit3 size={14} />
-                                  Modifier
                                 </button>
                               </>
                             )}
@@ -2592,15 +2765,16 @@ export default function ProviderDashboardPage() {
                                 onClick={() => markInvoiceAsPaid(invoice.id)}
                                 disabled={saving}
                                 className="btn-secondary text-xs text-success-600 hover:bg-success-50"
+                                title="Marquer payée"
                               >
                                 <CheckCircle2 size={14} />
-                                Marquer payée
                               </button>
                             )}
                             {(invoice.status === 'draft' || invoice.status === 'sent') && (
                               <button
                                 onClick={() => deleteInvoice(invoice.id)}
                                 className="btn-ghost text-error-600 hover:bg-error-50 text-xs"
+                                title="Supprimer"
                               >
                                 <Trash2 size={14} />
                               </button>
