@@ -49,9 +49,10 @@ export default function AIChatbot() {
   }, [messages]);
 
   const checkFAQ = (query: string): string | null => {
-    const lowerQuery = query.toLowerCase();
+    const lowerQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     for (const [key, answer] of Object.entries(FAQ_KNOWLEDGE_BASE)) {
-      if (lowerQuery.includes(key) || key.includes(lowerQuery)) {
+      const normalizedKey = key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (lowerQuery.includes(normalizedKey) || normalizedKey.includes(lowerQuery)) {
         return answer;
       }
     }
@@ -65,29 +66,48 @@ export default function AIChatbot() {
         .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
         .join('\n');
 
-      const prompt = `Tu es un assistant virtuel utile pour la plateforme SERVIO, une plateforme de services freelance. Réponds en français de manière concise et professionnelle.
+      const prompt = `Tu es un assistant virtuel utile pour la plateforme SERVIO, une plateforme de services freelance. Réponds en français de manière concise et professionnelle (maximum 2-3 phrases).
 
-Historique de conversation:
-${conversationHistory}
+Question: ${userMessage}
 
-Question actuelle: ${userMessage}
+Réponds simplement et directement. Si tu ne connais pas la réponse, suggère de contacter le support humain.`;
 
-Si la question concerne des informations générales sur la plateforme (création de compte, réservation, paiement, etc.), fournis une réponse utile. Si la question est trop spécifique ou personnelle, suggère de contacter le support humain.`;
+      try {
+        const response = await hf.textGeneration({
+          model: 'mistralai/Mistral-7B-Instruct-v0.2',
+          inputs: `[INST] ${prompt} [/INST]`,
+          parameters: {
+            max_new_tokens: 150,
+            temperature: 0.7,
+            return_full_text: false,
+            wait_for_model: true
+          }
+        });
 
-      const response = await hf.textGeneration({
-        model: 'mistralai/Mistral-7B-Instruct-v0.2',
-        inputs: `[INST] ${prompt} [/INST]`,
-        parameters: {
-          max_new_tokens: 300,
-          temperature: 0.7,
-          return_full_text: false
+        const generatedText = response.generated_text?.trim();
+        if (generatedText && generatedText.length > 10) {
+          return generatedText;
         }
-      });
+      } catch (hfError) {
+        console.warn('Hugging Face API error, using fallback:', hfError);
+      }
 
-      return response.generated_text || 'Je n\'ai pas pu générer une réponse. Veuillez réessayer ou contacter le support.';
+      // Fallback: Simple keyword-based responses
+      const lowerMessage = userMessage.toLowerCase();
+      if (lowerMessage.includes('prix') || lowerMessage.includes('coût') || lowerMessage.includes('tarif')) {
+        return 'Les prix varient selon les prestataires et les services. Vous pouvez consulter les tarifs sur les profils des prestataires.';
+      }
+      if (lowerMessage.includes('contact') || lowerMessage.includes('email') || lowerMessage.includes('téléphone')) {
+        return 'Pour nous contacter, utilisez le formulaire de contact sur la page d\'aide ou envoyez un email à support@servio.com.';
+      }
+      if (lowerMessage.includes('aide') || lowerMessage.includes('problème')) {
+        return 'Je suis là pour vous aider ! Pour des questions spécifiques sur votre compte ou vos réservations, je vous recommande de contacter notre support humain.';
+      }
+
+      return 'Je suis désolé, je n\'ai pas pu trouver une réponse précise. Pour une assistance personnalisée, veuillez contacter notre support humain à support@servio.com.';
     } catch (error) {
       console.error('Error generating AI response:', error);
-      return 'Désolé, je rencontre des difficultés techniques. Veuillez contacter le support humain pour une assistance immédiate.';
+      return 'Désolé, je rencontre des difficultés techniques. Pour une assistance immédiate, contactez notre support à support@servio.com.';
     }
   };
 
