@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { uploadAvatar, uploadBanner, uploadPortfolioPhoto, uploadContractPdf } from '@/lib/storage';
 import { sendEmail, generateBookingConfirmationEmail, generateBookingRequestEmail } from '@/lib/email';
-import { generateServiceDescription, extractSkillsFromDescription } from '@/lib/ai';
+import { generateServiceDescription, extractSkillsFromDescription, analyzeImage, generateImageAltText } from '@/lib/ai';
 import type { ProviderProfile, PortfolioItem, Category, Review } from '@/types';
 import { slugify, formatDate } from '@/lib/utils';
 import StarRating from '@/components/StarRating';
@@ -670,13 +670,39 @@ export default function ProviderDashboardPage() {
       for (const file of files) {
         const url = await uploadPortfolioPhoto(file, user.id);
         uploadedUrls.push(url);
+        
+        // Analyze image with AI
+        try {
+          const analysis = await analyzeImage(url);
+          console.log('Image analysis:', analysis);
+          
+          // If image is inappropriate, remove it
+          if (!analysis.isAppropriate) {
+            setSaveMsg({ type: 'error', text: 'Une image a été détectée comme inappropriée et n\'a pas été ajoutée.' });
+            uploadedUrls.pop();
+            continue;
+          }
+          
+          // Generate alt text for accessibility
+          const altText = await generateImageAltText(url);
+          
+          // Update item form with AI-generated data
+          setItemForm((prev) => ({
+            ...prev,
+            description: prev.description || analysis.description,
+          }));
+          
+          setSaveMsg({ type: 'success', text: `Photo ajoutée avec description générée par l'IA.` });
+        } catch (error) {
+          console.error('Error analyzing image:', error);
+          // Continue without AI analysis if it fails
+        }
       }
 
       setItemForm((prev) => ({
         ...prev,
         photos: [...prev.photos.filter((p) => p), ...uploadedUrls],
       }));
-      setSaveMsg({ type: 'success', text: `${uploadedUrls.length} photo${uploadedUrls.length > 1 ? 's' : ''} ajoutée${uploadedUrls.length > 1 ? 's' : ''} avec succès.` });
       setTimeout(() => setSaveMsg(null), 4000);
     } catch (error: any) {
       console.error('Error uploading photos:', error);
