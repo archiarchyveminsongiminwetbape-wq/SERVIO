@@ -167,17 +167,36 @@ export default function MessagesPage() {
 
   async function loadMessages(conv: Conversation) {
     setSelectedConv(conv);
-    const { data } = await supabase
+    
+    // Load messages without attachments first
+    const { data: messagesData } = await supabase
       .from('messages')
-      .select('id, conversation_id, sender_id, content, created_at, read_at, attachments:message_attachments(id, file_name, file_url, file_type, file_size, created_at)')
+      .select('id, conversation_id, sender_id, content, created_at, read_at')
       .eq('conversation_id', conv.id)
       .order('created_at', { ascending: true });
 
-    setMessages(data as Message[] ?? []);
+    const msgs = messagesData as Message[] ?? [];
+    
+    // Load attachments for each message separately
+    const messagesWithAttachments = await Promise.all(
+      msgs.map(async (msg) => {
+        const { data: attachments } = await supabase
+          .from('message_attachments')
+          .select('*')
+          .eq('message_id', msg.id);
+        
+        return {
+          ...msg,
+          attachments: attachments as MessageAttachment[] || []
+        };
+      })
+    );
+
+    setMessages(messagesWithAttachments);
 
     // Mark unread messages as read
     if (user) {
-      const unread = (data as Message[] ?? []).filter(
+      const unread = messagesWithAttachments.filter(
         (m) => m.sender_id !== user.id && !m.read_at
       );
       for (const m of unread) {
