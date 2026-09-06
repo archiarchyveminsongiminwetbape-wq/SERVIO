@@ -2,10 +2,12 @@ import OpenAI from 'openai';
 import { HfInference } from '@huggingface/inference';
 
 // Initialize OpenAI client (optional - requires API key)
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
-  dangerouslyAllowBrowser: true
-});
+const openai = import.meta.env.VITE_OPENAI_API_KEY 
+  ? new OpenAI({
+      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true
+    })
+  : null;
 
 // Initialize Hugging Face client (free, no API key required for basic models)
 const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY || '');
@@ -46,16 +48,17 @@ export async function generateServiceDescription(
     }
 
     // Use OpenAI if key is available
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional copywriter specializing in service descriptions for a freelance platform. Write compelling, professional descriptions in French.'
-        },
-        {
-          role: 'user',
-          content: `Génère une description professionnelle et attrayante pour un service avec les détails suivants:
+    if (openai) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional copywriter specializing in service descriptions for a freelance platform. Write compelling, professional descriptions in French.'
+          },
+          {
+            role: 'user',
+            content: `Génère une description professionnelle et attrayante pour un service avec les détails suivants:
           - Nom du service: ${serviceName}
           - Catégorie: ${category}
           - Compétences: ${skills.join(', ')}
@@ -68,13 +71,17 @@ export async function generateServiceDescription(
           - Entre 150-250 mots
           - Mettre en valeur les compétences et l'expérience
           - Adaptée au public cible`
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    });
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      });
 
-    return response.choices[0]?.message?.content || '';
+      return response.choices[0]?.message?.content || '';
+    }
+    
+    // Fallback: return a simple description
+    return `Service professionnel de ${category} avec ${skills.length > 0 ? skills.join(', ') : 'diverses compétences'}. ${experience ? `${experience} années d'expérience.` : ''} Spécialisé pour ${targetAudience}.`;
   } catch (error) {
     console.error('Error generating service description:', error);
     throw new Error('Erreur lors de la génération de la description');
@@ -107,26 +114,30 @@ export async function extractSkillsFromDescription(description: string): Promise
     }
 
     // Use OpenAI if key is available
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert in analyzing professional profiles. Extract key skills from descriptions.'
-        },
-        {
-          role: 'user',
-          content: `Extrais les compétences clés de cette description de service. Retourne uniquement une liste de compétences séparées par des virgules, sans autre texte:
+    if (openai) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert in analyzing professional profiles. Extract key skills from descriptions.'
+          },
+          {
+            role: 'user',
+            content: `Extrais les compétences clés de cette description de service. Retourne uniquement une liste de compétences séparées par des virgules, sans autre texte:
           
           ${description}`
-        }
-      ],
-      max_tokens: 200,
-      temperature: 0.3
-    });
+          }
+        ],
+        max_tokens: 200,
+        temperature: 0.3
+      });
 
-    const skillsText = response.choices[0]?.message?.content || '';
-    return skillsText.split(',').map(s => s.trim()).filter(Boolean);
+      const skillsText = response.choices[0]?.message?.content || '';
+      return skillsText.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error extracting skills:', error);
     return [];
@@ -141,32 +152,36 @@ export async function generateMessageResponse(
   context: string
 ): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant for a freelance platform. Generate professional, polite responses in French.'
-        },
-        {
-          role: 'user',
-          content: `Génère une réponse professionnelle et polie pour ce message dans le contexte suivant:
-          
-          Contexte: ${context}
-          Message reçu: ${receivedMessage}
-          
-          La réponse doit être:
-          - Professionnelle et courtoise
-          - En français
-          - Adaptée au contexte
-          - Brève et directe (50-100 mots)`
-        }
-      ],
-      max_tokens: 200,
-      temperature: 0.6
-    });
+    if (openai) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant for messaging in a freelance platform. Generate polite and professional responses.'
+          },
+          {
+            role: 'user',
+            content: `Génère une réponse professionnelle et polie pour ce message:
+            
+            Message reçu: ${receivedMessage}
+            Contexte: ${context}
+            
+            La réponse doit être:
+            - Professionnelle et polie
+            - En français
+            - Concise (2-3 phrases maximum)
+            - Adaptée au contexte`
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.7
+      });
 
-    return response.choices[0]?.message?.content || '';
+      return response.choices[0]?.message?.content || '';
+    }
+    
+    return '';
   } catch (error) {
     console.error('Error generating message response:', error);
     throw new Error('Erreur lors de la génération de la réponse');
@@ -178,6 +193,12 @@ export async function generateMessageResponse(
  */
 export async function summarizeReviews(reviews: Array<{ comment: string; rating: number }>): Promise<string> {
   try {
+    if (!openai) {
+      // Fallback: simple summary without AI
+      const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+      return `Moyenne de ${avgRating.toFixed(1)}/5 basée sur ${reviews.length} avis. Les clients apprécient la qualité du service.`;
+    }
+    
     const reviewsText = reviews.map(r => `Note: ${r.rating}/5, Commentaire: ${r.comment}`).join('\n');
     
     const response = await openai.chat.completions.create({
@@ -215,6 +236,15 @@ export async function summarizeReviews(reviews: Array<{ comment: string; rating:
  */
 export async function detectInappropriateContent(text: string): Promise<{ isAppropriate: boolean; reason?: string }> {
   try {
+    if (!openai) {
+      // Fallback: basic keyword detection
+      const inappropriateKeywords = ['spam', 'scam', 'virus', 'malware', 'phishing'];
+      const hasInappropriate = inappropriateKeywords.some(keyword => 
+        text.toLowerCase().includes(keyword)
+      );
+      return { isAppropriate: !hasInappropriate, reason: hasInappropriate ? 'Mot-clé inapproprié détecté' : undefined };
+    }
+    
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
@@ -272,6 +302,15 @@ export async function generateProviderRecommendations(
   }>
 ): Promise<Array<{ providerId: string; score: number; reason: string }>> {
   try {
+    if (!openai) {
+      // Fallback: simple rule-based recommendations
+      return availableProviders.map(p => ({
+        providerId: p.id,
+        score: p.rating * 20,
+        reason: `Prestataire avec note ${p.rating}/5 dans la catégorie ${p.category}`
+      }));
+    }
+    
     const providersText = availableProviders.map(p => 
       `ID: ${p.id}, Nom: ${p.business_name}, Catégorie: ${p.category}, Compétences: ${p.skills.join(', ')}, Ville: ${p.city}, Prix: ${p.price_range}, Note: ${p.rating}`
     ).join('\n');
@@ -324,47 +363,69 @@ export async function generateProviderRecommendations(
  */
 export async function generateQuoteTemplate(
   serviceType: string,
-  projectDescription: string,
-  estimatedBudget: string,
-  timeline: string
+  clientRequirements: string,
+  providerDetails: {
+    business_name: string;
+    skills: string[];
+    experience_years: number;
+  }
 ): Promise<{
   title: string;
   description: string;
   items: Array<{ description: string; quantity: number; unit_price: number }>;
-  terms: string;
+  total_estimate: number;
 }> {
   try {
+    if (!openai) {
+      // Fallback: simple quote template
+      return {
+        title: `Devis pour ${serviceType}`,
+        description: `Service de ${serviceType} selon vos besoins: ${clientRequirements}`,
+        items: [
+          { description: 'Analyse et conseil', quantity: 1, unit_price: 100 },
+          { description: 'Réalisation du service', quantity: 1, unit_price: 500 }
+        ],
+        total_estimate: 600
+      };
+    }
+    
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
         {
           role: 'system',
-          content: 'You are a professional quote generator. Create detailed quotes for freelance services.'
+          content: 'You are a professional quote generator for freelance services. Create detailed and accurate quotes.'
         },
         {
           role: 'user',
           content: `Génère un modèle de devis professionnel pour:
           
           Type de service: ${serviceType}
-          Description du projet: ${projectDescription}
-          Budget estimé: ${estimatedBudget}
-          Délai: ${timeline}
+          Besoins du client: ${clientRequirements}
+          Détails du prestataire:
+          - Nom: ${providerDetails.business_name}
+          - Compétences: ${providerDetails.skills.join(', ')}
+          - Expérience: ${providerDetails.experience_years} ans
           
           Le devis doit inclure:
-          - Titre professionnel
+          - Titre du projet
           - Description détaillée
-          - Liste des éléments avec descriptions, quantités et prix unitaires (en euros)
-          - Conditions générales
+          - Liste des éléments avec quantité et prix unitaire
+          - Estimation totale
           
-          Format: JSON avec {title, description, items: [{description, quantity, unit_price}], terms}`
+          Format: JSON avec {title, description, items: [{description, quantity, unit_price}], total_estimate}`
         }
       ],
-      max_tokens: 1000,
-      temperature: 0.6,
+      max_tokens: 800,
+      temperature: 0.5,
       response_format: { type: "json_object" }
     });
 
-    const result = response.choices[0]?.message?.content || '';
+    if (!response || !response.choices || !response.choices[0] || !response.choices[0].message || !response.choices[0].message.content) {
+      throw new Error('Erreur lors de la génération du devis');
+    }
+
+    const result = response.choices[0].message.content;
     return JSON.parse(result);
   } catch (error) {
     console.error('Error generating quote template:', error);
@@ -503,6 +564,8 @@ export async function predictQuoteConversion(quoteData: {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
       // Simple rule-based prediction for Hugging Face
       let probability = 50; // Base probability
+      let riskFactors: string[] = [];
+      let recommendations: string[] = [];
       
       // Adjust based on factors
       if (quoteData.provider_rating >= 4.5) probability += 15;
@@ -526,9 +589,6 @@ export async function predictQuoteConversion(quoteData: {
       else if (quoteData.estimated_total > 2000) probability -= 5;
       
       probability = Math.max(10, Math.min(95, probability));
-      
-      const riskFactors: string[] = [];
-      const recommendations: string[] = [];
       
       if (quoteData.provider_rating < 4.0) {
         riskFactors.push('Note du prestataire inférieure à 4.0');
@@ -558,41 +618,50 @@ export async function predictQuoteConversion(quoteData: {
     }
 
     // Use OpenAI for more sophisticated prediction
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a business analyst specializing in conversion prediction for freelance services. Analyze quote data and predict conversion probability.'
-        },
-        {
-          role: 'user',
-          content: `Analyse ce devis et prédit la probabilité de conversion en réservation:
-          
-          Données du devis:
-          - Montant estimé: ${quoteData.estimated_total}€
-          - Type de service: ${quoteData.service_type}
-          - Note du prestataire: ${quoteData.provider_rating}/5
-          - Expérience du prestataire: ${quoteData.provider_experience} ans
-          - Historique client: ${quoteData.client_history || 0} réservations précédentes
-          - Délai de réalisation: ${quoteData.timeline_days} jours
-          - Correspondance de localisation: ${quoteData.location_match ? 'Oui' : 'Non'}
-          
-          Fournis:
-          1. Probabilité de conversion (0-100)
-          2. Facteurs de risque
-          3. Recommandations pour améliorer la conversion
-          
-          Format: JSON avec {conversion_probability, risk_factors: [], recommendations: []}`
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.5,
-      response_format: { type: "json_object" }
-    });
+    if (openai) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a business analyst specializing in conversion prediction for freelance services. Analyze quote data and predict conversion probability.'
+          },
+          {
+            role: 'user',
+            content: `Analyse ce devis et prédit la probabilité de conversion en réservation:
+            
+            Données du devis:
+            - Montant estimé: ${quoteData.estimated_total}€
+            - Type de service: ${quoteData.service_type}
+            - Note du prestataire: ${quoteData.provider_rating}/5
+            - Expérience du prestataire: ${quoteData.provider_experience} ans
+            - Historique client: ${quoteData.client_history || 0} réservations précédentes
+            - Délai de réalisation: ${quoteData.timeline_days} jours
+            - Correspondance de localisation: ${quoteData.location_match ? 'Oui' : 'Non'}
+            
+            Fournis:
+            1. Probabilité de conversion (0-100)
+            2. Facteurs de risque
+            3. Recommandations pour améliorer la conversion
+            
+            Format: JSON avec {conversion_probability, risk_factors: [], recommendations: []}`
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.5,
+        response_format: { type: "json_object" }
+      });
 
-    const result = response.choices[0]?.message?.content || '';
-    return JSON.parse(result);
+      const result = response.choices[0]?.message?.content || '';
+      return JSON.parse(result);
+    }
+    
+    // Default fallback
+    return {
+      conversion_probability: 50,
+      risk_factors: [],
+      recommendations: []
+    };
   } catch (error) {
     console.error('Error predicting quote conversion:', error);
     return {
@@ -647,37 +716,46 @@ export async function optimizeQuotePricing(
     }
 
     // Use OpenAI for more sophisticated optimization
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a pricing strategist for freelance services. Optimize pricing based on market conditions and provider quality.'
-        },
-        {
-          role: 'user',
-          content: `Optimise le prix de ce devis:
-          
-          - Type de service: ${serviceType}
-          - Prix actuel: ${currentPrice}€
-          - Note du prestataire: ${providerRating}/5
-          - Prix moyen du marché: ${marketAverage || 'Non disponible'}€
-          
-          Fournis:
-          1. Prix suggéré
-          2. Raison de l'ajustement
-          3. Niveau de confiance (0-100)
-          
-          Format: JSON avec {suggested_price, adjustment_reason, confidence}`
-        }
-      ],
-      max_tokens: 300,
-      temperature: 0.4,
-      response_format: { type: "json_object" }
-    });
+    if (openai) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a pricing strategist for freelance services. Optimize pricing based on market conditions and provider quality.'
+          },
+          {
+            role: 'user',
+            content: `Optimise le prix de ce devis:
+            
+            - Type de service: ${serviceType}
+            - Prix actuel: ${currentPrice}€
+            - Note du prestataire: ${providerRating}/5
+            - Prix moyen du marché: ${marketAverage || 'Non disponible'}€
+            
+            Fournis:
+            1. Prix suggéré
+            2. Raison de l'ajustement
+            3. Niveau de confiance (0-100)
+            
+            Format: JSON avec {suggested_price, adjustment_reason, confidence}`
+          }
+        ],
+        max_tokens: 300,
+        temperature: 0.4,
+        response_format: { type: "json_object" }
+      });
 
-    const result = response.choices[0]?.message?.content || '';
-    return JSON.parse(result);
+      const result = response.choices[0]?.message?.content || '';
+      return JSON.parse(result);
+    }
+    
+    // Default fallback
+    return {
+      suggested_price: currentPrice,
+      adjustment_reason: 'Prix maintenu',
+      confidence: 50
+    };
   } catch (error) {
     console.error('Error optimizing quote pricing:', error);
     return {
