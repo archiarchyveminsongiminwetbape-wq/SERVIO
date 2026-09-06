@@ -21,6 +21,9 @@ function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+  const isInstallSupported = typeof window !== 'undefined' && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const showInstallButton = isInstallSupported && !isStandalone;
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -36,10 +39,19 @@ function Navbar() {
   }, []);
 
   const handleInstallApp = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(null);
+    if (installPrompt) {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      setInstallPrompt(null);
+      return;
+    }
+
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const message = isIOS
+      ? 'Sur iPhone, ouvrez le menu Partager puis “Ajouter à l’écran d’accueil”.'
+      : 'Dans votre navigateur, ouvrez le menu puis choisissez “Ajouter à l’écran d’accueil”.';
+
+    window.alert(message);
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -165,7 +177,7 @@ function Navbar() {
               </Link>
               <NotificationBell />
               
-              {installPrompt && (
+              {showInstallButton && (
                 <button
                   onClick={handleInstallApp}
                   className="flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
@@ -363,7 +375,7 @@ function Navbar() {
                   </>
                 )}
               </div>
-              {installPrompt && (
+              {showInstallButton && (
                 <button
                   onClick={handleInstallApp}
                   className="flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
@@ -417,7 +429,7 @@ function Navbar() {
             </Link>
             {user ? (
               <>
-                {installPrompt && (
+                {showInstallButton && (
                   <button
                     onClick={() => {
                       setMobileOpen(false);
@@ -454,7 +466,7 @@ function Navbar() {
               </>
             ) : (
               <>
-                {installPrompt && (
+                {showInstallButton && (
                   <button
                     onClick={() => {
                       setMobileOpen(false);
