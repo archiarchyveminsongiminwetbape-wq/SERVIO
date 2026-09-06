@@ -1,10 +1,15 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState, memo } from 'react';
-import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun, Globe, ChevronDown, Crown, Sparkles } from 'lucide-react';
+import { useState, memo, useEffect } from 'react';
+import { Menu, X, MessageSquare, Heart, LayoutDashboard, Shield, LogOut, User, Briefcase, Settings, UserCircle, Moon, Sun, Globe, ChevronDown, Crown, Sparkles, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useI18n } from '@/context/I18nContext';
 import NotificationBell from '@/components/NotificationBell';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
 function Navbar() {
   const { user, profile, signOut } = useAuth();
@@ -15,6 +20,27 @@ function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -139,6 +165,17 @@ function Navbar() {
               </Link>
               <NotificationBell />
               
+              {installPrompt && (
+                <button
+                  onClick={handleInstallApp}
+                  className="flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
+                  aria-label="Installer l’application"
+                >
+                  <Download size={16} />
+                  <span className="hidden xl:inline">Installer</span>
+                </button>
+              )}
+
               <button
                 onClick={toggleDarkMode}
                 className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${darkMode ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}`}
@@ -326,6 +363,16 @@ function Navbar() {
                   </>
                 )}
               </div>
+              {installPrompt && (
+                <button
+                  onClick={handleInstallApp}
+                  className="flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
+                  aria-label="Installer l’application"
+                >
+                  <Download size={16} />
+                  Installer
+                </button>
+              )}
               <Link to="/login" className="btn-ghost" aria-label={t.nav.login}>
                 <User size={18} />
                 {t.nav.login}
@@ -370,6 +417,19 @@ function Navbar() {
             </Link>
             {user ? (
               <>
+                {installPrompt && (
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      handleInstallApp();
+                    }}
+                    className="flex items-center gap-3 py-3 text-base font-medium text-primary-700 rounded-lg hover:bg-primary-50 px-3 w-full text-left"
+                    role="menuitem"
+                  >
+                    <Download size={20} />
+                    Installer l’application
+                  </button>
+                )}
                 <Link to="/messages" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 py-3 text-base font-medium text-neutral-700 rounded-lg hover:bg-neutral-100 px-3" role="menuitem">
                   <MessageSquare size={20} />
                   {t.nav.messages}
@@ -394,6 +454,19 @@ function Navbar() {
               </>
             ) : (
               <>
+                {installPrompt && (
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      handleInstallApp();
+                    }}
+                    className="flex items-center justify-center gap-2 py-3 text-base font-medium text-primary-700 rounded-lg hover:bg-primary-50 px-3 w-full"
+                    role="menuitem"
+                  >
+                    <Download size={20} />
+                    Installer l’application
+                  </button>
+                )}
                 <div className="border-t border-neutral-200 my-2" />
                 <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 py-3 text-base font-medium text-primary-600 rounded-lg hover:bg-primary-50 px-3" role="menuitem">
                   <User size={20} />
