@@ -92,12 +92,17 @@ export default function AIChatbot() {
     let bestMatch: { score: number; answer: string } | null = null;
 
     for (const item of FAQ_KNOWLEDGE_BASE) {
-      const score = item.keywords.reduce(
+      const keywordScore = item.keywords.reduce(
         (total, keyword) => total + (words.some(word => wordsMatch(word, keyword)) ? 1 : 0),
         0,
       );
+      const exampleScore = Math.max(...item.examples.map(example =>
+        getWords(example).reduce((total, exampleWord) => total + (words.some(word => wordsMatch(word, exampleWord)) ? 1 : 0), 0),
+      ));
+      const score = keywordScore + (exampleScore >= 2 ? 2 : 0);
       const hasSpecificKeyword = item.keywords.some(keyword => keyword.length >= 8 && words.some(word => wordsMatch(word, keyword)));
-      if ((score >= 2 || hasSpecificKeyword) && (!bestMatch || score > bestMatch.score)) {
+      const hasMatchingExample = exampleScore >= 2;
+      if ((score >= 2 || hasSpecificKeyword || hasMatchingExample) && (!bestMatch || score > bestMatch.score)) {
         bestMatch = { score, answer: item.answer };
       }
     }
