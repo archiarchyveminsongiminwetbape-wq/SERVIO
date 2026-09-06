@@ -442,59 +442,68 @@ export default function MessagesPage() {
 
             <div className="flex-1 overflow-y-auto bg-neutral-50 p-4">
               <div className="mx-auto max-w-2xl space-y-3">
-                {messages.map((msg) => {
-                  const isOwn = msg.sender_id === user?.id;
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                    >
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <MessageSquare size={40} className="text-neutral-300" />
+                    <p className="mt-3 text-sm text-neutral-500">
+                      {t.messages.noMessages}
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isOwn = msg.sender_id === user?.id;
+                    return (
                       <div
-                        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                          isOwn
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-white text-neutral-900 shadow-sm'
-                        }`}
+                        key={msg.id}
+                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                       >
-                        {msg.content && (
-                          <p className="break-words">{msg.content}</p>
-                        )}
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="mt-2 space-y-2">
-                            {msg.attachments.map((attachment) => {
-                              const FileIcon = getFileIcon(attachment.file_type);
-                              return (
-                                <div key={attachment.id} className="flex items-center gap-2">
-                                  {attachment.file_type.startsWith('image/') ? (
-                                    <img
-                                      src={attachment.file_url}
-                                      alt={attachment.file_name}
-                                      className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90"
-                                      onClick={() => window.open(attachment.file_url, '_blank')}
-                                    />
-                                  ) : (
-                                    <a
-                                      href={attachment.file_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2 bg-neutral-100/20 rounded-lg px-3 py-2 hover:bg-neutral-100/30 transition-colors"
-                                    >
-                                      <FileIcon size={16} />
-                                      <span className="truncate">{attachment.file_name}</span>
-                                    </a>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <p className={`mt-1 text-xs ${isOwn ? 'text-primary-200' : 'text-neutral-400'}`}>
-                          {formatRelativeTime(msg.created_at, locale)}
-                        </p>
+                        <div
+                          className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                            isOwn
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-white text-neutral-900 shadow-sm'
+                          }`}
+                        >
+                          {msg.content && (
+                            <p className="break-words">{msg.content}</p>
+                          )}
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {msg.attachments.map((attachment) => {
+                                const FileIcon = getFileIcon(attachment.file_type);
+                                return (
+                                  <div key={attachment.id} className="flex items-center gap-2">
+                                    {attachment.file_type.startsWith('image/') ? (
+                                      <img
+                                        src={attachment.file_url}
+                                        alt={attachment.file_name}
+                                        className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90"
+                                        onClick={() => window.open(attachment.file_url, '_blank')}
+                                      />
+                                    ) : (
+                                      <a
+                                        href={attachment.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 bg-neutral-100/20 rounded-lg px-3 py-2 hover:bg-neutral-100/30 transition-colors"
+                                      >
+                                        <FileIcon size={16} />
+                                        <span className="truncate">{attachment.file_name}</span>
+                                      </a>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <p className={`mt-1 text-xs ${isOwn ? 'text-primary-200' : 'text-neutral-400'}`}>
+                            {formatRelativeTime(msg.created_at, locale)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </div>

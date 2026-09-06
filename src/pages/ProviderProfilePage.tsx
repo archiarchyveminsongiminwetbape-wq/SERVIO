@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import type { ProviderProfile, PortfolioItem, Review, ReviewResponse, Testimonial, Certification, ProviderStats } from '@/types';
 import StarRating from '@/components/StarRating';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import Lightbox from '@/components/Lightbox';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 
@@ -742,6 +743,9 @@ export default function ProviderProfilePage() {
         {provider.badges.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {provider.badges.map((badge) => {
+              if (badge === 'profil-verifie') {
+                return <VerifiedBadge key={badge} size={14} showLabel={true} variant="small" />;
+              }
               const info = badgeLabels[badge];
               if (!info) return null;
               const Icon = info.icon;

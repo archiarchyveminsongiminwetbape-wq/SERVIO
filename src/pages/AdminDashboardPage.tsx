@@ -12,7 +12,7 @@ import type { ProviderProfile, Profile, Report, Category, AdminAction } from '@/
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import CategoryIcon from '@/components/CategoryIcon';
 
-type Tab = 'stats' | 'validation' | 'users' | 'reports' | 'categories' | 'audit';
+type Tab = 'stats' | 'validation' | 'users' | 'reports' | 'categories' | 'audit' | 'commissions' | 'roles';
 
 export default function AdminDashboardPage() {
   const { t } = useI18n();
@@ -39,6 +39,17 @@ export default function AdminDashboardPage() {
   const [bulkAction, setBulkAction] = useState('');
   const [selectedProviders, setSelectedProviders] = useState<Set<string>>(new Set());
   const [showPortfolioPreview, setShowPortfolioPreview] = useState(false);
+  
+  // Commissions states
+  const [commissions, setCommissions] = useState<any[]>([]);
+  const [commissionFilter, setCommissionFilter] = useState<'all' | 'pending' | 'released' | 'refunded'>('all');
+  
+  // Roles states
+  const [adminRoles, setAdminRoles] = useState<any[]>([]);
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [showRoleForm, setShowRoleForm] = useState(false);
+  const [selectedUserForRole, setSelectedUserForRole] = useState<string | null>(null);
+  const [newRole, setNewRole] = useState('');
 
   useEffect(() => {
     if (!authLoading) {
@@ -58,14 +69,17 @@ export default function AdminDashboardPage() {
 
   async function loadAllData() {
     setLoading(true);
-    const [pendingRes, profilesRes, providersRes, reportsRes, statsRes, catRes, auditRes] = await Promise.all([
+    const [pendingRes, profilesRes, providersRes, reportsRes, statsRes, catRes, auditRes, commissionsRes, rolesRes, permissionsRes] = await Promise.all([
       supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, city, skills, badges, validation_status, validation_note, category_id, category:categories(id, name, slug)').eq('validation_status', 'pending').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, full_name, email, avatar_url, role, status, created_at').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, full_name, email, avatar_url, role, admin_role, status, created_at').order('created_at', { ascending: false }),
       supabase.from('provider_profiles').select('id, user_id, business_name, headline, avatar_url, city, skills, badges, validation_status, validation_note, phone, website, price_range, category_id, category:categories(id, name, slug)').order('created_at', { ascending: false }),
-      supabase.from('reports').select('id, reporter_id, target_id, report_type, reason, status, created_at, resolved_by, resolved_at').order('created_at', { ascending: false }),
+      supabase.from('reports').select('id, reporter_id, target_type, target_id, reason, description, status, moderator_id, moderator_notes, resolved_at, created_at, reporter:profiles!reports_reporter_id_fkey(full_name, avatar_url)').order('created_at', { ascending: false }),
       supabase.rpc('get_admin_stats'),
       supabase.from('categories').select('id, name, slug, icon, description, parent_id, sort_order').order('sort_order'),
       supabase.from('admin_actions').select('id, admin_id, action_type, target_type, target_id, details, created_at, admin:profiles!admin_actions_admin_id_fkey(full_name, email)').order('created_at', { ascending: false }).limit(50),
+      supabase.from('commissions').select('id, booking_id, provider_id, amount, commission_rate, commission_amount, status, created_at, released_at, provider:provider_profiles(business_name, user_id)').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, full_name, email, admin_role, role').eq('role', 'admin'),
+      supabase.from('permissions').select('*'),
     ]);
 
     setPendingProviders(pendingRes.data as ProviderProfile[] ?? []);
@@ -74,6 +88,9 @@ export default function AdminDashboardPage() {
     setReports(reportsRes.data as Report[] ?? []);
     setCategories(catRes.data as Category[] ?? []);
     setAuditLogs(auditRes.data as AdminAction[] ?? []);
+    setCommissions(commissionsRes.data ?? []);
+    setAdminRoles(rolesRes.data ?? []);
+    setPermissions(permissionsRes.data ?? []);
     if (statsRes.data) {
       setStats(statsRes.data as typeof stats);
     }
@@ -281,6 +298,59 @@ export default function AdminDashboardPage() {
     setActionLoading(false);
   }
 
+  // Commission management functions
+  async function releaseCommission(commissionId: string) {
+    if (!user) return;
+    setActionLoading(true);
+    const { error } = await supabase
+      .from('commissions')
+      .update({
+        status: 'released',
+        released_at: new Date().toISOString(),
+        moderator_id: user.id,
+      })
+      .eq('id', commissionId);
+    if (!error) {
+      await logAdminAction('release_commission', 'commission', commissionId, 'Commission released to provider');
+      await loadAllData();
+    }
+    setActionLoading(false);
+  }
+
+  async function refundCommission(commissionId: string, reason: string) {
+    if (!user) return;
+    setActionLoading(true);
+    const { error } = await supabase
+      .from('commissions')
+      .update({
+        status: 'refunded',
+        refund_amount: null, // Will be calculated based on commission
+        refund_reason: reason,
+        moderator_id: user.id,
+      })
+      .eq('id', commissionId);
+    if (!error) {
+      await logAdminAction('refund_commission', 'commission', commissionId, `Reason: ${reason}`);
+      await loadAllData();
+    }
+    setActionLoading(false);
+  }
+
+  // Role management functions
+  async function updateUserAdminRole(userId: string, adminRole: string) {
+    if (!user) return;
+    setActionLoading(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ admin_role: adminRole })
+      .eq('id', userId);
+    if (!error) {
+      await logAdminAction('update_admin_role', 'profile', userId, `New role: ${adminRole}`);
+      await loadAllData();
+    }
+    setActionLoading(false);
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -299,7 +369,9 @@ export default function AdminDashboardPage() {
     { id: 'validation', label: t.admin.validation, icon: CheckCircle2, badge: pendingProviders.length },
     { id: 'users', label: t.admin.users, icon: Users },
     { id: 'categories', label: t.admin.categories, icon: FolderOpen },
-    { id: 'reports', label: t.admin.reports, icon: Flag, badge: reports.filter((r) => r.status === 'open').length },
+    { id: 'reports', label: t.admin.reports, icon: Flag, badge: reports.filter((r) => r.status === 'pending').length },
+    { id: 'commissions', label: 'Commissions', icon: TrendingUp },
+    { id: 'roles', label: 'Rôles', icon: Shield },
     { id: 'audit', label: t.admin.journal, icon: FileText },
   ];
 
@@ -885,6 +957,161 @@ export default function AdminDashboardPage() {
                       <td className="hidden px-4 py-3 text-sm text-neutral-500 sm:table-cell">{log.target_type ?? '-'}</td>
                       <td className="hidden max-w-xs px-4 py-3 text-sm text-neutral-500 sm:table-cell truncate">{log.details ?? '-'}</td>
                       <td className="px-4 py-3 text-xs text-neutral-400">{formatRelativeTime(log.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Commissions */}
+      {tab === 'commissions' && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-neutral-900">Commissions ({commissions.length})</h3>
+            <select
+              value={commissionFilter}
+              onChange={(e) => setCommissionFilter(e.target.value as any)}
+              className="rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-primary-500 focus:outline-none"
+            >
+              <option value="all">Toutes</option>
+              <option value="pending">En attente</option>
+              <option value="released">Libérées</option>
+              <option value="refunded">Remboursées</option>
+            </select>
+          </div>
+          {commissions.length === 0 ? (
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <TrendingUp size={48} className="text-neutral-300" />
+              <p className="mt-3 text-sm text-neutral-500">Aucune commission</p>
+            </div>
+          ) : (
+            <div className="card overflow-hidden">
+              <table className="w-full">
+                <thead className="border-b border-neutral-200 bg-neutral-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Prestataire</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Montant</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Commission</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Taux</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Statut</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Date</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {commissions
+                    .filter(c => commissionFilter === 'all' || c.status === commissionFilter)
+                    .map((commission) => (
+                    <tr key={commission.id} className="hover:bg-neutral-50">
+                      <td className="px-4 py-3 text-sm font-medium text-neutral-900">
+                        {commission.provider?.business_name || 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-neutral-700">
+                        {commission.amount} FCFA
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-primary-600">
+                        {commission.commission_amount} FCFA
+                      </td>
+                      <td className="px-4 py-3 text-sm text-neutral-600">
+                        {(commission.commission_rate * 100).toFixed(0)}%
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`badge ${
+                          commission.status === 'released' ? 'bg-success-50 text-success-700' :
+                          commission.status === 'refunded' ? 'bg-error-50 text-error-700' :
+                          'bg-warning-50 text-warning-700'
+                        }`}>
+                          {commission.status === 'released' ? 'Libérée' :
+                           commission.status === 'refunded' ? 'Remboursée' :
+                           'En attente'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-neutral-400">
+                        {formatRelativeTime(commission.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {commission.status === 'calculated' && (
+                          <button
+                            onClick={() => releaseCommission(commission.id)}
+                            disabled={actionLoading}
+                            className="rounded-lg bg-success-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-success-600 disabled:opacity-50"
+                          >
+                            Libérer
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Roles management */}
+      {tab === 'roles' && (
+        <div>
+          <h3 className="mb-4 text-lg font-semibold text-neutral-900">Gestion des rôles administrateurs ({adminRoles.length})</h3>
+          {adminRoles.length === 0 ? (
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <Shield size={48} className="text-neutral-300" />
+              <p className="mt-3 text-sm text-neutral-500">Aucun administrateur</p>
+            </div>
+          ) : (
+            <div className="card overflow-hidden">
+              <table className="w-full">
+                <thead className="border-b border-neutral-200 bg-neutral-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Admin</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Rôle détaillé</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Permissions</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {adminRoles.map((admin) => (
+                    <tr key={admin.id} className="hover:bg-neutral-50">
+                      <td className="px-4 py-3 text-sm font-medium text-neutral-900">
+                        {admin.full_name}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-neutral-600">
+                        {admin.email}
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={admin.admin_role || 'admin'}
+                          onChange={(e) => updateUserAdminRole(admin.id, e.target.value)}
+                          disabled={actionLoading}
+                          className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-700 focus:border-primary-500 focus:outline-none"
+                        >
+                          <option value="super_admin">Super Admin</option>
+                          <option value="admin">Admin</option>
+                          <option value="moderator">Modérateur</option>
+                          <option value="support">Support</option>
+                          <option value="finance">Finance</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-neutral-500">
+                        {admin.admin_role === 'super_admin' ? ' toutes' :
+                         admin.admin_role === 'admin' ? 'utilisateurs, prestataires, contenu, signalements' :
+                         admin.admin_role === 'moderator' ? 'contenu, signalements' :
+                         admin.admin_role === 'support' ? 'utilisateurs (view), signalements (view/resolve)' :
+                         'finance'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => {/* View permissions modal */}}
+                          className="rounded-lg p-1.5 text-primary-600 hover:bg-primary-50"
+                          title="Voir les permissions"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
