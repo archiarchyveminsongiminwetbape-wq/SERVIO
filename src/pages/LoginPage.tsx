@@ -40,9 +40,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2 text-2xl font-bold">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
-              <Briefcase size={24} />
-            </span>
+            <img 
+              src="/images/servio-logo.jpeg" 
+              alt="SERVIO Logo" 
+              className="h-10 w-10 rounded-lg object-cover shadow-lg"
+            />
             <span className="text-neutral-900">SERVIO</span>
           </Link>
           <h1 className="mt-6 text-2xl font-bold text-neutral-900">{t.auth.login}</h1>

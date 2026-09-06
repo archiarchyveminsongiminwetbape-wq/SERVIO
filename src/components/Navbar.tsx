@@ -36,10 +36,11 @@ function Navbar() {
       <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6 sm:gap-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight" aria-label="SERVIO - Accueil">
-            <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-cyan-500 text-white shadow-lg shadow-primary-500/30 ring-2 ring-white/40">
-              <Briefcase size={20} className="sm:hidden" />
-              <Briefcase size={24} className="hidden sm:block" />
-            </span>
+            <img 
+              src="/images/servio-logo.jpeg" 
+              alt="SERVIO Logo" 
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl object-cover shadow-lg"
+            />
             <span className={darkMode ? 'text-white' : 'text-neutral-900'}>SERVIO</span>
           </Link>
 

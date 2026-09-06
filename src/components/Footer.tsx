@@ -12,10 +12,11 @@ function Footer() {
         <div className="grid grid-cols-1 gap-8 sm:gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
-              <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-primary-600 text-white">
-                <Briefcase size={20} className="sm:hidden" />
-                <Briefcase size={24} className="hidden sm:block" />
-              </span>
+              <img 
+                src="/images/servio-logo.jpeg" 
+                alt="SERVIO Logo" 
+                className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl object-cover shadow-lg"
+              />
               <span className="text-neutral-900">SERVIO</span>
             </div>
             <p className="mt-4 max-w-md text-sm sm:text-base leading-relaxed text-neutral-600">

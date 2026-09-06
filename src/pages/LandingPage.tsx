@@ -46,10 +46,17 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-7xl px-4 py-12 sm:py-16 md:py-20 lg:py-24 sm:px-6 lg:px-8">
           <div className="hero-3d-shell grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="mx-auto max-w-4xl text-center lg:text-left">
-              <div className="mb-4 sm:mb-6 md:mb-8 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
-                <Sparkles size={14} className="sm:hidden" />
-                <Sparkles size={16} className="hidden sm:block" />
-                {t.landing.platformBadge}
+              <div className="mb-4 sm:mb-6 md:mb-8 flex items-center justify-center lg:justify-start gap-3">
+                <img 
+                  src="/images/servio-logo.jpeg" 
+                  alt="SERVIO Logo" 
+                  className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover shadow-lg"
+                />
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white backdrop-blur-md border border-white/20 animate-fade-in">
+                  <Sparkles size={14} className="sm:hidden" />
+                  <Sparkles size={16} className="hidden sm:block" />
+                  {t.landing.platformBadge}
+                </div>
               </div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight text-white animate-slide-up">
                 {t.landing.heroTitle}
