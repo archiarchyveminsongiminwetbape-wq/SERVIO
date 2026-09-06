@@ -31,6 +31,37 @@ const normalizeText = (value: string) => value
   .replace(/[^a-z0-9\s]/g, ' ')
   .trim();
 
+const STOP_WORDS = new Set(['a', 'au', 'aux', 'avec', 'comment', 'dans', 'de', 'des', 'du', 'en', 'et', 'je', 'la', 'le', 'les', 'moi', 'pour', 'que', 'sur', 'un', 'une', 'vous']);
+
+const getWords = (value: string) => normalizeText(value)
+  .split(/\s+/)
+  .filter(word => word.length > 2 && !STOP_WORDS.has(word));
+
+const levenshteinDistance = (left: string, right: string): number => {
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let row = 1; row <= left.length; row += 1) {
+    let diagonal = previous[0];
+    previous[0] = row;
+
+    for (let column = 1; column <= right.length; column += 1) {
+      const above = previous[column];
+      previous[column] = left[row - 1] === right[column - 1]
+        ? diagonal
+        : Math.min(diagonal + 1, previous[column] + 1, previous[column - 1] + 1);
+      diagonal = above;
+    }
+  }
+
+  return previous[right.length];
+};
+
+const wordsMatch = (queryWord: string, keyword: string) => {
+  if (queryWord === keyword || queryWord.startsWith(keyword) || keyword.startsWith(queryWord)) return true;
+  const threshold = Math.max(queryWord.length, keyword.length) > 6 ? 2 : 1;
+  return levenshteinDistance(queryWord, keyword) <= threshold;
+};
+
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -49,17 +80,51 @@ export default function AIChatbot() {
   }, [messages]);
 
   const checkFAQ = (query: string): string | null => {
-    const words = new Set(normalizeText(query).split(/\s+/).filter(Boolean));
+    const words = getWords(query);
     let bestMatch: { score: number; answer: string } | null = null;
 
     for (const item of FAQ_KNOWLEDGE_BASE) {
-      const score = item.keywords.reduce((total, keyword) => total + (words.has(keyword) ? 1 : 0), 0);
-      if (score >= 2 && (!bestMatch || score > bestMatch.score)) {
+      const score = item.keywords.reduce(
+        (total, keyword) => total + (words.some(word => wordsMatch(word, keyword)) ? 1 : 0),
+        0,
+      );
+      const hasSpecificKeyword = item.keywords.some(keyword => keyword.length >= 8 && words.some(word => wordsMatch(word, keyword)));
+      if ((score >= 2 || hasSpecificKeyword) && (!bestMatch || score > bestMatch.score)) {
         bestMatch = { score, answer: item.answer };
       }
     }
 
     return bestMatch?.answer ?? null;
+  };
+
+  const getReliableFallback = (userMessage: string): string => {
+    const message = normalizeText(userMessage);
+    if (/\b(bonjour|salut|bonsoir|coucou|hello)\b/.test(message)) {
+      return 'Bonjour ! Je peux vous aider à trouver un prestataire, réserver un service, gérer un paiement ou créer votre profil professionnel. Que souhaitez-vous faire ?';
+    }
+    if (/\b(merci|thanks)\b/.test(message)) {
+      return 'Avec plaisir. Je reste disponible pour vous aider avec votre compte, une réservation ou un profil prestataire.';
+    }
+    if (/(prix|cout|tarif|combien|cher)/.test(message)) {
+      return 'Les prix sont fixés par chaque prestataire et sont visibles sur son profil ou avant la confirmation de la réservation. Comparez plusieurs profils pour choisir l’offre adaptée.';
+    }
+    if (/(contact|email|telephone|joindre)/.test(message)) {
+      return 'Pour obtenir de l’aide, indiquez le problème rencontré, la page concernée et l’adresse email de votre compte au support SERVIO. Ne partagez jamais votre mot de passe.';
+    }
+    if (/(aide|probleme|bloque|bug|erreur|marche pas)/.test(message)) {
+      return 'Je peux vous guider sur la recherche, les profils, les réservations et les paiements. Décrivez l’action effectuée et le message affiché afin que je vous donne la prochaine étape.';
+    }
+    return 'Je veux vous donner une réponse fiable. Pouvez-vous préciser si votre demande concerne un compte, un prestataire, une réservation, un paiement ou un problème technique ?';
+  };
+
+  const isReliableAIResponse = (response: string, userMessage: string) => {
+    const normalizedResponse = normalizeText(response);
+    const normalizedQuestion = normalizeText(userMessage);
+    const hasUsefulLength = normalizedResponse.length >= 30 && normalizedResponse.length <= 1200;
+    const hasNoPromptLeak = !/(\[inst\]|question actuelle|historique recent|assistant:|user:)/i.test(response);
+    const isNotGeneric = !/(je ne peux pas aider|je n ai pas compris|je suis un modele|en tant qu ia)/i.test(normalizedResponse);
+    const sharesContext = getWords(normalizedQuestion).some(word => normalizedResponse.includes(word));
+    return hasUsefulLength && hasNoPromptLeak && isNotGeneric && sharesContext;
   };
 
   const generateAIResponse = async (userMessage: string): Promise<string> => {
@@ -86,37 +151,25 @@ export default function AIChatbot() {
           model: 'mistralai/Mistral-7B-Instruct-v0.2',
           inputs: `[INST] ${prompt} [/INST]`,
           parameters: {
-            max_new_tokens: 150,
-            temperature: 0.7,
+            max_new_tokens: 180,
+            temperature: 0.3,
             return_full_text: false,
             wait_for_model: true
           }
         });
 
         const generatedText = response.generated_text?.trim();
-        if (generatedText && generatedText.length > 10) {
+        if (generatedText && isReliableAIResponse(generatedText, userMessage)) {
           return generatedText;
         }
       } catch (hfError) {
         console.warn('Hugging Face API error, using fallback:', hfError);
       }
 
-      // Fallback: Simple keyword-based responses
-      const lowerMessage = normalizeText(userMessage);
-      if (lowerMessage.includes('prix') || lowerMessage.includes('cout') || lowerMessage.includes('tarif')) {
-        return 'Les prix varient selon les prestataires et les services. Vous pouvez consulter les tarifs sur les profils des prestataires.';
-      }
-      if (lowerMessage.includes('contact') || lowerMessage.includes('email') || lowerMessage.includes('telephone')) {
-        return 'Pour obtenir de l\'aide, indiquez le problème rencontré, la page concernée et l\'adresse email de votre compte au support SERVIO.';
-      }
-      if (lowerMessage.includes('aide') || lowerMessage.includes('probleme')) {
-        return 'Je peux vous guider sur la recherche, les profils, les réservations et les paiements. Décrivez précisément ce qui bloque et je vous indiquerai la prochaine étape.';
-      }
-
-      return 'Je suis désolé, je n\'ai pas pu trouver une réponse précise. Pour une assistance personnalisée, veuillez contacter notre support humain à support@servio.com.';
+      return getReliableFallback(userMessage);
     } catch (error) {
       console.error('Error generating AI response:', error);
-      return 'Désolé, je rencontre des difficultés techniques. Pour une assistance immédiate, contactez notre support à support@servio.com.';
+      return getReliableFallback(userMessage);
     }
   };
 
