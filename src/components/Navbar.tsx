@@ -21,6 +21,7 @@ function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installHelpOpen, setInstallHelpOpen] = useState(false);
   const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
   const isInstallSupported = typeof window !== 'undefined' && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const showInstallButton = isInstallSupported && !isStandalone;
@@ -46,12 +47,7 @@ function Navbar() {
       return;
     }
 
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const message = isIOS
-      ? 'Sur iPhone, ouvrez le menu Partager puis “Ajouter à l’écran d’accueil”.'
-      : 'Dans votre navigateur, ouvrez le menu puis choisissez “Ajouter à l’écran d’accueil”.';
-
-    window.alert(message);
+    setInstallHelpOpen(true);
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -505,6 +501,28 @@ function Navbar() {
             <Download size={19} strokeWidth={2.5} />
             Installer SERVIO sur le téléphone
           </button>
+        </div>
+      )}
+
+      {installHelpOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/50 p-4 md:items-center" role="dialog" aria-modal="true" aria-labelledby="install-help-title">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="install-help-title" className="text-lg font-bold text-slate-900">Installer SERVIO</h2>
+                <p className="mt-1 text-sm text-slate-600">Votre navigateur ne peut pas ouvrir l’installation automatiquement.</p>
+              </div>
+              <button onClick={() => setInstallHelpOpen(false)} className="rounded-lg px-2 py-1 text-xl text-slate-500" aria-label="Fermer">&times;</button>
+            </div>
+            <div className="mt-4 rounded-xl bg-primary-50 p-4 text-sm text-primary-900">
+              {/iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+                <><strong>iPhone / iPad :</strong> touchez <strong>Partager</strong>, puis <strong>Sur l’écran d’accueil</strong>.</>
+              ) : (
+                <><strong>Android :</strong> touchez le menu <strong>⋮</strong> du navigateur, puis <strong>Installer l’application</strong> ou <strong>Ajouter à l’écran d’accueil</strong>.</>
+              )}
+            </div>
+            <button onClick={() => setInstallHelpOpen(false)} className="mt-4 w-full rounded-xl bg-primary-600 px-4 py-3 text-sm font-bold text-white">Compris</button>
+          </div>
         </div>
       )}
     </>
