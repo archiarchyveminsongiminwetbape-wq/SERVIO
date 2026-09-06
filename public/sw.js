@@ -1,4 +1,4 @@
-const CACHE_NAME = 'servio-v1';
+const CACHE_NAME = 'servio-v2';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -35,6 +35,11 @@ self.addEventListener('activate', (event) => {
 
 // Interception des requêtes
 self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate' || event.request.destination === 'script' || event.request.destination === 'style') {
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

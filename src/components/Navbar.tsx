@@ -70,7 +70,8 @@ function Navbar() {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 border-b ${darkMode ? 'border-white/10 bg-slate-950/70 backdrop-blur-xl' : 'border-primary-100/60 bg-white/75 backdrop-blur-xl shadow-[0_10px_30px_rgba(15,23,42,0.06)]'}`} role="navigation" aria-label={t.nav.home} dir={isRTL ? 'rtl' : 'ltr'}>
+    <>
+      <nav className={`sticky top-0 z-50 border-b ${darkMode ? 'border-white/10 bg-slate-950/70 backdrop-blur-xl' : 'border-primary-100/60 bg-white/75 backdrop-blur-xl shadow-[0_10px_30px_rgba(15,23,42,0.06)]'}`} role="navigation" aria-label={t.nav.home} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6 sm:gap-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight" aria-label="SERVIO - Accueil">
@@ -492,7 +493,21 @@ function Navbar() {
           </div>
         </div>
       )}
-    </nav>
+      </nav>
+
+      {showInstallButton && (
+        <div className="sticky top-16 z-40 border-b border-primary-200/80 bg-primary-600 px-4 py-2.5 shadow-lg md:hidden">
+          <button
+            onClick={handleInstallApp}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-primary-700 shadow-md transition-transform active:scale-[0.98]"
+            aria-label="Installer SERVIO sur le téléphone"
+          >
+            <Download size={19} strokeWidth={2.5} />
+            Installer SERVIO sur le téléphone
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
