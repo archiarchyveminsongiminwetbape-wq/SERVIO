@@ -89,6 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_permission ON role_permissions(p
 -- Politique RLS pour role_permissions
 ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can view role permissions" ON role_permissions;
 CREATE POLICY "Anyone can view role permissions"
   ON role_permissions FOR SELECT
   USING (true);
@@ -129,6 +130,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Politique RLS pour permissions
 ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can view permissions" ON permissions;
 CREATE POLICY "Anyone can view permissions"
   ON permissions FOR SELECT
   USING (true);

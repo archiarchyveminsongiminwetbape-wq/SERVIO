@@ -129,9 +129,9 @@ export default function MessagesPage() {
     setLoading(true);
     const { data } = await supabase
       .from('conversations')
-      .select('id, participant_a, participant_b, last_message_preview, last_message_at, created_at')
+      .select('id, participant_a, participant_b, user_id, provider_id, last_message_preview, last_message_at, created_at')
       .or(
-        `participant_a.eq.${user.id},participant_b.eq.${user.id}`
+        `participant_a.eq.${user.id},participant_b.eq.${user.id},user_id.eq.${user.id},provider_id.eq.${user.id}`
       )
       .order('last_message_at', { ascending: false });
 

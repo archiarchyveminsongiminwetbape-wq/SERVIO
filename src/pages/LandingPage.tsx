@@ -48,7 +48,7 @@ export default function LandingPage() {
             <div className="mx-auto max-w-4xl text-center lg:text-left">
               <div className="mb-4 sm:mb-6 md:mb-8 flex items-center justify-center lg:justify-start gap-3">
                 <img 
-                  src="/images/servio-logo.jpeg" 
+                  src="/images/servio-logo.png" 
                   alt="SERVIO Logo" 
                   className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover shadow-lg"
                 />

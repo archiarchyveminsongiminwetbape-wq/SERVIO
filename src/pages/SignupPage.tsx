@@ -54,7 +54,7 @@ export default function SignupPage() {
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2 text-2xl font-bold">
             <img 
-              src="/images/servio-logo.jpeg" 
+              src="/images/servio-logo.png" 
               alt="SERVIO Logo" 
               className="h-10 w-10 rounded-lg object-cover shadow-lg"
             />

@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS commissions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE NOT NULL,
-  provider_profile_id UUID REFERENCES provider_profiles(id) ON DELETE CASCADE NOT NULL,
+  provider_id UUID REFERENCES provider_profiles(id) ON DELETE CASCADE NOT NULL,
   amount DECIMAL(10, 2) NOT NULL,
   commission_rate DECIMAL(5, 2) NOT NULL DEFAULT 0.15, -- 15% par défaut
   commission_amount DECIMAL(10, 2) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS commissions (
 
 -- Index pour améliorer les performances
 CREATE INDEX IF NOT EXISTS idx_commissions_booking ON commissions(booking_id);
-CREATE INDEX IF NOT EXISTS idx_commissions_provider ON commissions(provider_profile_id);
+CREATE INDEX IF NOT EXISTS idx_commissions_provider ON commissions(provider_id);
 CREATE INDEX IF NOT EXISTS idx_commissions_status ON commissions(status);
 CREATE INDEX IF NOT EXISTS idx_commissions_created_at ON commissions(created_at DESC);
 
@@ -89,7 +89,7 @@ BEGIN
   -- Créer l'enregistrement de commission
   INSERT INTO commissions (
     booking_id,
-    provider_profile_id,
+    provider_id,
     amount,
     commission_rate,
     commission_amount,

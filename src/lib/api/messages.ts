@@ -9,7 +9,7 @@ export const messagesApi = {
       const { data, error } = await supabase
         .from('conversations')
         .select('*')
-        .or(`participant_a.eq.${userId},participant_b.eq.${userId}`)
+        .or(`participant_a.eq.${userId},participant_b.eq.${userId},user_id.eq.${userId},provider_id.eq.${userId}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -63,7 +63,7 @@ export const messagesApi = {
         .from('conversations')
         .select('*')
         .or(
-          `and(participant_a.eq.${userAId},participant_b.eq.${userBId}),and(participant_a.eq.${userBId},participant_b.eq.${userAId})`
+          `and(participant_a.eq.${userAId},participant_b.eq.${userBId}),and(participant_a.eq.${userBId},participant_b.eq.${userAId}),and(user_id.eq.${userAId},provider_id.eq.${userBId}),and(user_id.eq.${userBId},provider_id.eq.${userAId})`
         )
         .maybeSingle();
 
@@ -77,6 +77,8 @@ export const messagesApi = {
         .insert({
           participant_a: userAId,
           participant_b: userBId,
+          user_id: userAId,
+          provider_id: userBId,
           created_at: new Date().toISOString()
         })
         .select()
@@ -219,7 +221,7 @@ export const messagesApi = {
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id')
-        .or(`participant_a.eq.${userId},participant_b.eq.${userId}`);
+        .or(`participant_a.eq.${userId},participant_b.eq.${userId},user_id.eq.${userId},provider_id.eq.${userId}`);
 
       if (convError) throw convError;
 

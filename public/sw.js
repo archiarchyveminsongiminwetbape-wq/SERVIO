@@ -2,7 +2,7 @@ const CACHE_NAME = 'servio-v1';
 const urlsToCache = [
   '/',
   '/manifest.json',
-  '/images/servio-logo.jpeg',
+  '/images/servio-logo.png',
   '/images/background.jpg',
 ];
 
@@ -87,8 +87,8 @@ async function syncMessages() {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Nouvelle notification SERVIO',
-    icon: '/images/servio-logo.jpeg',
-    badge: '/images/servio-logo.jpeg',
+    icon: '/images/servio-logo.png',
+    badge: '/images/servio-logo.png',
     vibrate: [200, 100, 200],
     data: {
       dateOfArrival: Date.now(),
@@ -98,12 +98,12 @@ self.addEventListener('push', (event) => {
       {
         action: 'explore',
         title: 'Voir',
-        icon: '/images/servio-logo.jpeg'
+        icon: '/images/servio-logo.png'
       },
       {
         action: 'close',
         title: 'Fermer',
-        icon: '/images/servio-logo.jpeg'
+        icon: '/images/servio-logo.png'
       }
     ]
   };

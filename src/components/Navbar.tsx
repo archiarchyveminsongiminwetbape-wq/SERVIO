@@ -37,7 +37,7 @@ function Navbar() {
         <div className="flex items-center gap-6 sm:gap-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight" aria-label="SERVIO - Accueil">
             <img 
-              src="/images/servio-logo.jpeg" 
+              src="/images/servio-logo.png" 
               alt="SERVIO Logo" 
               className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl object-cover shadow-lg"
             />

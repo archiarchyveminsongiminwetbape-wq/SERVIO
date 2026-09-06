@@ -340,7 +340,7 @@ export default function ProviderProfilePage() {
         .from('conversations')
         .select('id')
         .or(
-          `and(participant_a.eq.${user.id},participant_b.eq.${otherUserId}),and(participant_a.eq.${otherUserId},participant_b.eq.${user.id})`
+          `and(participant_a.eq.${user.id},participant_b.eq.${otherUserId}),and(participant_a.eq.${otherUserId},participant_b.eq.${user.id}),and(user_id.eq.${user.id},provider_id.eq.${otherUserId}),and(user_id.eq.${otherUserId},provider_id.eq.${user.id})`
         )
         .maybeSingle();
 
@@ -353,7 +353,12 @@ export default function ProviderProfilePage() {
       if (!convId) {
         const { data: newConv, error: newConvError } = await supabase
           .from('conversations')
-          .insert({ participant_a: user.id, participant_b: otherUserId })
+          .insert({
+            participant_a: user.id,
+            participant_b: otherUserId,
+            user_id: user.id,
+            provider_id: otherUserId,
+          })
           .select('id')
           .single();
 
