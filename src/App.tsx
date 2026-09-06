@@ -33,6 +33,17 @@ const InvoicesPage = lazy(() => import('@/pages/InvoicesPage'));
 const ProviderProjectsPage = lazy(() => import('@/pages/ProviderProjectsPage'));
 const QuotesPage = lazy(() => import('@/pages/QuotesPage'));
 
+// Prefetch critical routes
+const prefetchRoutes = () => {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(() => {
+      import('@/pages/SearchPage');
+      import('@/pages/LoginPage');
+      import('@/pages/SignupPage');
+    });
+  }
+};
+
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-transparent text-slate-900">
@@ -47,6 +58,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  prefetchRoutes();
   return (
     <I18nProvider>
       <DarkModeProvider>

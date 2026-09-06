@@ -9,17 +9,25 @@ interface Message {
   content: string;
 }
 
-const FAQ_KNOWLEDGE_BASE = [
-  { keywords: ['creer', 'compte', 'inscrire'], answer: 'Pour créer un compte sur SERVIO, cliquez sur « S\'inscrire », renseignez vos informations, puis confirmez votre adresse email si cela vous est demandé.' },
-  { keywords: ['devenir', 'prestataire', 'proposer', 'service'], answer: 'Créez un compte, choisissez le rôle prestataire, puis complétez votre profil professionnel avec vos compétences, votre expérience et votre portfolio. Après envoi, le profil est soumis à validation.' },
-  { keywords: ['reserver', 'reservation', 'service', 'rendez', 'disponibilite'], answer: 'Recherchez un prestataire, consultez son profil et ses disponibilités, puis cliquez sur « Réserver ». Sélectionnez le créneau, vérifiez les détails et confirmez la demande.' },
-  { keywords: ['paiement', 'payer', 'carte', 'stripe', 'mobile', 'money'], answer: 'Les moyens de paiement disponibles dépendent de votre région et sont affichés lors de la réservation. Le paiement est traité de façon sécurisée par Stripe.' },
-  { keywords: ['annuler', 'annulation', 'rembourser'], answer: 'Ouvrez « Mes réservations », sélectionnez la réservation concernée et choisissez « Annuler ». Les conditions et éventuels frais dépendent du délai et du service.' },
-  { keywords: ['facture', 'facturation', 'pdf'], answer: 'Les factures disponibles se trouvent dans la rubrique « Factures » de votre compte, une fois le service complété ou le paiement confirmé.' },
-  { keywords: ['abonnement', 'plan', 'forfait'], answer: 'Les abonnements SERVIO peuvent offrir davantage de visibilité et de fonctionnalités. Consultez la page « Abonnement » pour voir les offres actuellement disponibles.' },
-  { keywords: ['support', 'aide', 'probleme', 'contact'], answer: 'Décrivez votre problème avec l\'adresse email de votre compte, la page concernée et le message affiché. Pour une assistance humaine, contactez le support de SERVIO.' },
-  { keywords: ['securite', 'donnees', 'rgpd', 'confidentialite'], answer: 'SERVIO protège les échanges et limite l\'accès aux données selon les permissions du compte. Ne partagez jamais votre mot de passe ou vos informations de paiement dans le chat.' },
-  { keywords: ['avis', 'note', 'evaluation'], answer: 'Vous pouvez laisser un avis après la réalisation d\'un service. Les avis doivent rester factuels et respectueux ; le prestataire peut ensuite y répondre.' },
+interface KnowledgeIntent {
+  keywords: string[];
+  examples: string[];
+  answer: string;
+}
+
+const FAQ_KNOWLEDGE_BASE: KnowledgeIntent[] = [
+  { keywords: ['creer', 'compte', 'inscrire'], examples: ['je veux ouvrir un compte', 'comment faire pour m inscrire', 'nouveau compte client'], answer: 'Pour créer un compte sur SERVIO, cliquez sur « S\'inscrire », renseignez vos informations, puis confirmez votre adresse email si cela vous est demandé.' },
+  { keywords: ['devenir', 'prestataire', 'proposer', 'service'], examples: ['je veux vendre mes services', 'comment travailler sur servio', 'inscription professionnelle'], answer: 'Créez un compte, choisissez le rôle prestataire, puis complétez votre profil professionnel avec vos compétences, votre expérience et votre portfolio. Après envoi, le profil est soumis à validation.' },
+  { keywords: ['reserver', 'reservation', 'service', 'rendez', 'disponibilite'], examples: ['je veux prendre rendez vous', 'comment commander une prestation', 'trouver un professionnel'], answer: 'Recherchez un prestataire, consultez son profil et ses disponibilités, puis cliquez sur « Réserver ». Sélectionnez le créneau, vérifiez les détails et confirmez la demande.' },
+  { keywords: ['paiement', 'payer', 'carte', 'stripe', 'mobile', 'money'], examples: ['comment payer', 'ma carte est refusee', 'payer avec mobile money'], answer: 'Les moyens de paiement disponibles dépendent de votre région et sont affichés lors de la réservation. Le paiement est traité de façon sécurisée par Stripe.' },
+  { keywords: ['annuler', 'annulation', 'rembourser'], examples: ['je ne veux plus la reservation', 'est ce que je peux etre rembourse', 'supprimer une commande'], answer: 'Ouvrez « Mes réservations », sélectionnez la réservation concernée et choisissez « Annuler ». Les conditions et éventuels frais dépendent du délai et du service.' },
+  { keywords: ['facture', 'facturation', 'pdf'], examples: ['ou trouver ma facture', 'telecharger un justificatif', 'besoin de facture'], answer: 'Les factures disponibles se trouvent dans la rubrique « Factures » de votre compte, une fois le service complété ou le paiement confirmé.' },
+  { keywords: ['abonnement', 'plan', 'forfait'], examples: ['quels sont les tarifs pro', 'je veux un abonnement', 'offre pour prestataire'], answer: 'Les abonnements SERVIO peuvent offrir davantage de visibilité et de fonctionnalités. Consultez la page « Abonnement » pour voir les offres actuellement disponibles.' },
+  { keywords: ['support', 'aide', 'probleme', 'contact'], examples: ['je dois parler au support', 'le site ne marche pas', 'j ai une erreur'], answer: 'Décrivez votre problème avec l\'adresse email de votre compte, la page concernée et le message affiché. Pour une assistance humaine, contactez le support de SERVIO.' },
+  { keywords: ['securite', 'donnees', 'rgpd', 'confidentialite'], examples: ['mes informations sont elles protegees', 'qui voit mes donnees', 'politique de confidentialite'], answer: 'SERVIO protège les échanges et limite l\'accès aux données selon les permissions du compte. Ne partagez jamais votre mot de passe ou vos informations de paiement dans le chat.' },
+  { keywords: ['avis', 'note', 'evaluation'], examples: ['comment noter un prestataire', 'laisser un commentaire', 'donner mon avis'], answer: 'Vous pouvez laisser un avis après la réalisation d\'un service. Les avis doivent rester factuels et respectueux ; le prestataire peut ensuite y répondre.' },
+  { keywords: ['profil', 'modifier', 'photo', 'competence'], examples: ['changer mon profil professionnel', 'modifier mes informations', 'ajouter une photo'], answer: 'Depuis votre espace, ouvrez « Modifier mon profil » pour mettre à jour votre présentation, vos compétences, vos photos et vos disponibilités, puis enregistrez les changements.' },
+  { keywords: ['validation', 'approuve', 'verifie', 'visible'], examples: ['pourquoi mon profil n apparait pas', 'combien de temps pour valider', 'profil prestataire en attente'], answer: 'Un profil prestataire devient visible après validation. Vérifiez que les informations et photos demandées sont complètes ; si le statut reste en attente, contactez le support avec votre identifiant de compte.' },
 ];
 
 const QUICK_QUESTIONS = ['Comment réserver un service ?', 'Comment devenir prestataire ?', 'Je rencontre un problème de paiement'];

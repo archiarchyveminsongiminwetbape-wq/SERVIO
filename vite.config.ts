@@ -14,10 +14,33 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-lucide': ['lucide-react'],
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('lucide')) {
+              return 'vendor-lucide';
+            }
+            if (id.includes('jspdf') || id.includes('html2canvas')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('@huggingface')) {
+              return 'vendor-ai';
+            }
+            return 'vendor-other';
+          }
+          // Page chunks
+          if (id.includes('src/pages')) {
+            return 'pages';
+          }
+          if (id.includes('src/components')) {
+            return 'components';
+          }
         },
       },
     },
@@ -27,11 +50,20 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
       },
     },
     assetsInlineLimit: 4096,
+    reportCompressedSize: true,
+    sourcemap: false,
   },
   optimizeDeps: {
-    include: ['lucide-react'],
+    include: ['lucide-react', '@supabase/supabase-js'],
+    exclude: [],
+  },
+  server: {
+    headers: {
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
   },
 });
