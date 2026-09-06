@@ -146,70 +146,122 @@ export default function ProviderDashboardPage() {
     }
   }, [user]);
 
+  // Lazy load additional data when switching tabs
+  useEffect(() => {
+    if (provider && tab === 'portfolio' && portfolio.length === 0) {
+      loadPortfolio();
+    }
+    if (provider && tab === 'reviews' && reviews.length === 0) {
+      loadReviews();
+    }
+    if (provider && tab === 'bookings' && bookings.length === 0) {
+      loadBookings();
+    }
+    if (provider && tab === 'invoices' && invoices.length === 0) {
+      loadInvoices();
+    }
+  }, [tab, provider]);
+
+  async function loadPortfolio() {
+    if (!provider) return;
+    const { data } = await supabase
+      .from('portfolio_items')
+      .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at')
+      .eq('provider_id', provider.id)
+      .order('sort_order');
+    setPortfolio(data as PortfolioItem[] ?? []);
+  }
+
+  async function loadReviews() {
+    if (!provider) return;
+    const { data } = await supabase
+      .from('reviews')
+      .select('id, provider_id, author_id, rating, comment, created_at, provider_response, provider_response_at')
+      .eq('provider_id', provider.id)
+      .order('created_at', { ascending: false });
+    setReviews(data as Review[] ?? []);
+  }
+
+  async function loadBookings() {
+    if (!provider) return;
+    const { data } = await supabase
+      .from('bookings')
+      .select('id, client_id, provider_id, scheduled_at, status, service_type, duration_minutes, location_type, location_address, notes, price, currency, payment_method, payment_status, created_at, client:profiles(id, full_name, email, avatar_url)')
+      .eq('provider_id', provider.id)
+      .order('scheduled_at', { ascending: true });
+    setBookings(data as any[] ?? []);
+  }
+
+  async function loadInvoices() {
+    if (!provider) return;
+    const { data } = await supabase
+      .from('invoices')
+      .select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_date, created_at')
+      .eq('provider_id', provider.id)
+      .order('created_at', { ascending: false });
+    setInvoices(data as any[] ?? []);
+  }
+
   async function loadData() {
     if (!user) return;
     setLoading(true);
 
-    const [provRes, catRes] = await Promise.all([
-      supabase.from('provider_profiles').select('id, user_id, business_name, slug, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).order('rating_count', { ascending: false }).order('created_at', { ascending: true }).limit(1).maybeSingle(),
-      supabase.from('categories').select('id, name, slug, icon, parent_id, sort_order').order('sort_order'),
-    ]);
+    try {
+      const [provRes, catRes] = await Promise.all([
+        supabase.from('provider_profiles').select('id, user_id, business_name, slug, headline, description, avatar_url, banner_url, city, country, service_area, remote_service, phone, website, price_range, currency, availability, skills, languages, experience_years, certifications, category_id, validation_status, is_featured, availability_schedule, category:categories(id, name, slug)').eq('user_id', user.id).order('rating_count', { ascending: false }).order('created_at', { ascending: true }).limit(1).maybeSingle(),
+        supabase.from('categories').select('id, name, slug, icon, parent_id, sort_order').order('sort_order'),
+      ]);
 
-    const providerId = provRes.data?.id;
+      const providerId = provRes.data?.id;
 
-    if (provRes.data) {
-      setProvider(provRes.data as unknown as ProviderProfile);
-      setForm({
-        business_name: provRes.data.business_name ?? '',
-        headline: provRes.data.headline ?? '',
-        description: provRes.data.description ?? '',
-        category_id: provRes.data.category_id ?? '',
-        skills: provRes.data.skills ?? [],
-        experience_years: provRes.data.experience_years ?? '',
-        languages: provRes.data.languages ?? [],
-        certifications: provRes.data.certifications ?? '',
-        city: provRes.data.city ?? '',
-        country: provRes.data.country ?? '',
-        service_area: provRes.data.service_area ?? '',
-        remote_service: provRes.data.remote_service,
-        phone: provRes.data.phone ?? '',
-        website: provRes.data.website ?? '',
-        price_range: provRes.data.price_range ?? '',
-        currency: (provRes.data as any).currency ?? 'EUR',
-        availability: provRes.data.availability,
-        avatar_url: provRes.data.avatar_url ?? '',
-        banner_url: provRes.data.banner_url ?? '',
-      });
-      setSkillsInput((provRes.data.skills ?? []).join(', '));
-      setLanguagesInput((provRes.data.languages ?? []).join(', '));
-      if ((provRes.data as any).availability_schedule) {
-        setAvailabilitySchedule((provRes.data as any).availability_schedule);
+      if (provRes.data) {
+        setProvider(provRes.data as unknown as ProviderProfile);
+        setForm({
+          business_name: provRes.data.business_name ?? '',
+          headline: provRes.data.headline ?? '',
+          description: provRes.data.description ?? '',
+          category_id: provRes.data.category_id ?? '',
+          skills: provRes.data.skills ?? [],
+          experience_years: provRes.data.experience_years ?? '',
+          languages: provRes.data.languages ?? [],
+          certifications: provRes.data.certifications ?? '',
+          city: provRes.data.city ?? '',
+          country: provRes.data.country ?? '',
+          service_area: provRes.data.service_area ?? '',
+          remote_service: provRes.data.remote_service,
+          phone: provRes.data.phone ?? '',
+          website: provRes.data.website ?? '',
+          price_range: provRes.data.price_range ?? '',
+          currency: (provRes.data as any).currency ?? 'EUR',
+          availability: provRes.data.availability,
+          avatar_url: provRes.data.avatar_url ?? '',
+          banner_url: provRes.data.banner_url ?? '',
+        });
+        setSkillsInput((provRes.data.skills ?? []).join(', '));
+        setLanguagesInput((provRes.data.languages ?? []).join(', '));
+        if ((provRes.data as any).availability_schedule) {
+          setAvailabilitySchedule((provRes.data as any).availability_schedule);
+        }
       }
+
+      setCategories(catRes.data as Category[] ?? []);
+
+      // Load subscription plan
+      if (user) {
+        const { data: subscriptionRes } = await supabase
+          .from('subscriptions')
+          .select('plan')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setSubscriptionPlan((subscriptionRes?.plan as typeof subscriptionPlan) ?? 'free');
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
-
-    const [portRes, revRes, bookingRes, invoiceRes, subscriptionRes] = providerId
-      ? await Promise.all([
-          supabase.from('portfolio_items').select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at').eq('provider_id', providerId).order('sort_order'),
-          supabase.from('reviews').select('id, provider_id, author_id, rating, comment, created_at, provider_response, provider_response_at').eq('provider_id', providerId).order('created_at', { ascending: false }),
-          supabase.from('bookings').select('id, client_id, provider_id, scheduled_at, status, service_type, duration_minutes, location_type, location_address, notes, price, currency, payment_method, payment_status, created_at, client:profiles(id, full_name, email, avatar_url)').eq('provider_id', providerId).order('scheduled_at', { ascending: true }),
-          supabase.from('invoices').select('id, booking_id, client_id, provider_id, invoice_number, amount, currency, status, due_date, paid_date, created_at').eq('provider_id', providerId).order('created_at', { ascending: false }),
-          supabase.from('subscriptions').select('plan').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        ])
-      : [
-          { data: [] },
-          { data: null },
-          { data: [] },
-          { data: [] },
-          { data: [] },
-        ];
-
-    setCategories(catRes.data as Category[] ?? []);
-    setPortfolio(portRes.data as PortfolioItem[] ?? []);
-    setReviews(revRes.data as Review[] ?? []);
-    setBookings(bookingRes.data as any[] ?? []);
-    setInvoices(invoiceRes.data as any[] ?? []);
-    setSubscriptionPlan((subscriptionRes.data?.plan as typeof subscriptionPlan) ?? 'free');
-    setLoading(false);
   }
 
   async function saveProfile() {
