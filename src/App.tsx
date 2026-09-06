@@ -61,9 +61,9 @@ function App() {
               </div>
             }>
               <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/login" element={<><Navbar /><LoginPage /></>} />
+                <Route path="/signup" element={<><Navbar /><SignupPage /></>} />
+                <Route path="/reset-password" element={<><Navbar /><ResetPasswordPage /></>} />
                 <Route path="/admin/seed-categories" element={<CategorySeeder />} />
                 <Route
                   path="*"
