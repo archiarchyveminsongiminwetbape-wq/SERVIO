@@ -9,27 +9,27 @@ interface Message {
   content: string;
 }
 
-const FAQ_KNOWLEDGE_BASE = {
-  'comment créer un compte': 'Pour créer un compte sur SERVIO, cliquez sur le bouton "S\'inscrire" en haut à droite de la page d\'accueil. Remplissez le formulaire avec vos informations personnelles, puis confirmez votre email via le lien envoyé automatiquement.',
-  
-  'comment devenir prestataire': 'Pour devenir prestataire sur SERVIO, créez d\'abord un compte, puis accédez à votre tableau de bord et cliquez sur "Devenir prestataire". Remplissez votre profil professionnel avec vos compétences, expérience et portfolio. Votre profil sera validé par notre équipe sous 24-48h.',
-  
-  'comment réserver un service': 'Pour réserver un service, recherchez le prestataire de votre choix, consultez son profil et ses disponibilités, puis cliquez sur "Réserver". Sélectionnez la date et l\'heure souhaitées, confirmez les détails et procédez au paiement sécurisé.',
-  
-  'modes de paiement': 'SERVIO accepte plusieurs modes de paiement : cartes bancaires (Visa, Mastercard), PayPal, virement bancaire et mobile money selon votre région. Tous les paiements sont sécurisés via Stripe.',
-  
-  'annuler une réservation': 'Vous pouvez annuler une réservation jusqu\'à 24h avant le début du service sans frais. Pour annuler, allez dans votre tableau de bord > Mes réservations, sélectionnez la réservation et cliquez sur "Annuler".',
-  
-  'facturation': 'Les factures sont générées automatiquement après la complétion des services. Vous pouvez les consulter et télécharger en PDF depuis votre tableau de bord dans la section Factures.',
-  
-  'abonnements': 'SERVIO propose plusieurs plans d\'abonnement : Gratuit (5 réalisations), Basic (15 réalisations), Pro (illimité) et Enterprise (personnalisé). Les plans payants offrent des fonctionnalités avancées et une meilleure visibilité.',
-  
-  'support technique': 'Pour contacter le support technique, utilisez le formulaire de contact sur la page d\'aide ou envoyez un email à support@servio.com. Notre équipe répond généralement sous 24h.',
-  
-  'sécurité': 'SERVIO utilise des protocoles de sécurité avancés incluant le chiffrement SSL, la protection des données personnelles conformément au RGPD, et un système de vérification des prestataires.',
-  
-  'avis clients': 'Les clients peuvent laisser des avis après la complétion d\'un service. Les avis sont modérés pour garantir leur authenticité. Les prestataires peuvent répondre aux avis pour améliorer leur réputation.'
-};
+const FAQ_KNOWLEDGE_BASE = [
+  { keywords: ['creer', 'compte', 'inscrire'], answer: 'Pour créer un compte sur SERVIO, cliquez sur « S\'inscrire », renseignez vos informations, puis confirmez votre adresse email si cela vous est demandé.' },
+  { keywords: ['devenir', 'prestataire', 'proposer', 'service'], answer: 'Créez un compte, choisissez le rôle prestataire, puis complétez votre profil professionnel avec vos compétences, votre expérience et votre portfolio. Après envoi, le profil est soumis à validation.' },
+  { keywords: ['reserver', 'reservation', 'service', 'rendez', 'disponibilite'], answer: 'Recherchez un prestataire, consultez son profil et ses disponibilités, puis cliquez sur « Réserver ». Sélectionnez le créneau, vérifiez les détails et confirmez la demande.' },
+  { keywords: ['paiement', 'payer', 'carte', 'stripe', 'mobile', 'money'], answer: 'Les moyens de paiement disponibles dépendent de votre région et sont affichés lors de la réservation. Le paiement est traité de façon sécurisée par Stripe.' },
+  { keywords: ['annuler', 'annulation', 'rembourser'], answer: 'Ouvrez « Mes réservations », sélectionnez la réservation concernée et choisissez « Annuler ». Les conditions et éventuels frais dépendent du délai et du service.' },
+  { keywords: ['facture', 'facturation', 'pdf'], answer: 'Les factures disponibles se trouvent dans la rubrique « Factures » de votre compte, une fois le service complété ou le paiement confirmé.' },
+  { keywords: ['abonnement', 'plan', 'forfait'], answer: 'Les abonnements SERVIO peuvent offrir davantage de visibilité et de fonctionnalités. Consultez la page « Abonnement » pour voir les offres actuellement disponibles.' },
+  { keywords: ['support', 'aide', 'probleme', 'contact'], answer: 'Décrivez votre problème avec l\'adresse email de votre compte, la page concernée et le message affiché. Pour une assistance humaine, contactez le support de SERVIO.' },
+  { keywords: ['securite', 'donnees', 'rgpd', 'confidentialite'], answer: 'SERVIO protège les échanges et limite l\'accès aux données selon les permissions du compte. Ne partagez jamais votre mot de passe ou vos informations de paiement dans le chat.' },
+  { keywords: ['avis', 'note', 'evaluation'], answer: 'Vous pouvez laisser un avis après la réalisation d\'un service. Les avis doivent rester factuels et respectueux ; le prestataire peut ensuite y répondre.' },
+];
+
+const QUICK_QUESTIONS = ['Comment réserver un service ?', 'Comment devenir prestataire ?', 'Je rencontre un problème de paiement'];
+
+const normalizeText = (value: string) => value
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9\s]/g, ' ')
+  .trim();
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,14 +49,17 @@ export default function AIChatbot() {
   }, [messages]);
 
   const checkFAQ = (query: string): string | null => {
-    const lowerQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    for (const [key, answer] of Object.entries(FAQ_KNOWLEDGE_BASE)) {
-      const normalizedKey = key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (lowerQuery.includes(normalizedKey) || normalizedKey.includes(lowerQuery)) {
-        return answer;
+    const words = new Set(normalizeText(query).split(/\s+/).filter(Boolean));
+    let bestMatch: { score: number; answer: string } | null = null;
+
+    for (const item of FAQ_KNOWLEDGE_BASE) {
+      const score = item.keywords.reduce((total, keyword) => total + (words.has(keyword) ? 1 : 0), 0);
+      if (score >= 2 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { score, answer: item.answer };
       }
     }
-    return null;
+
+    return bestMatch?.answer ?? null;
   };
 
   const generateAIResponse = async (userMessage: string): Promise<string> => {
@@ -66,11 +69,17 @@ export default function AIChatbot() {
         .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
         .join('\n');
 
-      const prompt = `Tu es un assistant virtuel utile pour la plateforme SERVIO, une plateforme de services freelance. Réponds en français de manière concise et professionnelle (maximum 2-3 phrases).
+      const pageContext = window.location.pathname === '/'
+        ? 'L’utilisateur est sur la page d’accueil.'
+        : `L’utilisateur consulte actuellement ${window.location.pathname}.`;
+      const prompt = `Tu es l’assistant officiel de SERVIO, une plateforme qui met en relation des clients et des prestataires de services.
+    Réponds en français, avec des informations concrètes, en 3 à 5 phrases maximum. Ne prétends jamais avoir accès au compte, aux paiements ou aux données privées de l’utilisateur. Si une action nécessite une page de l’application, indique clairement son chemin. Si tu n’es pas certain, dis-le et propose le support humain.
 
-Question: ${userMessage}
+    Contexte de page: ${pageContext}
+    Historique récent:
+    ${conversationHistory || 'Aucun historique.'}
 
-Réponds simplement et directement. Si tu ne connais pas la réponse, suggère de contacter le support humain.`;
+    Question actuelle: ${userMessage}`;
 
       try {
         const response = await hf.textGeneration({
@@ -93,15 +102,15 @@ Réponds simplement et directement. Si tu ne connais pas la réponse, suggère d
       }
 
       // Fallback: Simple keyword-based responses
-      const lowerMessage = userMessage.toLowerCase();
-      if (lowerMessage.includes('prix') || lowerMessage.includes('coût') || lowerMessage.includes('tarif')) {
+      const lowerMessage = normalizeText(userMessage);
+      if (lowerMessage.includes('prix') || lowerMessage.includes('cout') || lowerMessage.includes('tarif')) {
         return 'Les prix varient selon les prestataires et les services. Vous pouvez consulter les tarifs sur les profils des prestataires.';
       }
-      if (lowerMessage.includes('contact') || lowerMessage.includes('email') || lowerMessage.includes('téléphone')) {
-        return 'Pour nous contacter, utilisez le formulaire de contact sur la page d\'aide ou envoyez un email à support@servio.com.';
+      if (lowerMessage.includes('contact') || lowerMessage.includes('email') || lowerMessage.includes('telephone')) {
+        return 'Pour obtenir de l\'aide, indiquez le problème rencontré, la page concernée et l\'adresse email de votre compte au support SERVIO.';
       }
-      if (lowerMessage.includes('aide') || lowerMessage.includes('problème')) {
-        return 'Je suis là pour vous aider ! Pour des questions spécifiques sur votre compte ou vos réservations, je vous recommande de contacter notre support humain.';
+      if (lowerMessage.includes('aide') || lowerMessage.includes('probleme')) {
+        return 'Je peux vous guider sur la recherche, les profils, les réservations et les paiements. Décrivez précisément ce qui bloque et je vous indiquerai la prochaine étape.';
       }
 
       return 'Je suis désolé, je n\'ai pas pu trouver une réponse précise. Pour une assistance personnalisée, veuillez contacter notre support humain à support@servio.com.';
@@ -123,10 +132,8 @@ Réponds simplement et directement. Si tu ne connais pas la réponse, suggère d
     const faqAnswer = checkFAQ(userMessage);
     
     if (faqAnswer) {
-      setTimeout(() => {
-        setMessages(prev => [...prev, { role: 'assistant', content: faqAnswer }]);
-        setIsLoading(false);
-      }, 500);
+      setMessages(prev => [...prev, { role: 'assistant', content: faqAnswer }]);
+      setIsLoading(false);
     } else {
       // Use AI for more complex queries
       const aiResponse = await generateAIResponse(userMessage);
@@ -203,6 +210,20 @@ Réponds simplement et directement. Si tu ne connais pas la réponse, suggère d
 
       {/* Input */}
       <div className="p-4 border-t border-neutral-200">
+        {messages.length === 1 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {QUICK_QUESTIONS.map(question => (
+              <button
+                key={question}
+                type="button"
+                onClick={() => setInput(question)}
+                className="rounded-full border border-neutral-200 px-3 py-1.5 text-left text-xs text-neutral-600 hover:border-primary-300 hover:text-primary-700"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <input
             type="text"
