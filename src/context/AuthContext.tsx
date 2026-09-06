@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user);
       } else {
         setLoading(false);
       }
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         (async () => {
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user.id, session.user);
         })();
       } else {
         setProfile(null);
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function fetchProfile(userId: string): Promise<Profile | null> {
+  async function fetchProfile(userId: string, authUser?: User): Promise<Profile | null> {
     const [{ data, error }, { data: providerData, error: providerError }] = await Promise.all([
       supabase
         .from('profiles')
@@ -75,8 +75,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error checking provider profile:', providerError);
     }
 
-    const resolvedProfile = data
-      ? ({ ...data, role: providerData ? 'provider' : data.role } as Profile)
+    let profileData = data;
+
+    if (!profileData && authUser?.email) {
+      const { data: createdProfile, error: createError } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: authUser.id,
+            email: authUser.email,
+            full_name: authUser.user_metadata?.full_name ?? authUser.email,
+            role: providerData ? 'provider' : (authUser.user_metadata?.role ?? 'visitor'),
+          },
+          { onConflict: 'id' },
+        )
+        .select('*')
+        .maybeSingle();
+
+      if (createError) {
+        console.error('Error creating missing profile:', createError);
+      } else {
+        profileData = createdProfile;
+      }
+    }
+
+    const resolvedProfile = profileData
+      ? ({ ...profileData, role: providerData ? 'provider' : profileData.role } as Profile)
       : null;
 
     setProfile(resolvedProfile);
@@ -141,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      const resolvedProfile = await fetchProfile(session.user.id);
+      const resolvedProfile = await fetchProfile(session.user.id, session.user);
       return { error: null, profileRole: resolvedProfile?.role ?? null };
     }
 
@@ -155,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function refreshProfile() {
     if (user) {
-      await fetchProfile(user.id);
+      await fetchProfile(user.id, user);
     }
   }
 
