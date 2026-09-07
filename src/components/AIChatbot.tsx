@@ -197,6 +197,10 @@ export default function AIChatbot() {
     let bestMatch: { score: number; answer: string } | null = null;
     const knowledgeBase = remoteKnowledge.length > 0 ? remoteKnowledge : CHATBOT_KNOWLEDGE_BASE;
     for (const entry of knowledgeBase) {
+      if (normalizeText(entry.question) === normalizeText(query)) {
+        return entry.answer;
+      }
+
       const entryWords = getWords(entry.question);
       const score = queryWords.reduce(
         (total, queryWord) => total + (entryWords.some(entryWord => wordsMatch(queryWord, entryWord)) ? 1 : 0),
