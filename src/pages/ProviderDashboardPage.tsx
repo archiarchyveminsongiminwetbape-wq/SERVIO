@@ -3114,10 +3114,13 @@ export default function ProviderDashboardPage() {
                   onChange={(e) => setForm({ ...form, price_range: e.target.value })}
                   className="input-field"
                 >
-                  <option value="">Sélectionner...</option>
-                  <option value="€">€ (Économique)</option>
-                  <option value="€€">€€ (Standard)</option>
-                  <option value="€€€">€€€ (Premium)</option>
+                  <option value="">Sélectionner une gamme...</option>
+                  <option value="€">€ - Économique (moins de 50€)</option>
+                  <option value="€€">€€ - Standard (50€ - 100€)</option>
+                  <option value="€€€">€€€ - Premium (100€ - 200€)</option>
+                  <option value="€€€€">€€€€ - Luxe (200€ - 500€)</option>
+                  <option value="€€€€€">€€€€€ - Haut de gamme (plus de 500€)</option>
+                  <option value="sur_mesure">Sur mesure (selon devis)</option>
                 </select>
               </div>
               <div>
