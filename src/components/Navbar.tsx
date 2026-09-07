@@ -71,9 +71,10 @@ function Navbar() {
       <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6 sm:gap-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight" aria-label="SERVIO - Accueil">
-            <img 
-              src="/images/servio-logo.png" 
-              alt="SERVIO Logo" 
+            <img
+              src="/images/servio-logo.png"
+              alt="SERVIO Logo"
+              loading="eager"
               className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl object-cover shadow-lg"
             />
             <span className={darkMode ? 'text-white' : 'text-neutral-900'}>SERVIO</span>

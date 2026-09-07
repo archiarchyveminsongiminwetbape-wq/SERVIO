@@ -11,8 +11,8 @@ export default defineConfig({
     viteImagemin({
       gifsicle: { optimizationLevel: 7 },
       optipng: { optimizationLevel: 7 },
-      mozjpeg: { quality: 85 },
-      pngquant: { quality: [0.8, 0.9] },
+      mozjpeg: { quality: 85, progressive: true },
+      pngquant: { quality: [0.8, 0.9], speed: 1 },
       svgo: {
         plugins: [
           {
@@ -21,6 +21,10 @@ export default defineConfig({
           },
           {
             name: 'removeEmptyAttrs',
+            active: true,
+          },
+          {
+            name: 'removeMetadata',
             active: true,
           },
         ],
@@ -36,16 +40,19 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks
+          // Vendor chunks - split into smaller chunks for better caching
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react-core';
+            }
+            if (id.includes('react-router')) {
+              return 'vendor-router';
             }
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
             if (id.includes('lucide')) {
-              return 'vendor-lucide';
+              return 'vendor-icons';
             }
             if (id.includes('jspdf') || id.includes('html2canvas')) {
               return 'vendor-pdf';
@@ -53,11 +60,39 @@ export default defineConfig({
             if (id.includes('@huggingface')) {
               return 'vendor-ai';
             }
+            if (id.includes('date-fns') || id.includes('moment')) {
+              return 'vendor-date';
+            }
             return 'vendor-other';
           }
-          // Page chunks
+          // Page chunks - lazy load by page
+          if (id.includes('src/pages/LandingPage')) {
+            return 'page-landing';
+          }
+          if (id.includes('src/pages/SearchPage')) {
+            return 'page-search';
+          }
+          if (id.includes('src/pages/BookingPage')) {
+            return 'page-booking';
+          }
+          if (id.includes('src/pages/MessagesPage')) {
+            return 'page-messages';
+          }
+          if (id.includes('src/pages/ProfilePage')) {
+            return 'page-profile';
+          }
+          if (id.includes('src/pages/AdminDashboardPage')) {
+            return 'page-admin';
+          }
           if (id.includes('src/pages')) {
             return 'pages';
+          }
+          // Component chunks
+          if (id.includes('src/components/AIChatbot')) {
+            return 'component-chatbot';
+          }
+          if (id.includes('src/components/Navbar')) {
+            return 'component-navbar';
           }
           if (id.includes('src/components')) {
             return 'components';
@@ -65,18 +100,31 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
     minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true,
         drop_debugger: true,
         pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        dead_code: true,
+        conditionals: true,
+        evaluate: true,
+        booleans: true,
+        loops: true,
+        unused: true,
+        hoist_funs: true,
+        keep_fargs: false,
+        hoist_vars: false,
+        if_return: true,
+        join_vars: true,
+        side_effects: true,
       },
     },
     assetsInlineLimit: 4096,
     reportCompressedSize: true,
     sourcemap: false,
+    target: 'es2020',
   },
   optimizeDeps: {
     include: ['lucide-react', '@supabase/supabase-js'],

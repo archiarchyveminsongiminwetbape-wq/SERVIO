@@ -88,9 +88,10 @@ interface BentoImageCardProps {
 export function BentoImageCard({ image, title, description, overlay = true }: BentoImageCardProps) {
   return (
     <div className="relative rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
-      <img 
-        src={image} 
-        alt={title} 
+      <img
+        src={image}
+        alt={title}
+        loading="lazy"
         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
       {overlay && (
