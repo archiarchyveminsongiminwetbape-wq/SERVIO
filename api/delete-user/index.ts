@@ -22,11 +22,16 @@ export default async function handler(req: any, res: any) {
     }
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase environment variables for server-side deletion');
       return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authorization is required' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -36,18 +41,35 @@ export default async function handler(req: any, res: any) {
       },
     });
 
+    const userClient = createClient(supabaseUrl, process.env.VITE_SUPABASE_ANON_KEY || '', {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: caller, error: callerError } = await userClient.auth.getUser();
+    if (callerError || !caller.user) {
+      return res.status(401).json({ error: 'Invalid authorization' });
+    }
+
+    const { data: callerProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', caller.user.id)
+      .maybeSingle();
+    if (callerProfile?.role !== 'admin') {
+      return res.status(403).json({ error: 'Administrator access required' });
+    }
+
+    const { error: dbError } = await supabase.rpc('delete_user_account', { p_user_id: userId });
+    if (dbError) {
+      console.error('Error deleting database records:', dbError);
+      return res.status(500).json({ error: 'Failed to delete database records', details: dbError.message });
+    }
+
     const { error: authError } = await supabase.auth.admin.deleteUser(userId);
 
     if (authError) {
       console.error('Error deleting auth user:', authError);
       return res.status(500).json({ error: 'Failed to delete auth user', details: authError.message });
-    }
-
-    const { error: dbError } = await supabase.rpc('delete_user_account', { user_id: userId });
-
-    if (dbError) {
-      console.error('Error deleting database records:', dbError);
-      return res.status(500).json({ error: 'Failed to delete database records', details: dbError.message });
     }
 
     return res.status(200).json({ success: true, message: 'User deleted successfully' });

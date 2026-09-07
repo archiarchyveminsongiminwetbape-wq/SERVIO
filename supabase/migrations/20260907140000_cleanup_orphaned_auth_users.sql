@@ -38,6 +38,12 @@ DECLARE
   deleted_count INTEGER;
   result JSONB;
 BEGIN
+  IF NOT (
+    public.is_admin()
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  ) THEN
+    RAISE EXCEPTION 'Only administrators can clean up auth users';
+  END IF;
   -- Delete orphaned users from auth.users
   WITH orphaned_users AS (
     SELECT au.id
@@ -62,6 +68,8 @@ END;
 $$;
 
 -- Grant execute permission to authenticated users
+REVOKE ALL ON FUNCTION identify_orphaned_auth_users() FROM PUBLIC;
+REVOKE ALL ON FUNCTION cleanup_orphaned_auth_users() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION identify_orphaned_auth_users() TO authenticated;
 GRANT EXECUTE ON FUNCTION cleanup_orphaned_auth_users() TO authenticated;
 
@@ -112,15 +120,24 @@ $$;
 GRANT EXECUTE ON FUNCTION is_email_available(TEXT) TO authenticated;
 
 -- Improve delete_user_by_email to ensure complete cleanup
-CREATE OR REPLACE FUNCTION delete_user_by_email_complete(user_email TEXT)
+DROP FUNCTION IF EXISTS public.delete_user_by_email_complete(TEXT);
+
+CREATE FUNCTION delete_user_by_email_complete(user_email TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
   target_user_id UUID;
+  provider_ids UUID[];
   result JSONB;
 BEGIN
+  IF NOT (
+    public.is_admin()
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  ) THEN
+    RAISE EXCEPTION 'Only administrators can delete users';
+  END IF;
   -- Find the user_id from auth.users
   SELECT id INTO target_user_id 
   FROM auth.users 
@@ -133,26 +150,30 @@ BEGIN
     );
     RETURN result;
   END IF;
+
+  SELECT COALESCE(array_agg(id), ARRAY[]::uuid[])
+  INTO provider_ids
+  FROM public.provider_profiles
+  WHERE user_id = target_user_id;
   
   -- Delete from all public schema tables
-  DELETE FROM profiles WHERE id = target_user_id;
-  DELETE FROM provider_profiles WHERE user_id = target_user_id;
+  DELETE FROM portfolio_items WHERE provider_id = ANY(provider_ids);
+  DELETE FROM availability_slots WHERE provider_id = ANY(provider_ids);
+  DELETE FROM commissions WHERE provider_id = ANY(provider_ids);
+  DELETE FROM invoices WHERE provider_id = ANY(provider_ids);
   DELETE FROM conversations WHERE participant_a = target_user_id OR participant_b = target_user_id;
   DELETE FROM messages WHERE sender_id = target_user_id;
-  DELETE FROM conversation_participants WHERE user_id = target_user_id;
   DELETE FROM favorites WHERE user_id = target_user_id;
   DELETE FROM reviews WHERE author_id = target_user_id;
   DELETE FROM notifications WHERE user_id = target_user_id;
   DELETE FROM bookings WHERE client_id = target_user_id;
   DELETE FROM payments WHERE user_id = target_user_id;
   DELETE FROM invoices WHERE client_id = target_user_id;
-  DELETE FROM invoices WHERE provider_id IN (SELECT id FROM provider_profiles WHERE user_id = target_user_id);
-  DELETE FROM availability_slots WHERE provider_id IN (SELECT id FROM provider_profiles WHERE user_id = target_user_id);
-  DELETE FROM portfolio_items WHERE provider_id IN (SELECT id FROM provider_profiles WHERE user_id = target_user_id);
   DELETE FROM user_settings WHERE user_id = target_user_id;
   DELETE FROM user_interactions WHERE user_id = target_user_id;
-  DELETE FROM reports WHERE reporter_id = target_user_id OR reported_user_id = target_user_id;
-  DELETE FROM commissions WHERE provider_id IN (SELECT id FROM provider_profiles WHERE user_id = target_user_id);
+  DELETE FROM reports WHERE reporter_id = target_user_id;
+  DELETE FROM provider_profiles WHERE id = ANY(provider_ids);
+  DELETE FROM profiles WHERE id = target_user_id;
   
   -- Delete from auth.users (this is the critical step)
   DELETE FROM auth.users WHERE id = target_user_id;
@@ -169,7 +190,7 @@ END;
 $$;
 
 -- Grant execute permission to authenticated users
+REVOKE ALL ON FUNCTION delete_user_by_email_complete(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION delete_user_by_email_complete(TEXT) TO authenticated;
 
--- Run cleanup immediately
-SELECT cleanup_orphaned_auth_users();
+-- Cleanup is intentionally not executed during migration. Run it explicitly as an admin.
