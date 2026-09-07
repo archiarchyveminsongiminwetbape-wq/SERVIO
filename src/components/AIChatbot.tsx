@@ -138,7 +138,9 @@ export default function AIChatbot() {
     const searchTerms = getWords(query)
       .filter(word => !SEARCH_TERMS.has(word))
       .slice(0, 3);
-    if (searchTerms.length === 0) return null;
+    if (searchTerms.length === 0) {
+      return 'Je peux vous aider a trouver un prestataire. Indiquez le service recherche et, si besoin, votre ville ou si vous souhaitez un service a distance.';
+    }
 
     const safeTerms = searchTerms.map(term => term.replace(/[%(),]/g, ''));
     const filters = safeTerms.flatMap(term => [
@@ -180,9 +182,7 @@ export default function AIChatbot() {
         getWords(example).reduce((total, exampleWord) => total + (words.some(word => wordsMatch(word, exampleWord)) ? 1 : 0), 0),
       ));
       const score = keywordScore + (exampleScore >= 2 ? 2 : 0);
-      const hasSpecificKeyword = item.keywords.some(keyword => keyword.length >= 8 && words.some(word => wordsMatch(word, keyword)));
-      const hasMatchingExample = exampleScore >= 2;
-      if ((score >= 2 || hasSpecificKeyword || hasMatchingExample) && (!bestMatch || score > bestMatch.score)) {
+      if (score >= 2 && (!bestMatch || score > bestMatch.score)) {
         bestMatch = { score, answer: item.answer };
       }
     }
