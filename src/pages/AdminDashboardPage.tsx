@@ -213,20 +213,20 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-        },
-        body: JSON.stringify({ userId }),
+      // Use RPC function for complete user deletion
+      const { data, error } = await supabase.rpc('delete_user_by_email_complete', {
+        user_email: userEmail
       });
 
-      const data = await response.json();
+      if (error) {
+        console.error('Error deleting user:', error);
+        alert('Erreur lors de la suppression de l\'utilisateur: ' + error.message);
+        return;
+      }
 
-      if (!response.ok) {
-        console.error('Error calling delete-user API:', data);
-        alert(data.error || 'Erreur lors de la suppression de l\'utilisateur.');
+      if (!data || !data.success) {
+        console.error('Error deleting user:', data);
+        alert(data?.message || 'Erreur lors de la suppression de l\'utilisateur.');
         return;
       }
 
