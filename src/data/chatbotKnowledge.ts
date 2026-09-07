@@ -1,8 +1,9 @@
 export interface ChatbotKnowledgeEntry {
   question: string;
   answer: string;
-  intent: string;
+  category: string;
   keywords: string[];
+  priority?: number;
 }
 
 interface KnowledgeIntent {
@@ -70,8 +71,9 @@ const buildKnowledgeBase = (): ChatbotKnowledgeEntry[] => knowledgeIntents.flatM
   questionOpeners.flatMap(opener => questionClosers.map(closer => ({
     question: `${opener} ${item.subject}${closer ? ` ${closer}` : ''} ?`,
     answer: item.answer,
-    intent: item.intent,
+    category: item.intent.split('.')[0], // Extract category from intent (e.g., 'account' from 'account.create')
     keywords: item.keywords,
+    priority: 5,
   }))),
 );
 

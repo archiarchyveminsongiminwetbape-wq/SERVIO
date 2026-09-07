@@ -105,10 +105,11 @@ export default function AIChatbot() {
     let isMounted = true;
 
     supabase
-      .from('chatbot_knowledge')
-      .select('question, answer, intent, keywords')
+      .from('chatbot_qa')
+      .select('question, answer, category, keywords, priority')
       .eq('is_active', true)
-      .limit(2000)
+      .order('priority', { ascending: false })
+      .limit(200)
       .then(({ data, error }) => {
         if (error) {
           console.warn('Supabase chatbot knowledge unavailable, using local knowledge:', error.message);
