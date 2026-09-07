@@ -167,16 +167,21 @@ export default function MessagesPage() {
 
   async function loadMessages(conv: Conversation) {
     setSelectedConv(conv);
-    
-    // Load messages without attachments first
-    const { data: messagesData } = await supabase
+
+    // Load messages with all columns
+    const { data: messagesData, error } = await supabase
       .from('messages')
-      .select('id, conversation_id, sender_id, content, created_at, read_at')
+      .select('id, conversation_id, sender_id, content, attachment_url, created_at, read_at')
       .eq('conversation_id', conv.id)
       .order('created_at', { ascending: true });
 
+    if (error) {
+      console.error('Error loading messages:', error);
+      return;
+    }
+
     const msgs = messagesData as Message[] ?? [];
-    
+
     // Load attachments for each message separately
     const messagesWithAttachments = await Promise.all(
       msgs.map(async (msg) => {
@@ -184,7 +189,7 @@ export default function MessagesPage() {
           .from('message_attachments')
           .select('*')
           .eq('message_id', msg.id);
-        
+
         return {
           ...msg,
           attachments: attachments as MessageAttachment[] || []
