@@ -37,6 +37,11 @@ self.addEventListener('activate', (event) => {
 
 // Interception des requêtes
 self.addEventListener('fetch', (event) => {
+  // Ne pas intercepter les requêtes API Supabase
+  if (event.request.url.includes('supabase.co') || event.request.url.includes('api/')) {
+    return;
+  }
+
   if (event.request.mode === 'navigate' || event.request.destination === 'script' || event.request.destination === 'style') {
     event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
     return;
