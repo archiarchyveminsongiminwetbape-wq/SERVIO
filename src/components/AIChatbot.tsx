@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Bot, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { HfInference } from '@huggingface/inference';
 import { supabase } from '@/lib/supabase';
-import { CHATBOT_KNOWLEDGE_BASE } from '@/data/chatbotKnowledge';
+import { CHATBOT_KNOWLEDGE_BASE, type ChatbotKnowledgeEntry } from '@/data/chatbotKnowledge';
 
 const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY || '');
 
@@ -89,6 +89,7 @@ export default function AIChatbot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<Record<number, 'up' | 'down'>>({});
+  const [remoteKnowledge, setRemoteKnowledge] = useState<ChatbotKnowledgeEntry[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -99,6 +100,29 @@ export default function AIChatbot() {
     scrollToBottom();
     localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages.slice(-20)));
   }, [messages]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    supabase
+      .from('chatbot_knowledge')
+      .select('question, answer, intent, keywords')
+      .eq('is_active', true)
+      .limit(2000)
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('Supabase chatbot knowledge unavailable, using local knowledge:', error.message);
+          return;
+        }
+        if (isMounted && data?.length) {
+          setRemoteKnowledge(data as ChatbotKnowledgeEntry[]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const clearConversation = () => {
     setMessages([INITIAL_MESSAGE]);
@@ -171,7 +195,8 @@ export default function AIChatbot() {
     if (queryWords.length < 2) return null;
 
     let bestMatch: { score: number; answer: string } | null = null;
-    for (const entry of CHATBOT_KNOWLEDGE_BASE) {
+    const knowledgeBase = remoteKnowledge.length > 0 ? remoteKnowledge : CHATBOT_KNOWLEDGE_BASE;
+    for (const entry of knowledgeBase) {
       const entryWords = getWords(entry.question);
       const score = queryWords.reduce(
         (total, queryWord) => total + (entryWords.some(entryWord => wordsMatch(queryWord, entryWord)) ? 1 : 0),
