@@ -132,13 +132,21 @@ export default function ProviderProfilePage() {
         avatar_url: provData.avatar_url || ownerAvatarUrl,
       });
 
-      // Increment view count
-      await supabase.rpc('increment_profile_views', { profile_id: provData.id }).then(() => {});
+      // Increment and display the new profile view count immediately.
+      const { data: updatedProfileViews, error: profileViewsError } = await supabase.rpc(
+        'increment_profile_views',
+        { p_profile_id: provData.id },
+      );
+      if (profileViewsError) {
+        console.error('Error incrementing profile views:', profileViewsError);
+      } else if (typeof updatedProfileViews === 'number') {
+        setProvider((current) => current ? { ...current, profile_views: updatedProfileViews } : current);
+      }
 
       // Track portfolio views if available
       const portRes = await supabase
         .from('portfolio_items')
-        .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at')
+        .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, views, created_at')
         .eq('provider_id', provData.id)
         .order('sort_order');
 
@@ -147,9 +155,21 @@ export default function ProviderProfilePage() {
       // Increment portfolio item views without blocking the page render.
       if (portRes.data && portRes.data.length > 0) {
         void Promise.all(
-          portRes.data.map((item) =>
-            supabase.rpc('increment_portfolio_views', { item_id: item.id }),
-          ),
+          portRes.data.map(async (item) => {
+            const { data: updatedViews, error: viewsError } = await supabase.rpc(
+              'increment_portfolio_views',
+              { p_item_id: item.id },
+            );
+            if (viewsError) {
+              console.error('Error incrementing portfolio views:', viewsError);
+              return;
+            }
+            setPortfolio((current) => current.map((portfolioItem) =>
+              portfolioItem.id === item.id
+                ? { ...portfolioItem, views: updatedViews }
+                : portfolioItem,
+            ));
+          }),
         );
       }
 
