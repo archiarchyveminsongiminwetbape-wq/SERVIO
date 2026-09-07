@@ -75,9 +75,9 @@ export default defineConfig({
         },
       },
       treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        unknownGlobalSideEffects: false,
+        // Keep dynamically imported React routes and their side effects intact.
+        moduleSideEffects: true,
+        propertyReadSideEffects: true,
       },
     },
     chunkSizeWarningLimit: 500,
