@@ -1,6 +1,6 @@
 import { Translations } from '../types';
 
-export const fr: Translations = {
+export const fr: Partial<Translations> = {
   common: {
     loading: 'Chargement...',
     error: 'Erreur',
@@ -38,6 +38,16 @@ export const fr: Translations = {
     dashboard: 'Tableau de bord',
     settings: 'Paramètres',
     logout: 'Déconnexion',
+    changeLanguage: 'Changer de langue',
+    changeLanguageTo: 'Changer la langue vers',
+    openMenu: 'Ouvrir le menu',
+    closeMenu: 'Fermer le menu',
+    explore: 'Explorer',
+    favorites: 'Favoris',
+    messages: 'Messages',
+    notifications: 'Notifications',
+    myProfile: 'Mon profil',
+    myFavorites: 'Mes favoris',
   },
   auth: {
     login: 'Connexion',

@@ -72,8 +72,8 @@ export class RecommendationEngine {
 
     // Filtrer par plage de prix si spécifié
     if (context.priceRange) {
-      // Implementation would depend on how price_range is stored
-      // query = query.gte('price_min', context.priceRange.min).lte('price_max', context.priceRange.max);
+      // price_range is legacy text (for example "50-100" or "€€"); rank
+      // compatible numeric ranges locally after the database query.
     }
 
     const { data, error } = await query;
@@ -83,7 +83,16 @@ export class RecommendationEngine {
       return [];
     }
 
-    return data || [];
+    const providers = data || [];
+    if (!context.priceRange) return providers;
+
+    return providers.filter((provider) => {
+      const priceRange = String(provider.price_range || '').match(/(\d+)\s*[-–]\s*(\d+)/);
+      if (!priceRange) return true;
+      const minimum = Number(priceRange[1]);
+      const maximum = Number(priceRange[2]);
+      return maximum >= context.priceRange!.min && minimum <= context.priceRange!.max;
+    });
   }
 
   /**

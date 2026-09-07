@@ -4,7 +4,7 @@ import {
   LayoutDashboard, FolderOpen, MessageSquare, BarChart3, Settings,
   Loader2, Plus, Trash2, Edit3, Save, X, Eye, EyeOff, AlertCircle,
   CheckCircle2, Clock, XCircle, Upload, Star, TrendingUp, Users, MessageCircle, Globe, CreditCard, Calendar, MapPin,
-  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon, BadgeCheck, Check,
+  Play, Code, FileText, ExternalLink, Camera, Image as ImageIcon, BadgeCheck, Check, Send,
   Download, Printer
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -1213,20 +1213,20 @@ export default function ProviderDashboardPage() {
       
       // Provider info
       pdf.setFontSize(14);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text('De:', pageWidth - 20, 60, { align: 'right' });
       pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont('helvetica', 'normal');
       pdf.text(provider?.business_name || 'Votre Entreprise', pageWidth - 20, 70, { align: 'right' });
       if (provider?.city) pdf.text(provider.city, pageWidth - 20, 78, { align: 'right' });
       if (provider?.phone) pdf.text(provider.phone, pageWidth - 20, 86, { align: 'right' });
       
       // Client info
       pdf.setFontSize(14);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text('À:', 20, 100);
       pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont('helvetica', 'normal');
       pdf.text(metadata.client_name || invoice.client?.full_name || 'Client', 20, 110);
       if (metadata.client_address) {
         const addressLines = metadata.client_address.split('\n');
@@ -1239,7 +1239,7 @@ export default function ProviderDashboardPage() {
       // Items table
       let yPosition = 150;
       pdf.setFontSize(12);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Description', 20, yPosition);
       pdf.text('Qté', 120, yPosition);
       pdf.text('Prix unitaire', 140, yPosition);
@@ -1247,7 +1247,7 @@ export default function ProviderDashboardPage() {
       
       yPosition += 10;
       pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont('helvetica', 'normal');
       
       items.forEach((item: any, index: number) => {
         const itemTotal = item.quantity * item.unit_price;
@@ -1269,14 +1269,14 @@ export default function ProviderDashboardPage() {
       pdf.text(`TVA (${taxRate}%): ${taxAmount.toFixed(2)} ${invoice.currency}`, pageWidth - 20, yPosition, { align: 'right' });
       yPosition += 8;
       pdf.setFontSize(14);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text(`Total: ${total.toFixed(2)} ${invoice.currency}`, pageWidth - 20, yPosition, { align: 'right' });
       
       // Notes
       if (invoice.notes) {
         yPosition += 20;
         pdf.setFontSize(10);
-        pdf.setFont(undefined, 'normal');
+        pdf.setFont('helvetica', 'normal');
         pdf.text('Notes:', 20, yPosition);
         yPosition += 8;
         const noteLines = pdf.splitTextToSize(invoice.notes, pageWidth - 40);

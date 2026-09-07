@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ChevronRight, ChevronLeft, Search, Heart, MessageSquare, Check, Sparkles, Briefcase, MapPin, Star } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Search, Heart, MessageSquare, Check, Sparkles, Briefcase, MapPin, Star, Eye } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { supabase } from '@/lib/supabase';

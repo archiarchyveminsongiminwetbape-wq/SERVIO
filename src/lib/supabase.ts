@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 export const supabaseEnv = {
   url: (import.meta.env.VITE_SUPABASE_URL || '').trim(),
   anonKey: (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim(),
-  serviceRoleKey: (import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '').trim(),
 };
 
 export const hasSupabaseConfig = Boolean(supabaseEnv.url && supabaseEnv.anonKey);
@@ -17,7 +16,6 @@ if (!hasSupabaseConfig) {
 export const getSupabaseConfig = () => ({
   url: supabaseEnv.url,
   anonKey: supabaseEnv.anonKey,
-  serviceRoleKey: supabaseEnv.serviceRoleKey,
 });
 
 export const supabase = createClient(

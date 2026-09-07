@@ -1,13 +1,8 @@
-import OpenAI from 'openai';
+import type OpenAI from 'openai';
 import { HfInference } from '@huggingface/inference';
 
-// Initialize OpenAI client (optional - requires API key)
-const openai = import.meta.env.VITE_OPENAI_API_KEY 
-  ? new OpenAI({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: true
-    })
-  : null;
+// OpenAI must be called from a server-side endpoint, never from the browser.
+const openai = null as OpenAI | null;
 
 // Initialize Hugging Face client (free, no API key required for basic models)
 const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY || '');
@@ -24,7 +19,7 @@ export async function generateServiceDescription(
 ): Promise<string> {
   try {
     // Use Hugging Face (free) if OpenAI key is not available
-    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    if (!import.meta.env.VITE_HUGGINGFACE_API_KEY) {
       const prompt = `Génère une description professionnelle et attrayante pour un service:
       - Nom du service: ${serviceName}
       - Catégorie: ${category}
@@ -48,38 +43,6 @@ export async function generateServiceDescription(
     }
 
     // Use OpenAI if key is available
-    if (openai) {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a professional copywriter specializing in service descriptions for a freelance platform. Write compelling, professional descriptions in French.'
-          },
-          {
-            role: 'user',
-            content: `Génère une description professionnelle et attrayante pour un service avec les détails suivants:
-          - Nom du service: ${serviceName}
-          - Catégorie: ${category}
-          - Compétences: ${skills.join(', ')}
-          - Expérience: ${experience}
-          - Public cible: ${targetAudience}
-          
-          La description doit être:
-          - Professionnelle et engageante
-          - En français
-          - Entre 150-250 mots
-          - Mettre en valeur les compétences et l'expérience
-          - Adaptée au public cible`
-          }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
-      });
-
-      return response.choices[0]?.message?.content || '';
-    }
-    
     // Fallback: return a simple description
     return `Service professionnel de ${category} avec ${skills.length > 0 ? skills.join(', ') : 'diverses compétences'}. ${experience ? `${experience} années d'expérience.` : ''} Spécialisé pour ${targetAudience}.`;
   } catch (error) {
@@ -94,7 +57,7 @@ export async function generateServiceDescription(
 export async function extractSkillsFromDescription(description: string): Promise<string[]> {
   try {
     // Use Hugging Face (free) if OpenAI key is not available
-    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    if (import.meta.env.VITE_HUGGINGFACE_API_KEY) {
       const prompt = `Extrais les compétences clés de cette description de service. Retourne uniquement une liste de compétences séparées par des virgules, sans autre texte:
       
       ${description}`;
@@ -114,29 +77,6 @@ export async function extractSkillsFromDescription(description: string): Promise
     }
 
     // Use OpenAI if key is available
-    if (openai) {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert in analyzing professional profiles. Extract key skills from descriptions.'
-          },
-          {
-            role: 'user',
-            content: `Extrais les compétences clés de cette description de service. Retourne uniquement une liste de compétences séparées par des virgules, sans autre texte:
-          
-          ${description}`
-          }
-        ],
-        max_tokens: 200,
-        temperature: 0.3
-      });
-
-      const skillsText = response.choices[0]?.message?.content || '';
-      return skillsText.split(',').map(s => s.trim()).filter(Boolean);
-    }
-    
     return [];
   } catch (error) {
     console.error('Error extracting skills:', error);

@@ -20,6 +20,8 @@ export interface Profile {
   phone: string | null;
   created_at: string;
   updated_at: string;
+  onboarding_completed?: boolean;
+  provider_profile_id?: string | null;
 }
 
 export interface Category {
@@ -195,24 +197,6 @@ export interface Booking {
   updated_at: string;
   client?: Profile | null;
   provider?: ProviderProfile | null;
-}
-
-export interface Invoice {
-  id: string;
-  booking_id: string;
-  client_id: string;
-  provider_id: string;
-  invoice_number: string;
-  amount: number;
-  currency: string;
-  status: InvoiceStatus;
-  due_date: string;
-  paid_at: string | null;
-  created_at: string;
-  updated_at: string;
-  client?: Profile | null;
-  provider?: ProviderProfile | null;
-  booking?: Booking | null;
 }
 
 export interface AvailabilitySlot {

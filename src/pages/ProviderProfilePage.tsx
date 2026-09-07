@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
   Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play, Edit3, Quote, BarChart3
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play, Video, Edit3, Quote, BarChart3
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -144,13 +144,14 @@ export default function ProviderProfilePage() {
 
       setPortfolio(portRes.data as PortfolioItem[] ?? []);
 
-      // Increment portfolio item views in background
-      // TODO: Create increment_portfolio_views RPC function in Supabase
-      // if (portRes.data && portRes.data.length > 0) {
-      //   portRes.data.forEach(async (item) => {
-      //     await supabase.rpc('increment_portfolio_views', { item_id: item.id }).then(() => {});
-      //   });
-      // }
+      // Increment portfolio item views without blocking the page render.
+      if (portRes.data && portRes.data.length > 0) {
+        void Promise.all(
+          portRes.data.map((item) =>
+            supabase.rpc('increment_portfolio_views', { item_id: item.id }),
+          ),
+        );
+      }
 
       const { data: completedBookings } = await supabase
         .from('bookings')

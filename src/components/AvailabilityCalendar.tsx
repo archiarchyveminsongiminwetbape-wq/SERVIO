@@ -183,7 +183,7 @@ export default function AvailabilityCalendar({
             {weekDays.map((day) => {
               const daySlots = getSlotsForDate(day);
               const isToday = new Date().toDateString() === day.toDateString();
-              const isPast = day < new Date().setHours(0, 0, 0, 0);
+              const isPast = day.getTime() < new Date().setHours(0, 0, 0, 0);
 
               return (
                 <div key={day.toDateString()} className="border border-neutral-200 rounded-lg overflow-hidden">
@@ -239,7 +239,7 @@ export default function AvailabilityCalendar({
               const daySlots = getSlotsForDate(day);
               const isToday = new Date().toDateString() === day.toDateString();
               const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-              const isPast = day < new Date().setHours(0, 0, 0, 0);
+              const isPast = day.getTime() < new Date().setHours(0, 0, 0, 0);
 
               return (
                 <div
