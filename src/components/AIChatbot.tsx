@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2, Bot } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Bot, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { HfInference } from '@huggingface/inference';
+import { supabase } from '@/lib/supabase';
 
 const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY || '');
 
@@ -31,6 +32,9 @@ const FAQ_KNOWLEDGE_BASE: KnowledgeIntent[] = [
 ];
 
 const QUICK_QUESTIONS = ['Comment réserver un service ?', 'Comment devenir prestataire ?', 'Je rencontre un problème de paiement'];
+const CHAT_HISTORY_KEY = 'servio-chatbot-history-v1';
+const SEARCH_TERMS = new Set(['cherche', 'chercher', 'trouve', 'trouver', 'prestataire', 'prestataires', 'professionnel', 'professionnels', 'service', 'services', 'besoin', 'veux', 'voudrais', 'dans', 'ville', 'a', 'au', 'en']);
+const INITIAL_MESSAGE: Message = { role: 'assistant', content: 'Bonjour ! Je suis l\'assistant virtuel SERVIO. Comment puis-je vous aider aujourd\'hui ?' };
 
 const normalizeText = (value: string) => value
   .toLowerCase()
@@ -72,11 +76,18 @@ const wordsMatch = (queryWord: string, keyword: string) => {
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Bonjour ! Je suis l\'assistant virtuel SERVIO. Comment puis-je vous aider aujourd\'hui ?' }
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const savedMessages = localStorage.getItem(CHAT_HISTORY_KEY);
+      const parsedMessages = savedMessages ? JSON.parse(savedMessages) as Message[] : [];
+      return parsedMessages.length > 0 ? parsedMessages.slice(-20) : [INITIAL_MESSAGE];
+    } catch {
+      return [INITIAL_MESSAGE];
+    }
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [feedback, setFeedback] = useState<Record<number, 'up' | 'down'>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -85,7 +96,51 @@ export default function AIChatbot() {
 
   useEffect(() => {
     scrollToBottom();
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages.slice(-20)));
   }, [messages]);
+
+  const clearConversation = () => {
+    setMessages([INITIAL_MESSAGE]);
+    setFeedback({});
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+  };
+
+  const findProviders = async (query: string): Promise<string | null> => {
+    const normalizedQuery = normalizeText(query);
+    const isProviderSearch = /(cherche|trouve|besoin|prestataire|professionnel|service)/.test(normalizedQuery);
+    if (!isProviderSearch) return null;
+
+    const searchTerms = getWords(query)
+      .filter(word => !SEARCH_TERMS.has(word))
+      .slice(0, 3);
+    if (searchTerms.length === 0) return null;
+
+    const safeTerms = searchTerms.map(term => term.replace(/[%(),]/g, ''));
+    const filters = safeTerms.flatMap(term => [
+      `business_name.ilike.%${term}%`,
+      `headline.ilike.%${term}%`,
+      `description.ilike.%${term}%`,
+      `city.ilike.%${term}%`,
+    ]).join(',');
+
+    const { data, error } = await supabase
+      .from('provider_profiles')
+      .select('business_name, slug, headline, city, rating_avg, rating_count')
+      .eq('validation_status', 'approved')
+      .or(filters)
+      .order('rating_avg', { ascending: false })
+      .limit(3);
+
+    if (error || !data?.length) return null;
+
+    const results = data.map(provider => {
+      const rating = provider.rating_count > 0 ? ` · ${Number(provider.rating_avg).toFixed(1)}/5` : '';
+      const location = provider.city ? ` · ${provider.city}` : '';
+      return `• ${provider.business_name}${location}${rating}\n  ${provider.headline || 'Profil professionnel SERVIO'}\n  /provider/${provider.slug}`;
+    }).join('\n');
+
+    return `J'ai trouvé ces prestataires approuvés qui peuvent correspondre à votre recherche :\n${results}\n\nOuvrez un profil pour vérifier les compétences, le tarif et les disponibilités avant de réserver.`;
+  };
 
   const checkFAQ = (query: string): string | null => {
     const words = getWords(query);
@@ -194,6 +249,13 @@ export default function AIChatbot() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
+    const providerResults = await findProviders(userMessage);
+    if (providerResults) {
+      setMessages(prev => [...prev, { role: 'assistant', content: providerResults }]);
+      setIsLoading(false);
+      return;
+    }
+
     // Check FAQ first
     const faqAnswer = checkFAQ(userMessage);
     
@@ -261,6 +323,28 @@ export default function AIChatbot() {
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {message.role === 'assistant' && index > 0 && !isLoading && (
+                <div className="mt-2 flex items-center gap-1 border-t border-neutral-200 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setFeedback(previous => ({ ...previous, [index]: 'up' }))}
+                    className={`rounded p-1 ${feedback[index] === 'up' ? 'text-primary-600' : 'text-neutral-400 hover:text-primary-600'}`}
+                    title="Réponse utile"
+                    aria-label="Réponse utile"
+                  >
+                    <ThumbsUp size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFeedback(previous => ({ ...previous, [index]: 'down' }))}
+                    className={`rounded p-1 ${feedback[index] === 'down' ? 'text-error-600' : 'text-neutral-400 hover:text-error-600'}`}
+                    title="Réponse à améliorer"
+                    aria-label="Réponse à améliorer"
+                  >
+                    <ThumbsDown size={13} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -276,6 +360,17 @@ export default function AIChatbot() {
 
       {/* Input */}
       <div className="p-4 border-t border-neutral-200">
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={clearConversation}
+            className="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-800"
+            title="Effacer la conversation"
+          >
+            <Trash2 size={13} />
+            Effacer
+          </button>
+        </div>
         {messages.length === 1 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {QUICK_QUESTIONS.map(question => (
