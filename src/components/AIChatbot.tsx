@@ -102,27 +102,9 @@ export default function AIChatbot() {
   }, [messages]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    supabase
-      .from('chatbot_qa')
-      .select('question, answer, category, keywords, priority')
-      .eq('is_active', true)
-      .order('priority', { ascending: false })
-      .limit(200)
-      .then(({ data, error }) => {
-        if (error) {
-          console.warn('Supabase chatbot knowledge unavailable, using local knowledge:', error.message);
-          return;
-        }
-        if (isMounted && data?.length) {
-          setRemoteKnowledge(data as ChatbotKnowledgeEntry[]);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    // Disable remote knowledge loading to avoid 401 errors
+    // Using local knowledge base only for now
+    setRemoteKnowledge([]);
   }, []);
 
   const clearConversation = () => {
