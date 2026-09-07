@@ -82,12 +82,12 @@ export default function AdminDashboardPage() {
       supabase.from('permissions').select('*'),
     ]);
 
-    setPendingProviders(pendingRes.data as ProviderProfile[] ?? []);
-    setAllProfiles(profilesRes.data as Profile[] ?? []);
-    setAllProviders(providersRes.data as ProviderProfile[] ?? []);
-    setReports(reportsRes.data as Report[] ?? []);
+    setPendingProviders(pendingRes.data as unknown as ProviderProfile[] ?? []);
+    setAllProfiles(profilesRes.data as unknown as Profile[] ?? []);
+    setAllProviders(providersRes.data as unknown as ProviderProfile[] ?? []);
+    setReports(reportsRes.data as unknown as Report[] ?? []);
     setCategories(catRes.data as Category[] ?? []);
-    setAuditLogs(auditRes.data as AdminAction[] ?? []);
+    setAuditLogs(auditRes.data as unknown as AdminAction[] ?? []);
     setCommissions(commissionsRes.data ?? []);
     setAdminRoles(rolesRes.data ?? []);
     setPermissions(permissionsRes.data ?? []);
@@ -369,7 +369,7 @@ export default function AdminDashboardPage() {
     { id: 'validation', label: t.admin.validation, icon: CheckCircle2, badge: pendingProviders.length },
     { id: 'users', label: t.admin.users, icon: Users },
     { id: 'categories', label: t.admin.categories, icon: FolderOpen },
-    { id: 'reports', label: t.admin.reports, icon: Flag, badge: reports.filter((r) => r.status === 'pending').length },
+    { id: 'reports', label: t.admin.reports, icon: Flag, badge: reports.filter((r) => r.status === 'open' || r.status === 'reviewing').length },
     { id: 'commissions', label: 'Commissions', icon: TrendingUp },
     { id: 'roles', label: 'Rôles', icon: Shield },
     { id: 'audit', label: t.admin.journal, icon: FileText },

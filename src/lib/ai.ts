@@ -1,11 +1,22 @@
-import type OpenAI from 'openai';
 import { HfInference } from '@huggingface/inference';
 
 // OpenAI must be called from a server-side endpoint, never from the browser.
-const openai = null as OpenAI | null;
+type OpenAIClient = {
+  chat: {
+    completions: {
+      create: (options: object) => Promise<{
+        choices: Array<{ message?: { content?: string | null } }>;
+      }>;
+    };
+  };
+};
+
+const openai = null as OpenAIClient | null;
+const hasHuggingFaceToken = () => false;
+const hasServerAI = () => false;
 
 // Initialize Hugging Face client (free, no API key required for basic models)
-const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY || '');
+const hf = new HfInference('');
 
 /**
  * Generate service description using AI (Hugging Face - Free)
@@ -19,7 +30,7 @@ export async function generateServiceDescription(
 ): Promise<string> {
   try {
     // Use Hugging Face (free) if OpenAI key is not available
-    if (!import.meta.env.VITE_HUGGINGFACE_API_KEY) {
+    if (!hasServerAI()) {
       const prompt = `Génère une description professionnelle et attrayante pour un service:
       - Nom du service: ${serviceName}
       - Catégorie: ${category}
@@ -57,7 +68,7 @@ export async function generateServiceDescription(
 export async function extractSkillsFromDescription(description: string): Promise<string[]> {
   try {
     // Use Hugging Face (free) if OpenAI key is not available
-    if (import.meta.env.VITE_HUGGINGFACE_API_KEY) {
+    if (hasHuggingFaceToken()) {
       const prompt = `Extrais les compétences clés de cette description de service. Retourne uniquement une liste de compétences séparées par des virgules, sans autre texte:
       
       ${description}`;
@@ -399,7 +410,7 @@ export async function analyzeImage(imageUrl: string): Promise<{
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_KEY || ''}`,
+          'Authorization': '',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ inputs: await blobToBase64(blob) })
@@ -501,7 +512,7 @@ export async function predictQuoteConversion(quoteData: {
 }> {
   try {
     // Use Hugging Face (free) if OpenAI key is not available
-    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    if (!hasServerAI()) {
       // Simple rule-based prediction for Hugging Face
       let probability = 50; // Base probability
       let riskFactors: string[] = [];
@@ -627,7 +638,7 @@ export async function optimizeQuotePricing(
 }> {
   try {
     // Use Hugging Face (free) if OpenAI key is not available
-    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    if (!hasServerAI()) {
       let suggestedPrice = currentPrice;
       let reason = 'Prix maintenu';
       let confidence = 70;

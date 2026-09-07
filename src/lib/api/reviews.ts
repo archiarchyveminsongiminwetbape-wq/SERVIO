@@ -15,7 +15,7 @@ export const reviewsApi = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return handleApiSuccess(data || []);
+      return handleApiSuccess((data || []) as unknown as Review[]);
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -120,7 +120,7 @@ export const reviewsApi = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return handleApiSuccess(data || []);
+      return handleApiSuccess((data || []) as unknown as Review[]);
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -209,7 +209,7 @@ export const reviewsApi = {
         .limit(limit);
 
       if (error) throw error;
-      return handleApiSuccess(data || []);
+      return handleApiSuccess((data || []) as unknown as Review[]);
     } catch (error) {
       return handleApiFailure(error);
     }

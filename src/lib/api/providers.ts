@@ -65,7 +65,7 @@ export const providersApi = {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
-      return handleApiSuccess(filterBlockedProviders(data || []));
+      return handleApiSuccess(filterBlockedProviders((data || []) as unknown as ProviderProfile[]));
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -83,7 +83,7 @@ export const providersApi = {
         .single();
 
       if (error) throw error;
-      return handleApiSuccess(data);
+      return handleApiSuccess(data as unknown as ProviderProfile);
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -101,7 +101,7 @@ export const providersApi = {
         .single();
 
       if (error) throw error;
-      return handleApiSuccess(data);
+      return handleApiSuccess(data as unknown as ProviderProfile);
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -246,7 +246,7 @@ export const providersApi = {
         .limit(20);
 
       if (error) throw error;
-      return handleApiSuccess(filterBlockedProviders(data || []));
+      return handleApiSuccess(filterBlockedProviders((data || []) as unknown as ProviderProfile[]));
     } catch (error) {
       return handleApiFailure(error);
     }
@@ -266,7 +266,7 @@ export const providersApi = {
         .limit(limit);
 
       if (error) throw error;
-      return handleApiSuccess(filterBlockedProviders(data || []));
+      return handleApiSuccess(filterBlockedProviders((data || []) as unknown as ProviderProfile[]));
     } catch (error) {
       return handleApiFailure(error);
     }

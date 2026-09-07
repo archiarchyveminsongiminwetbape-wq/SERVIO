@@ -135,7 +135,7 @@ export default function MessagesPage() {
       )
       .order('last_message_at', { ascending: false });
 
-    const convs = data as Conversation[] ?? [];
+    const convs = data as unknown as Conversation[] ?? [];
 
     // Load other participant profiles
     const enriched = await Promise.all(
@@ -180,7 +180,7 @@ export default function MessagesPage() {
       return;
     }
 
-    const msgs = messagesData as Message[] ?? [];
+    const msgs = messagesData as unknown as Message[] ?? [];
 
     // Load attachments for each message separately
     const messagesWithAttachments = await Promise.all(
@@ -451,7 +451,7 @@ export default function MessagesPage() {
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <MessageSquare size={40} className="text-neutral-300" />
                     <p className="mt-3 text-sm text-neutral-500">
-                      {t.messages.noMessages}
+                      {t.messages.noConversations}
                     </p>
                   </div>
                 ) : (

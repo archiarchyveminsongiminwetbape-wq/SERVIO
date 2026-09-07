@@ -67,7 +67,7 @@ export default function BookingPage() {
       .single();
     
     if (data) {
-      setProvider(data as ProviderProfile);
+      setProvider(data as unknown as ProviderProfile);
       loadAvailabilitySlots(data.id);
     }
     setLoading(false);

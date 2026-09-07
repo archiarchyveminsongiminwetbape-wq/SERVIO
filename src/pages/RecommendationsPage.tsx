@@ -40,7 +40,7 @@ export default function RecommendationsPage() {
           .select('id, business_name, slug, headline, avatar_url, banner_url, category_id, skills, rating_avg, rating_count, city, country, remote_service, availability, badges, price_range, is_featured, experience_years, languages, validation_status, category:categories(id, name, slug)')
           .in('id', providerIds);
 
-        setRecommendations(providers as ProviderProfile[] ?? []);
+        setRecommendations(providers as unknown as ProviderProfile[] ?? []);
       }
     } catch (error) {
       console.error('Error loading recommendations:', error);

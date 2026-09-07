@@ -171,7 +171,7 @@ export default function SearchPage() {
         throw fetchError;
       }
 
-      const providersData = (data as ProviderProfile[] ?? []).filter((provider) => {
+      const providersData = (data as unknown as ProviderProfile[] ?? []).filter((provider) => {
         if (provider.slug && BLOCKED_PROVIDER_SLUGS.has(provider.slug)) {
           return false;
         }

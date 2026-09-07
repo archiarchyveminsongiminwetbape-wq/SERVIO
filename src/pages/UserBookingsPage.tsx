@@ -32,7 +32,7 @@ export default function UserBookingsPage() {
       .order('scheduled_at', { ascending: true });
 
     if (data) {
-      setBookings(data as Booking[]);
+      setBookings(data as unknown as Booking[]);
     }
     setLoading(false);
   }

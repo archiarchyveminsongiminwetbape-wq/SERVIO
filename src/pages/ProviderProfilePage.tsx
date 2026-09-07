@@ -201,7 +201,7 @@ export default function ProviderProfilePage() {
         ...review,
         author: authorMap.get(review.author_id) ?? null,
       }));
-      setReviews(reviewsWithAuthors);
+      setReviews(reviewsWithAuthors as unknown as Review[]);
 
       // Load testimonials
       const { data: testimonialsData } = await supabase

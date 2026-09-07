@@ -90,7 +90,7 @@ export default function ProviderProjectsPage() {
 
       const { data } = await query.order('scheduled_at', { ascending: false });
       
-      let filteredData = data as Booking[] ?? [];
+      let filteredData = data as unknown as Booking[] ?? [];
       
       if (searchQuery) {
         const queryLower = searchQuery.toLowerCase();

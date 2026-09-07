@@ -52,7 +52,7 @@ export default function PortfolioItemDetailPage() {
         .single();
 
       if (providerData) {
-        setProvider(providerData as ProviderProfile);
+        setProvider(providerData as unknown as ProviderProfile);
       }
 
       // Increment view count

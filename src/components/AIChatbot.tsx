@@ -4,7 +4,7 @@ import { HfInference } from '@huggingface/inference';
 import { supabase } from '@/lib/supabase';
 import { CHATBOT_KNOWLEDGE_BASE, type ChatbotKnowledgeEntry } from '@/data/chatbotKnowledge';
 
-const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY || '');
+const hf = new HfInference('');
 
 interface Message {
   role: 'user' | 'assistant';
