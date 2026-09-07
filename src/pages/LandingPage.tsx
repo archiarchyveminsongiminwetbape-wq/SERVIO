@@ -34,8 +34,9 @@ export default function LandingPage() {
         <div className="absolute inset-0 opacity-20">
           <img
             src="/images/background.jpg"
-            alt=""
+            alt="Arrière-plan SERVIO - Plateforme de services"
             className="h-full w-full object-cover"
+            loading="eager"
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900/60 via-primary-900/30 to-transparent" />

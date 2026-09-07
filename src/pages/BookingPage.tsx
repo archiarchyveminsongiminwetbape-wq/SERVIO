@@ -314,7 +314,7 @@ export default function BookingPage() {
           <div className="overflow-hidden rounded-[28px] border border-primary-100 bg-gradient-to-br from-primary-50 via-white to-cyan-50 p-4 shadow-[0_24px_60px_rgba(59,130,246,0.12)] sm:p-6">
             <div className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-white p-1 shadow-md sm:h-24 sm:w-24">
               {provider.avatar_url ? (
-                <img src={provider.avatar_url} alt="" className="h-full w-full rounded-[22px] object-cover" />
+                <img src={provider.avatar_url} alt={`Avatar de ${provider.business_name}`} className="h-full w-full rounded-[22px] object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center rounded-[22px] bg-gradient-to-br from-primary-500 to-primary-600 text-2xl sm:text-3xl font-bold text-white">
                   {provider.business_name[0]}

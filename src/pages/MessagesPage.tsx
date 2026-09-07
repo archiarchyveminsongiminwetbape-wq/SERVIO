@@ -383,7 +383,7 @@ export default function MessagesPage() {
                   >
                     <div className="relative flex-shrink-0">
                       {conv.other_user?.avatar_url ? (
-                        <img src={conv.other_user.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
+                        <img src={conv.other_user.avatar_url} alt={`Avatar de ${conv.other_user?.full_name || conv.other_provider?.business_name || 'utilisateur'}`} className="h-12 w-12 rounded-full object-cover" />
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
                           {conv.other_user?.full_name?.[0]?.toUpperCase() ?? conv.other_provider?.business_name?.[0]?.toUpperCase() ?? '?'}
@@ -424,7 +424,7 @@ export default function MessagesPage() {
                 <ArrowLeft size={20} />
               </button>
               {selectedConv.other_user?.avatar_url ? (
-                <img src={selectedConv.other_user.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover flex-shrink-0" />
+                <img src={selectedConv.other_user.avatar_url} alt={`Avatar de ${selectedConv.other_user?.full_name || selectedConv.other_provider?.business_name || 'utilisateur'}`} className="h-10 w-10 rounded-full object-cover flex-shrink-0" />
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700 flex-shrink-0">
                   {selectedConv.other_user?.full_name?.[0]?.toUpperCase() ?? '?'}

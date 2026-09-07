@@ -250,7 +250,7 @@ function Navbar() {
                   aria-label={t.user.profile}
                 >
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    <img src={profile.avatar_url} alt={`Avatar de ${profile.full_name || 'utilisateur'}`} className="h-8 w-8 rounded-full object-cover" />
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
                       {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}

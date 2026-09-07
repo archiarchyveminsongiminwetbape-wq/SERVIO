@@ -520,7 +520,7 @@ export default function AdminDashboardPage() {
                       className="mt-1 h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                     />
                     {prov.avatar_url ? (
-                      <img src={prov.avatar_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                      <img src={prov.avatar_url} alt={`Avatar de ${prov.business_name}`} className="h-14 w-14 rounded-xl object-cover" />
                     ) : (
                       <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-100 text-lg font-bold text-primary-700">
                         {prov.business_name[0]?.toUpperCase()}
@@ -667,7 +667,7 @@ export default function AdminDashboardPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {p.avatar_url ? (
-                          <img src={p.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+                          <img src={p.avatar_url} alt={`Avatar de ${p.full_name}`} className="h-9 w-9 rounded-full object-cover" />
                         ) : (
                           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-sm font-semibold text-neutral-600">
                             {p.full_name?.[0]?.toUpperCase() ?? '?'}
