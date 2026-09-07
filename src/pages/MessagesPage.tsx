@@ -25,6 +25,7 @@ export default function MessagesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const quickReplies = [
     t.provider.message.quickReplies.reply1,
@@ -127,13 +128,22 @@ export default function MessagesPage() {
   async function loadConversations() {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
+    setLoadError(null);
+    const { data, error } = await supabase
       .from('conversations')
       .select('id, participant_a, participant_b, user_id, provider_id, last_message_preview, last_message_at, created_at')
       .or(
         `participant_a.eq.${user.id},participant_b.eq.${user.id},user_id.eq.${user.id},provider_id.eq.${user.id}`
       )
       .order('last_message_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading conversations:', error);
+      setLoadError('Impossible de charger les conversations. Vérifiez que la migration de messagerie est appliquée.');
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
 
     const convs = data as unknown as Conversation[] ?? [];
 
@@ -167,16 +177,34 @@ export default function MessagesPage() {
 
   async function loadMessages(conv: Conversation) {
     setSelectedConv(conv);
+    setMessages([]);
 
-    // Load messages with all columns
-    const { data: messagesData, error } = await supabase
+    const modernMessages = await supabase
       .from('messages')
       .select('id, conversation_id, sender_id, content, attachment_url, created_at, read_at')
       .eq('conversation_id', conv.id)
       .order('created_at', { ascending: true });
 
+    let messagesData = modernMessages.data as Array<Message & { read?: boolean }> | null;
+    let error = modernMessages.error;
+
+    // Legacy deployments used a boolean `read` column instead of `read_at`.
+    if (error) {
+      const legacyMessages = await supabase
+        .from('messages')
+        .select('id, conversation_id, sender_id, content, created_at, read')
+        .eq('conversation_id', conv.id)
+        .order('created_at', { ascending: true });
+      error = legacyMessages.error;
+      messagesData = (legacyMessages.data || []).map((message) => ({
+        ...message,
+        read_at: message.read ? message.created_at : null,
+      })) as Array<Message & { read?: boolean }>;
+    }
+
     if (error) {
       console.error('Error loading messages:', error);
+      setLoadError('Impossible de charger cet historique de messages.');
       return;
     }
 
@@ -345,6 +373,12 @@ export default function MessagesPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
       <h1 className="mb-4 text-2xl font-bold text-neutral-900">{t.messages.title}</h1>
+
+      {loadError && (
+        <div className="mb-4 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700">
+          {loadError}
+        </div>
+      )}
 
       <div className="card flex h-[calc(100vh-180px)] min-h-[500px] overflow-hidden flex-col md:flex-row">
         {/* Conversations list */}
