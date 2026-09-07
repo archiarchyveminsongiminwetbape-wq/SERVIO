@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Bot, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { HfInference } from '@huggingface/inference';
 import { supabase } from '@/lib/supabase';
+import { CHATBOT_KNOWLEDGE_BASE } from '@/data/chatbotKnowledge';
 
 const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY || '');
 
@@ -165,6 +166,27 @@ export default function AIChatbot() {
     return bestMatch?.answer ?? null;
   };
 
+  const checkExpandedKnowledge = (query: string): string | null => {
+    const queryWords = getWords(query);
+    if (queryWords.length < 2) return null;
+
+    let bestMatch: { score: number; answer: string } | null = null;
+    for (const entry of CHATBOT_KNOWLEDGE_BASE) {
+      const entryWords = getWords(entry.question);
+      const score = queryWords.reduce(
+        (total, queryWord) => total + (entryWords.some(entryWord => wordsMatch(queryWord, entryWord)) ? 1 : 0),
+        0,
+      );
+      const keywordBonus = entry.keywords.some(keyword => queryWords.some(word => wordsMatch(word, keyword))) ? 1 : 0;
+      const weightedScore = score + keywordBonus;
+      if (weightedScore >= 3 && (!bestMatch || weightedScore > bestMatch.score)) {
+        bestMatch = { score: weightedScore, answer: entry.answer };
+      }
+    }
+
+    return bestMatch?.answer ?? null;
+  };
+
   const getReliableFallback = (userMessage: string): string => {
     const message = normalizeText(userMessage);
     if (/\b(bonjour|salut|bonsoir|coucou|hello)\b/.test(message)) {
@@ -256,8 +278,8 @@ export default function AIChatbot() {
       return;
     }
 
-    // Check FAQ first
-    const faqAnswer = checkFAQ(userMessage);
+    // Check the curated knowledge base before using the generative model.
+    const faqAnswer = checkFAQ(userMessage) ?? checkExpandedKnowledge(userMessage);
     
     if (faqAnswer) {
       setMessages(prev => [...prev, { role: 'assistant', content: faqAnswer }]);
