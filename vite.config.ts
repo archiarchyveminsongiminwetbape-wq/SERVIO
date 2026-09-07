@@ -74,6 +74,11 @@ export default defineConfig({
           }
         },
       },
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        unknownGlobalSideEffects: false,
+      },
     },
     chunkSizeWarningLimit: 500,
     minify: 'terser',
@@ -94,6 +99,10 @@ export default defineConfig({
         if_return: true,
         join_vars: true,
         side_effects: true,
+        passes: 2,
+      },
+      mangle: {
+        safari10: true,
       },
     },
     assetsInlineLimit: 4096,

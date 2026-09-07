@@ -33,12 +33,14 @@ body {
   transform: rotateX(8deg) rotateY(-9deg);
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
   backdrop-filter: blur(16px);
+  will-change: transform;
 }
 
 .floating-panel {
   animation: float 8s ease-in-out infinite;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
   backdrop-filter: blur(12px);
+  will-change: transform;
 }
 
 .floating-panel.delay-1 {

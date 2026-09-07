@@ -37,9 +37,12 @@ const QuotesPage = lazy(() => import('@/pages/QuotesPage'));
 const prefetchRoutes = () => {
   if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
     window.requestIdleCallback(() => {
+      // Prefetch most likely next pages
       import('@/pages/SearchPage');
       import('@/pages/LoginPage');
       import('@/pages/SignupPage');
+      import('@/pages/ProviderProfilePage');
+      import('@/pages/BookingPage');
     });
   }
 };
