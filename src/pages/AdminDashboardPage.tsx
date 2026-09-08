@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield, Users, FolderOpen, Flag, BarChart3, Loader2,
   CheckCircle2, XCircle, Clock, AlertCircle, Eye, Ban,
-  Search, Check, FileText, TrendingUp, Plus, Trash2, Edit3, Save, X, PanelLeftClose
+  Search, Check, FileText, TrendingUp, Plus, Trash2, Edit3, Save, X, PanelLeftClose, CreditCard, RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +12,7 @@ import type { ProviderProfile, Profile, Report, Category, AdminAction } from '@/
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import CategoryIcon from '@/components/CategoryIcon';
 
-type Tab = 'stats' | 'validation' | 'users' | 'reports' | 'categories' | 'audit' | 'commissions' | 'roles';
+type Tab = 'stats' | 'validation' | 'users' | 'reports' | 'categories' | 'audit' | 'commissions' | 'roles' | 'payments';
 
 export default function AdminDashboardPage() {
   const { t } = useI18n();
@@ -51,6 +51,13 @@ export default function AdminDashboardPage() {
   const [selectedUserForRole, setSelectedUserForRole] = useState<string | null>(null);
   const [newRole, setNewRole] = useState('');
 
+  // Payments states
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'completed' | 'failed' | 'refunded'>('all');
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [refundReason, setRefundReason] = useState('');
+  const [showRefundModal, setShowRefundModal] = useState(false);
+
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -69,7 +76,7 @@ export default function AdminDashboardPage() {
 
   async function loadAllData() {
     setLoading(true);
-    const [pendingRes, profilesRes, providersRes, reportsRes, statsRes, catRes, auditRes, commissionsRes, rolesRes, permissionsRes] = await Promise.all([
+    const [pendingRes, profilesRes, providersRes, reportsRes, statsRes, catRes, auditRes, commissionsRes, rolesRes, permissionsRes, paymentsRes] = await Promise.all([
       supabase.from('provider_profiles').select('id, user_id, business_name, headline, description, avatar_url, city, skills, badges, validation_status, validation_note, category_id, category:categories(id, name, slug)').eq('validation_status', 'pending').order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email, avatar_url, role, admin_role, status, created_at').order('created_at', { ascending: false }),
       supabase.from('provider_profiles').select('id, user_id, business_name, headline, avatar_url, city, skills, badges, validation_status, validation_note, phone, website, price_range, category_id, category:categories(id, name, slug)').order('created_at', { ascending: false }),
@@ -80,6 +87,7 @@ export default function AdminDashboardPage() {
       supabase.from('commissions').select('id, booking_id, provider_id, amount, commission_rate, commission_amount, status, created_at, released_at, provider:provider_profiles(business_name, user_id)').order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email, admin_role, role').eq('role', 'admin'),
       supabase.from('permissions').select('*'),
+      supabase.from('payments').select('id, booking_id, user_id, amount, currency, status, payment_method, payment_provider, provider_payment_id, metadata, created_at, completed_at, failed_at, refunded_at, refund_reason, user:profiles(full_name, email)').order('created_at', { ascending: false }),
     ]);
 
     setPendingProviders(pendingRes.data as unknown as ProviderProfile[] ?? []);
@@ -91,6 +99,7 @@ export default function AdminDashboardPage() {
     setCommissions(commissionsRes.data ?? []);
     setAdminRoles(rolesRes.data ?? []);
     setPermissions(permissionsRes.data ?? []);
+    setPayments(paymentsRes.data ?? []);
     if (statsRes.data) {
       setStats(statsRes.data as typeof stats);
     }
@@ -351,6 +360,88 @@ export default function AdminDashboardPage() {
     setActionLoading(false);
   }
 
+  // Payment management functions
+  async function refundPayment(paymentId: string) {
+    if (!user || !refundReason) return;
+    setActionLoading(true);
+
+    try {
+      const response = await fetch('/api/admin/refund-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId,
+          reason: refundReason,
+          adminId: user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Refund failed');
+      }
+
+      await logAdminAction('refund_payment', 'payment', paymentId, `Reason: ${refundReason}`);
+      setShowRefundModal(false);
+      setRefundReason('');
+      setSelectedPayment(null);
+      await loadAllData();
+    } catch (error) {
+      console.error('Refund error:', error);
+      alert('Erreur lors du remboursement: ' + (error instanceof Error ? error.message : 'Erreur inconnue'));
+    }
+    setActionLoading(false);
+  }
+
+  async function retryPayment(paymentId: string) {
+    if (!user) return;
+    setActionLoading(true);
+
+    try {
+      const response = await fetch('/api/admin/retry-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId,
+          adminId: user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Retry failed');
+      }
+
+      await logAdminAction('retry_payment', 'payment', paymentId, 'Payment retried');
+      await loadAllData();
+    } catch (error) {
+      console.error('Retry error:', error);
+      alert('Erreur lors de la tentative: ' + (error instanceof Error ? error.message : 'Erreur inconnue'));
+    }
+    setActionLoading(false);
+  }
+
+  async function updatePaymentStatus(paymentId: string, status: string) {
+    if (!user) return;
+    setActionLoading(true);
+
+    const { error } = await supabase
+      .from('payments')
+      .update({
+        status,
+        updated_at: new Date().toISOString(),
+        ...(status === 'completed' && { completed_at: new Date().toISOString() }),
+        ...(status === 'failed' && { failed_at: new Date().toISOString() }),
+      })
+      .eq('id', paymentId);
+
+    if (!error) {
+      await logAdminAction('update_payment_status', 'payment', paymentId, `New status: ${status}`);
+      await loadAllData();
+    }
+    setActionLoading(false);
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -370,6 +461,7 @@ export default function AdminDashboardPage() {
     { id: 'users', label: t.admin.users, icon: Users },
     { id: 'categories', label: t.admin.categories, icon: FolderOpen },
     { id: 'reports', label: t.admin.reports, icon: Flag, badge: reports.filter((r) => r.status === 'open' || r.status === 'reviewing').length },
+    { id: 'payments', label: 'Paiements', icon: CreditCard, badge: payments.filter((p) => p.status === 'pending' || p.status === 'processing').length },
     { id: 'commissions', label: 'Commissions', icon: TrendingUp },
     { id: 'roles', label: 'Rôles', icon: Shield },
     { id: 'audit', label: t.admin.journal, icon: FileText },
@@ -1116,6 +1208,204 @@ export default function AdminDashboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payments management */}
+      {tab === 'payments' && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-neutral-900">Gestion des paiements Stripe ({payments.length})</h3>
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value as any)}
+              className="rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:border-primary-500 focus:outline-none"
+            >
+              <option value="all">Tous</option>
+              <option value="pending">En attente</option>
+              <option value="processing">En cours</option>
+              <option value="completed">Complétés</option>
+              <option value="failed">Échoués</option>
+              <option value="refunded">Remboursés</option>
+            </select>
+          </div>
+
+          {payments.length === 0 ? (
+            <div className="card flex flex-col items-center justify-center py-16 text-center">
+              <CreditCard size={48} className="text-neutral-300" />
+              <p className="mt-3 text-sm text-neutral-500">Aucun paiement</p>
+            </div>
+          ) : (
+            <div className="card overflow-hidden">
+              <table className="w-full">
+                <thead className="border-b border-neutral-200 bg-neutral-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Client</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Montant</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Méthode</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Provider</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Statut</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600">Date</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {payments
+                    .filter(p => paymentFilter === 'all' || p.status === paymentFilter)
+                    .map((payment) => (
+                    <tr key={payment.id} className="hover:bg-neutral-50">
+                      <td className="px-4 py-3 text-xs font-mono text-neutral-600">
+                        {payment.id.slice(0, 8)}...
+                      </td>
+                      <td className="px-4 py-3 text-sm text-neutral-700">
+                        {payment.user?.full_name || 'N/A'}
+                        <div className="text-xs text-neutral-400">{payment.user?.email}</div>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-neutral-900">
+                        {payment.amount} {payment.currency}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="badge bg-neutral-100 text-neutral-600">
+                          {payment.payment_method === 'card' ? 'Carte' :
+                           payment.payment_method === 'bank_transfer' ? 'Virement' :
+                           payment.payment_method === 'orange_money' ? 'Orange Money' :
+                           payment.payment_method === 'mtn_money' ? 'MTN Money' :
+                           payment.payment_method}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-neutral-500">
+                        {payment.payment_provider || 'Manual'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`badge ${
+                          payment.status === 'completed' ? 'bg-success-50 text-success-700' :
+                          payment.status === 'processing' ? 'bg-primary-50 text-primary-700' :
+                          payment.status === 'pending' ? 'bg-warning-50 text-warning-700' :
+                          payment.status === 'failed' ? 'bg-error-50 text-error-700' :
+                          payment.status === 'refunded' ? 'bg-neutral-100 text-neutral-600' :
+                          'bg-neutral-100 text-neutral-600'
+                        }`}>
+                          {payment.status === 'completed' ? 'Complété' :
+                           payment.status === 'processing' ? 'En cours' :
+                           payment.status === 'pending' ? 'En attente' :
+                           payment.status === 'failed' ? 'Échoué' :
+                           payment.status === 'refunded' ? 'Remboursé' :
+                           payment.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-neutral-400">
+                        {formatDate(payment.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {payment.status === 'failed' && payment.payment_provider === 'stripe' && (
+                            <button
+                              onClick={() => retryPayment(payment.id)}
+                              disabled={actionLoading}
+                              className="rounded-lg p-1.5 text-primary-600 hover:bg-primary-50 disabled:opacity-50"
+                              title="Réessayer le paiement"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          )}
+                          {payment.status === 'completed' && payment.payment_provider === 'stripe' && (
+                            <button
+                              onClick={() => {
+                                setSelectedPayment(payment);
+                                setShowRefundModal(true);
+                              }}
+                              disabled={actionLoading}
+                              className="rounded-lg p-1.5 text-warning-600 hover:bg-warning-50 disabled:opacity-50"
+                              title="Rembourser"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          )}
+                          <select
+                            value={payment.status}
+                            onChange={(e) => updatePaymentStatus(payment.id, e.target.value)}
+                            disabled={actionLoading}
+                            className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-700 focus:border-primary-500 focus:outline-none"
+                          >
+                            <option value="pending">En attente</option>
+                            <option value="processing">En cours</option>
+                            <option value="completed">Complété</option>
+                            <option value="failed">Échoué</option>
+                            <option value="refunded">Remboursé</option>
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Refund modal */}
+          {showRefundModal && selectedPayment && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="card max-w-md w-full mx-4 p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-neutral-900">Rembourser le paiement</h3>
+                  <button
+                    onClick={() => {
+                      setShowRefundModal(false);
+                      setSelectedPayment(null);
+                      setRefundReason('');
+                    }}
+                    className="text-neutral-400 hover:text-neutral-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="mb-4 rounded-lg bg-neutral-50 p-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-neutral-600">Montant:</span>
+                    <span className="font-semibold text-neutral-900">{selectedPayment.amount} {selectedPayment.currency}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-neutral-600">Client:</span>
+                    <span className="text-neutral-900">{selectedPayment.user?.full_name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-neutral-600">ID Stripe:</span>
+                    <span className="font-mono text-xs text-neutral-600">{selectedPayment.provider_payment_id || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="label">Motif du remboursement</label>
+                  <textarea
+                    value={refundReason}
+                    onChange={(e) => setRefundReason(e.target.value)}
+                    className="input-field resize-none"
+                    rows={3}
+                    placeholder="Expliquez la raison du remboursement..."
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowRefundModal(false);
+                      setSelectedPayment(null);
+                      setRefundReason('');
+                    }}
+                    className="btn-secondary"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={() => refundPayment(selectedPayment.id)}
+                    disabled={actionLoading || !refundReason}
+                    className="btn-primary"
+                  >
+                    {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Confirmer le remboursement'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
