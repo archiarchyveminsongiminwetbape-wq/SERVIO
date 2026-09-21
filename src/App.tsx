@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { DarkModeProvider } from '@/context/DarkModeContext';
@@ -33,6 +33,8 @@ const RecommendationsPage = lazy(() => import('@/pages/RecommendationsPage'));
 const InvoicesPage = lazy(() => import('@/pages/InvoicesPage'));
 const ProviderProjectsPage = lazy(() => import('@/pages/ProviderProjectsPage'));
 const QuotesPage = lazy(() => import('@/pages/QuotesPage'));
+const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
+const SubscriptionSuccessPage = lazy(() => import('@/pages/SubscriptionSuccessPage'));
 
 // Prefetch critical routes
 const prefetchRoutes = () => {
@@ -103,6 +105,8 @@ function App() {
                 <Route path="/provider/edit" element={<Layout><ProviderProfileEditPage /></Layout>} />
                 <Route path="/admin" element={<Layout><AdminDashboardPage /></Layout>} />
                 <Route path="/admin/escrow" element={<Layout><AdminEscrowDashboard /></Layout>} />
+                <Route path="/payment/success" element={<Layout><PaymentSuccessPage /></Layout>} />
+                <Route path="/subscription/success" element={<Layout><SubscriptionSuccessPage /></Layout>} />
                 <Route path="*" element={<Layout><LandingPage /></Layout>} />
               </Routes>
             </Suspense>
