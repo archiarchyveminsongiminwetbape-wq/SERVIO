@@ -1,9 +1,11 @@
-import Stripe from 'stripe';
+import Flutterwave from 'flutterwave-node-v3';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-02-24.acacia',
-});
+const flw = new Flutterwave(
+  process.env.FLUTTERWAVE_PUBLIC_KEY || '',
+  process.env.FLUTTERWAVE_SECRET_KEY || '',
+  process.env.FLUTTERWAVE_ENCRYPTION_KEY || ''
+);
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,12 +23,12 @@ export default async function handler(req: any, res: any) {
   try {
     const { paymentId, adminId } = req.body || {};
 
-    if (!paymentId || !adminId) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    if (!paymentId) {
+      return res.status(400).json({ error: 'Missing paymentId' });
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return res.status(500).json({ error: 'Stripe is not configured' });
+    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+      return res.status(500).json({ error: 'Flutterwave is not configured on the server' });
     }
 
     const supabase = createClient(
@@ -36,28 +38,24 @@ export default async function handler(req: any, res: any) {
     );
 
     // Get payment details
-    const { data: payment, error: paymentError } = await supabase
+    const { data: payment } = await supabase
       .from('payments')
-      .select('*, bookings(*)')
+      .select('*')
       .eq('id', paymentId)
       .single();
 
-    if (paymentError || !payment) {
+    if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    if (payment.status !== 'failed') {
-      return res.status(400).json({ error: 'Only failed payments can be retried' });
+    if (payment.payment_provider !== 'flutterwave') {
+      return res.status(400).json({ error: 'This payment was not processed via Flutterwave' });
     }
 
-    if (!payment.bookings) {
-      return res.status(400).json({ error: 'Associated booking not found' });
-    }
-
-    // Get user details for the booking
+    // Get booking details
     const { data: booking } = await supabase
       .from('bookings')
-      .select('client_id, provider_id')
+      .select('*')
       .eq('id', payment.booking_id)
       .single();
 
@@ -65,70 +63,81 @@ export default async function handler(req: any, res: any) {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    // Get client email
-    const { data: clientProfile } = await supabase
+    // Create new Flutterwave transaction
+    const { data: userProfile } = await supabase
       .from('profiles')
-      .select('email')
-      .eq('id', booking.client_id)
+      .select('email, full_name')
+      .eq('id', booking.user_id)
       .single();
 
-    if (!clientProfile?.email) {
-      return res.status(400).json({ error: 'Client email not found' });
-    }
-
-    // Create new checkout session for retry
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: payment.currency.toLowerCase(),
-            product_data: {
-              name: 'SERVIO mission payment - Retry',
-              description: `Retry payment for booking ${payment.booking_id}`,
-            },
-            unit_amount: Math.round(Number(payment.amount) * 100),
-          },
-          quantity: 1,
-        },
-      ],
-      success_url: `${process.env.APP_URL || 'http://localhost:5173'}/bookings?payment=success`,
-      cancel_url: `${process.env.APP_URL || 'http://localhost:5173'}/bookings?payment=cancelled`,
-      customer_email: clientProfile.email,
-      metadata: {
-        booking_id: String(payment.booking_id),
-        user_id: String(booking.client_id),
-        provider_id: String(booking.provider_id),
-        retry_payment_id: paymentId,
-        admin_initiated: 'true',
-        admin_id: adminId,
+    const tx_ref = `SERV-RETRY-${booking.id}-${Date.now()}`;
+    
+    const paymentRequest = {
+      tx_ref,
+      amount: payment.amount,
+      currency: payment.currency,
+      email: userProfile?.email || 'customer@example.com',
+      phone: '',
+      fullname: userProfile?.full_name || 'Customer',
+      customer: {
+        email: userProfile?.email || 'customer@example.com',
+        phone: '',
+        name: userProfile?.full_name || 'Customer',
       },
-      payment_method_types: ['card'],
-    });
+      customizations: {
+        title: 'SERVIO Mission Payment - Retry',
+        description: `Retry payment for booking ${booking.id}`,
+        logo: 'https://your-domain.com/images/servio-logo.png',
+      },
+      meta: {
+        booking_id: booking.id,
+        user_id: booking.user_id,
+        provider_id: booking.provider_id,
+        original_payment_id: paymentId,
+      },
+      redirect_url: `${process.env.APP_URL || 'http://localhost:5173'}/payment-success?tx_ref=${tx_ref}`,
+      payment_options: 'card,orange_money,mtn_money,bank_transfer',
+    };
 
-    // Update payment status to processing
-    await supabase
-      .from('payments')
-      .update({
-        status: 'processing',
+    const response = await flw.Charge.card(paymentRequest);
+
+    if (response.status === 'success') {
+      // Update payment record with new transaction reference
+      await supabase.from('payments').update({
+        provider_payment_id: response.data.id,
+        status: 'pending',
         metadata: {
           ...payment.metadata,
-          retry_checkout_session_id: session.id,
-          retry_initiated_by: adminId,
-          retry_initiated_at: new Date().toISOString(),
+          retry_tx_ref: tx_ref,
+          original_payment_id: paymentId,
         },
-      })
-      .eq('id', paymentId);
+      }).eq('id', paymentId);
 
-    return res.status(200).json({ 
-      success: true, 
-      checkoutUrl: session.url,
-      sessionId: session.id,
-    });
+      // Log admin action
+      await supabase.from('admin_actions').insert({
+        admin_id: adminId,
+        action_type: 'retry_payment',
+        target_type: 'payment',
+        target_id: paymentId,
+        details: 'Payment retried with new Flutterwave transaction',
+      });
+
+      return res.status(200).json({ 
+        success: true,
+        link: response.meta.authorization.redirect_url,
+        tx_ref,
+      });
+    } else {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Flutterwave retry failed',
+        details: response,
+      });
+    }
   } catch (error: any) {
-    console.error('Retry payment error:', error);
+    console.error('Flutterwave retry error:', error);
     return res.status(500).json({
-      error: 'Retry failed',
+      error: 'Flutterwave retry failed',
       details: error?.message || 'Unknown error',
     });
   }

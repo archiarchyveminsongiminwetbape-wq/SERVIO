@@ -6,10 +6,10 @@ CREATE TABLE IF NOT EXISTS public.payments (
   booking_id uuid REFERENCES public.bookings(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   amount numeric(10, 2) NOT NULL,
-  currency text NOT NULL DEFAULT 'EUR',
-  status text NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed', 'refunded'
-  payment_method text NOT NULL, -- 'card', 'bank_transfer', 'paypal', 'cash'
-  payment_provider text, -- 'stripe', 'paypal', 'manual'
+  currency text NOT NULL DEFAULT 'XAF',
+  status text NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'in_escrow', 'completed', 'failed', 'refunded'
+  payment_method text NOT NULL, -- 'card', 'bank_transfer', 'orange_money', 'mtn_money', 'cash'
+  payment_provider text, -- 'flutterwave', 'orange_money', 'mtn_money', 'manual'
   provider_payment_id text,
   metadata jsonb DEFAULT '{}',
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS public.invoices (
   subtotal numeric(10, 2) NOT NULL,
   tax numeric(10, 2) NOT NULL DEFAULT 0,
   total numeric(10, 2) NOT NULL,
-  currency text NOT NULL DEFAULT 'EUR',
+  currency text NOT NULL DEFAULT 'XAF',
   notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()

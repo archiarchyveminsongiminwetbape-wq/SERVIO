@@ -5,7 +5,7 @@ export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type LocationType = 'in_person' | 'remote' | 'hybrid';
 export type PaymentStatus = 'pending' | 'processing' | 'held' | 'completed' | 'failed' | 'refunded';
-export type PaymentMethod = 'card' | 'bank_transfer' | 'paypal' | 'cash' | 'orange_money' | 'mtn_money';
+export type PaymentMethod = 'card' | 'bank_transfer' | 'flutterwave' | 'cash' | 'orange_money' | 'mtn_money';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'unpaid';
 export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise';
@@ -265,8 +265,8 @@ export interface Subscription {
   cancel_at_period_end: boolean;
   created_at: string;
   updated_at: string;
-  stripe_subscription_id: string | null;
-  stripe_customer_id: string | null;
+  flutterwave_subscription_id: string | null;
+  flutterwave_customer_id: string | null;
 }
 
 export interface Invoice {

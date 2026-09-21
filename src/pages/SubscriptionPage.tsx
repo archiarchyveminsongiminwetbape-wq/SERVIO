@@ -32,7 +32,7 @@ const plans: Array<{
   {
     id: 'basic',
     name: 'Basic',
-    price: 9.99,
+    price: 6500,
     period: 'par mois',
     features: [
       'Tout du plan Gratuit',
@@ -47,7 +47,7 @@ const plans: Array<{
   {
     id: 'pro',
     name: 'Pro',
-    price: 29.99,
+    price: 19500,
     period: 'par mois',
     features: [
       'Tout du plan Basic',
@@ -63,7 +63,7 @@ const plans: Array<{
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 99.99,
+    price: 65000,
     period: 'par mois',
     features: [
       'Tout du plan Pro',
@@ -287,7 +287,7 @@ export default function SubscriptionPage() {
 
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-neutral-900">
-                    {plan.price === 0 ? 'Gratuit' : `${plan.price}€`}
+                    {plan.price === 0 ? 'Gratuit' : `${plan.price.toLocaleString('fr-FR')} FCFA`}
                   </span>
                   {plan.price > 0 && <span className="text-neutral-500">/mois</span>}
                 </div>
@@ -341,7 +341,7 @@ export default function SubscriptionPage() {
         )}
 
         <div className="mt-12 text-center text-sm text-neutral-500">
-          <p>Tous les prix sont en euros. Les paiements sont sécurisés via Stripe.</p>
+          <p>Tous les prix sont en FCFA. Les paiements sont sécurisés via Flutterwave.</p>
           <p className="mt-2">Vous pouvez annuler votre abonnement à tout moment.</p>
         </div>
       </div>

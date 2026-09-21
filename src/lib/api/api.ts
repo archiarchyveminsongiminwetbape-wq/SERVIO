@@ -7,6 +7,7 @@ export { favoritesApi } from './favorites';
 export { notificationsApi } from './notifications';
 export { categoriesApi } from './categories';
 export { portfolioApi } from './portfolio';
+export { escrowApi, certificationsApi } from './escrow';
 export { validators, schemas, validateSchema, type ValidationError, type ValidationResult } from './validation';
 
 // Re-export types and utilities

@@ -12,7 +12,7 @@ import type { ProviderProfile, Profile, Report, Category, AdminAction } from '@/
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import CategoryIcon from '@/components/CategoryIcon';
 
-type Tab = 'stats' | 'validation' | 'users' | 'reports' | 'categories' | 'audit' | 'commissions' | 'roles' | 'payments';
+type Tab = 'stats' | 'validation' | 'users' | 'reports' | 'categories' | 'audit' | 'commissions' | 'roles' | 'payments' | 'escrow' | 'certifications' | 'orange-money';
 
 export default function AdminDashboardPage() {
   const { t } = useI18n();
@@ -1217,7 +1217,7 @@ export default function AdminDashboardPage() {
       {tab === 'payments' && (
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-neutral-900">Gestion des paiements Stripe ({payments.length})</h3>
+            <h3 className="text-lg font-semibold text-neutral-900">Gestion des paiements Flutterwave ({payments.length})</h3>
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value as any)}
@@ -1269,7 +1269,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="badge bg-neutral-100 text-neutral-600">
-                          {payment.payment_method === 'card' ? 'Carte' :
+                          {payment.payment_method === 'card' ? 'Flutterwave' :
                            payment.payment_method === 'bank_transfer' ? 'Virement' :
                            payment.payment_method === 'orange_money' ? 'Orange Money' :
                            payment.payment_method === 'mtn_money' ? 'MTN Money' :
@@ -1301,7 +1301,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {payment.status === 'failed' && payment.payment_provider === 'stripe' && (
+                          {payment.status === 'failed' && payment.payment_provider === 'flutterwave' && (
                             <button
                               onClick={() => retryPayment(payment.id)}
                               disabled={actionLoading}
@@ -1311,7 +1311,7 @@ export default function AdminDashboardPage() {
                               <RefreshCw size={14} />
                             </button>
                           )}
-                          {payment.status === 'completed' && payment.payment_provider === 'stripe' && (
+                          {payment.status === 'completed' && payment.payment_provider === 'flutterwave' && (
                             <button
                               onClick={() => {
                                 setSelectedPayment(payment);
@@ -1372,7 +1372,7 @@ export default function AdminDashboardPage() {
                     <span className="text-neutral-900">{selectedPayment.user?.full_name}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">ID Stripe:</span>
+                    <span className="text-neutral-600">ID Flutterwave:</span>
                     <span className="font-mono text-xs text-neutral-600">{selectedPayment.provider_payment_id || 'N/A'}</span>
                   </div>
                 </div>

@@ -1,9 +1,11 @@
-import Stripe from 'stripe';
+import Flutterwave from 'flutterwave-node-v3';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-02-24.acacia',
-});
+const flw = new Flutterwave(
+  process.env.FLUTTERWAVE_PUBLIC_KEY || '',
+  process.env.FLUTTERWAVE_SECRET_KEY || '',
+  process.env.FLUTTERWAVE_ENCRYPTION_KEY || ''
+);
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,12 +23,12 @@ export default async function handler(req: any, res: any) {
   try {
     const { paymentId, reason, adminId } = req.body || {};
 
-    if (!paymentId || !reason || !adminId) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    if (!paymentId) {
+      return res.status(400).json({ error: 'Missing paymentId' });
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return res.status(500).json({ error: 'Stripe is not configured' });
+    if (!process.env.FLUTTERWAVE_SECRET_KEY) {
+      return res.status(500).json({ error: 'Flutterwave is not configured on the server' });
     }
 
     const supabase = createClient(
@@ -35,66 +37,66 @@ export default async function handler(req: any, res: any) {
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
 
-    // Get payment details
-    const { data: payment, error: paymentError } = await supabase
+    // Get payment details to find the transaction ID
+    const { data: payment } = await supabase
       .from('payments')
       .select('*')
       .eq('id', paymentId)
       .single();
 
-    if (paymentError || !payment) {
+    if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    if (payment.status !== 'completed') {
-      return res.status(400).json({ error: 'Only completed payments can be refunded' });
+    if (payment.payment_provider !== 'flutterwave') {
+      return res.status(400).json({ error: 'This payment was not processed via Flutterwave' });
     }
 
-    if (!payment.provider_payment_id) {
-      return res.status(400).json({ error: 'No Stripe payment ID found' });
+    const transactionId = payment.provider_payment_id;
+    if (!transactionId) {
+      return res.status(400).json({ error: 'No Flutterwave transaction ID found for this payment' });
     }
 
-    // Process refund via Stripe
-    const refund = await stripe.refunds.create({
-      payment_intent: payment.provider_payment_id as string,
-      reason: 'requested_by_customer',
-      metadata: {
-        admin_id: adminId,
-        refund_reason: reason,
-        payment_id: paymentId,
-      },
-    });
+    // Process refund
+    const refundRequest = {
+      id: transactionId,
+      amount: payment.amount,
+    };
 
-    // Update payment in database
-    const { error: updateError } = await supabase
-      .from('payments')
-      .update({
+    const response = await flw.Transaction.refund(refundRequest);
+
+    if (response.status === 'success') {
+      // Update payment status
+      await supabase.from('payments').update({
         status: 'refunded',
         refunded_at: new Date().toISOString(),
         refund_reason: reason,
-        metadata: {
-          ...payment.metadata,
-          stripe_refund_id: refund.id,
-          refund_amount: refund.amount / 100,
-          refunded_by_admin: adminId,
-        },
-      })
-      .eq('id', paymentId);
+      }).eq('id', paymentId);
 
-    if (updateError) {
-      console.error('Error updating payment:', updateError);
-      // Still return success as refund was processed in Stripe
+      // Log admin action
+      await supabase.from('admin_actions').insert({
+        admin_id: adminId,
+        action_type: 'refund_payment',
+        target_type: 'payment',
+        target_id: paymentId,
+        details: `Reason: ${reason}`,
+      });
+
+      return res.status(200).json({ 
+        success: true,
+        refundId: response.data.id,
+      });
+    } else {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Flutterwave refund failed',
+        details: response,
+      });
     }
-
-    return res.status(200).json({ 
-      success: true, 
-      refundId: refund.id,
-      amount: refund.amount / 100,
-    });
   } catch (error: any) {
-    console.error('Refund error:', error);
+    console.error('Flutterwave refund error:', error);
     return res.status(500).json({
-      error: 'Refund failed',
+      error: 'Flutterwave refund failed',
       details: error?.message || 'Unknown error',
     });
   }

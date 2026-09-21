@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   cancel_at_period_end BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  stripe_subscription_id TEXT UNIQUE,
-  stripe_customer_id TEXT
+  flutterwave_subscription_id TEXT UNIQUE,
+  flutterwave_customer_id TEXT
 );
 
 -- Create indexes for better performance
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_provider_id ON subscriptions(provider_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_plan ON subscriptions(plan);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_flutterwave_subscription_id ON subscriptions(flutterwave_subscription_id);
 
 -- Enable RLS
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;

@@ -8,17 +8,17 @@ import type { SubscriptionPlan } from '@/types';
 const planDetails: Record<Exclude<SubscriptionPlan, 'free'>, { name: string; price: number; features: string[] }> = {
   basic: {
     name: 'Basic',
-    price: 9.99,
+    price: 6500,
     features: ['Réalisations illimitées', 'Badge "Vérifié"', 'Priorité dans les recherches', 'Support prioritaire'],
   },
   pro: {
     name: 'Pro',
-    price: 29.99,
+    price: 19500,
     features: ['Profil en vedette', 'Statistiques avancées', 'Badge "Réponse rapide"', 'Support dédié 24/7'],
   },
   enterprise: {
     name: 'Enterprise',
-    price: 99.99,
+    price: 65000,
     features: ['API d’accès', 'Gestion d’équipe', 'Rapports personnalisés', 'Account manager dédié'],
   },
 };
@@ -60,43 +60,36 @@ export default function SubscriptionCheckoutPage() {
     setProcessing(true);
     setError(null);
 
-    const periodStart = new Date().toISOString();
-    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: existing, error: lookupError } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    try {
+      const response = await fetch('/api/subscription-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: plan.price,
+          currency: 'XAF',
+          planId: selectedPlan,
+          userId: user.id,
+          clientEmail: user.email,
+          metadata: {
+            provider_id: providerId,
+            plan: selectedPlan,
+            client_name: user.email?.split('@')[0] || 'Subscriber',
+          },
+        }),
+      });
 
-    if (lookupError) {
-      setError(lookupError.message);
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.link) {
+        throw new Error(payload?.error || 'Checkout unavailable');
+      }
+
+      window.location.href = payload.link;
+    } catch (checkoutError) {
+      console.error('Checkout error:', checkoutError);
+      setError('Le paiement Flutterwave n\'a pas pu être démarré. Veuillez réessayer.');
       setProcessing(false);
-      return;
     }
-
-    const payload = {
-      provider_id: providerId,
-      provider_profile_id: providerId,
-      plan: selectedPlan,
-      status: 'active',
-      current_period_start: periodStart,
-      current_period_end: periodEnd,
-      cancel_at_period_end: false,
-      updated_at: periodStart,
-    };
-
-    const result = existing?.[0]
-      ? await supabase.from('subscriptions').update(payload).eq('id', existing[0].id)
-      : await supabase.from('subscriptions').insert({ user_id: user.id, ...payload });
-
-    if (result.error) {
-      setError(result.error.message);
-      setProcessing(false);
-      return;
-    }
-
-    navigate('/subscription?success=' + selectedPlan);
   }
 
   if (loading) {
@@ -134,7 +127,7 @@ export default function SubscriptionCheckoutPage() {
 
           <aside className="rounded-2xl border-2 border-primary-500 bg-primary-50 p-6 shadow-lg sm:p-8">
             <p className="text-sm font-semibold uppercase tracking-wide text-primary-700">Récapitulatif</p>
-            <div className="mt-4 flex items-end justify-between"><span className="text-neutral-700">Abonnement mensuel</span><span className="text-3xl font-bold text-neutral-900">{plan.price.toFixed(2)}€</span></div>
+            <div className="mt-4 flex items-end justify-between"><span className="text-neutral-700">Abonnement mensuel</span><span className="text-3xl font-bold text-neutral-900">{plan.price.toLocaleString('fr-FR')} FCFA</span></div>
             <p className="mt-1 text-right text-sm text-neutral-500">par mois</p>
             {error && <p className="mt-6 rounded-lg border border-error-200 bg-error-50 p-3 text-sm text-error-700">{error}</p>}
             <button onClick={confirmSubscription} disabled={processing || !providerId} className="btn-primary mt-8 flex w-full items-center justify-center gap-2">

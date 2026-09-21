@@ -44,8 +44,8 @@ export default function BookingPage() {
     doc.text(`Horaire: ${selectedSlot.start_time} - ${selectedSlot.end_time}`, 14, 72);
     doc.text(`Durée: ${duration} minutes`, 14, 80);
     doc.text(`Mode: ${locationType === 'remote' ? 'À distance' : locationType === 'in_person' ? 'En présentiel' : 'Hybride'}`, 14, 88);
-    doc.text(`Montant: ${price}€`, 14, 96);
-    doc.text(`Paiement: ${paymentMethod === 'cash' ? 'Espèces / paiement direct' : paymentMethod === 'card' ? 'Carte bancaire' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_money' ? 'MTN Money' : 'Virement bancaire'}`, 14, 104);
+    doc.text(`Montant: ${price.toLocaleString('fr-FR')} FCFA`, 14, 96);
+    doc.text(`Paiement: ${paymentMethod === 'cash' ? 'Espèces / paiement direct' : paymentMethod === 'card' ? 'Flutterwave (Carte/Orange Money/MTN)' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_money' ? 'MTN Money' : 'Virement bancaire'}`, 14, 104);
     doc.text('Escrow: Sécurisé par SERVIO — paiement retenu jusqu’à validation finale de la mission.', 14, 112);
     doc.text('Signature client: ______________________________', 14, 140);
     doc.text(`Notes: ${notes || 'Aucune note particulière'}`, 14, 150, { maxWidth: 180 });
@@ -99,12 +99,12 @@ export default function BookingPage() {
   };
 
   const getDurationOptions = () => [
-    { value: 30, label: t.booking.minutes30, price: 50 },
-    { value: 45, label: t.booking.minutes45, price: 75 },
-    { value: 60, label: t.booking.hour1, price: 100 },
-    { value: 90, label: t.booking.hour1half, price: 150 },
-    { value: 120, label: t.booking.hours2, price: 200 },
-    { value: 180, label: t.booking.hours3, price: 300 },
+    { value: 30, label: t.booking.minutes30, price: 35000 },
+    { value: 45, label: t.booking.minutes45, price: 50000 },
+    { value: 60, label: t.booking.hour1, price: 65000 },
+    { value: 90, label: t.booking.hour1half, price: 100000 },
+    { value: 120, label: t.booking.hours2, price: 130000 },
+    { value: 180, label: t.booking.hours3, price: 200000 },
   ];
 
   useEffect(() => {
@@ -130,9 +130,9 @@ export default function BookingPage() {
       `Escrow sécurisé: ${paymentMethod === 'cash' ? 'paiement hors escrow' : 'paiement retenu jusqu’à validation de mission'}`,
     ].filter(Boolean).join('\n\n');
 
-    const paymentIntentReference = `pi_${Date.now()}`;
+    const paymentIntentReference = `fw_${Date.now()}`;
     const contractReference = `CTR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-    const providerPayment = paymentMethod === 'card' ? 'stripe' : paymentMethod === 'orange_money' ? 'orange_money' : paymentMethod === 'mtn_money' ? 'mtn_money' : 'manual';
+    const providerPayment = paymentMethod === 'card' ? 'flutterwave' : paymentMethod === 'orange_money' ? 'orange_money' : paymentMethod === 'mtn_money' ? 'mtn_money' : 'manual';
 
     const { data: bookingData, error } = await supabase.from('bookings').insert({
       client_id: user.id,
@@ -145,7 +145,7 @@ export default function BookingPage() {
       notes: secureNotes || null,
       status: 'pending',
       price: price,
-      currency: 'EUR',
+      currency: 'XAF',
       payment_method: paymentMethod,
       payment_status: paymentMethod === 'card' ? 'processing' : paymentMethod === 'cash' ? 'pending' : 'held',
       metadata: {
@@ -159,7 +159,7 @@ export default function BookingPage() {
         payment_data: {
           method: paymentMethod,
           amount: price,
-          currency: 'EUR',
+          currency: 'XAF',
           status: paymentMethod === 'card' ? 'processing' : paymentMethod === 'cash' ? 'pending' : 'held',
         },
       },
@@ -179,7 +179,7 @@ export default function BookingPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             amount: price,
-            currency: 'eur',
+            currency: 'XAF',
             bookingId: bookingData?.id,
             userId: user.id,
             providerId: provider.id,
@@ -189,21 +189,22 @@ export default function BookingPage() {
               quote_reference: quoteReference,
               provider_id: provider.id,
               booking_id: bookingData?.id,
+              client_name: profile?.full_name || 'Client',
             },
           }),
         });
 
         const payload = await response.json();
-        if (!response.ok || !payload?.url) {
+        if (!response.ok || !payload?.link) {
           throw new Error(payload?.error || 'Checkout unavailable');
         }
 
-        window.location.href = payload.url;
+        window.location.href = payload.link;
         return;
       } catch (checkoutError) {
         console.error('Checkout error:', checkoutError);
         await supabase.from('bookings').update({ payment_status: 'failed', status: 'cancelled' }).eq('id', bookingData?.id);
-        alert('Le paiement par carte n’a pas pu être démarré. Veuillez réessayer.');
+        alert('Le paiement Flutterwave n\'a pas pu être démarré. Veuillez réessayer.');
         setSubmitting(false);
         return;
       }
@@ -337,7 +338,7 @@ export default function BookingPage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-neutral-500">Tarif</span>
-                <span className="font-semibold text-primary-700">{price}€</span>
+                <span className="font-semibold text-primary-700">{price.toLocaleString('fr-FR')} FCFA</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-neutral-500">Mode</span>
@@ -569,7 +570,7 @@ export default function BookingPage() {
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                     >
-                      <span className="text-sm text-neutral-700">{t.booking.payCard}</span>
+                      <span className="text-sm text-neutral-700">Flutterwave (Carte, Orange Money, MTN)</span>
                       {paymentMethod === 'card' && <Check size={16} className="text-primary-600" />}
                     </button>
                     <button
@@ -632,7 +633,7 @@ export default function BookingPage() {
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span>Prix estimé</span>
-                      <span className="text-lg font-bold text-primary-700">{price}€</span>
+                      <span className="text-lg font-bold text-primary-700">{price.toLocaleString('fr-FR')} FCFA</span>
                     </div>
                   </div>
 

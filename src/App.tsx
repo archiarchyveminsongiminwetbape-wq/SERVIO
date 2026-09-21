@@ -17,6 +17,7 @@ const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 const FavoritesPage = lazy(() => import('@/pages/FavoritesPage'));
 const ProviderDashboardPage = lazy(() => import('@/pages/ProviderDashboardPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/AdminDashboardPage'));
+const AdminEscrowDashboard = lazy(() => import('@/pages/AdminEscrowDashboard'));
 const UserProfilePage = lazy(() => import('@/pages/UserProfilePage'));
 const ProviderProfileEditPage = lazy(() => import('@/pages/ProviderProfileEditPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -80,37 +81,29 @@ function App() {
                 <Route path="/signup" element={<><Navbar /><SignupPage /></>} />
                 <Route path="/reset-password" element={<><Navbar /><ResetPasswordPage /></>} />
                 <Route path="/admin/seed-categories" element={<CategorySeeder />} />
-                <Route
-                  path="*"
-                  element={
-                    <Layout>
-                      <Routes>
-                        <Route path="/" element={<LandingPage />} />
-                        <Route path="/search" element={<SearchPage />} />
-                        <Route path="/provider/:slug" element={<ProviderProfilePage />} />
-                        <Route path="/portfolio/:itemId" element={<PortfolioItemDetailPage />} />
-                        <Route path="/provider/:slug/book" element={<BookingPage />} />
-                        <Route path="/messages" element={<MessagesPage />} />
-                        <Route path="/favorites" element={<FavoritesPage />} />
-                        <Route path="/profile" element={<UserProfilePage />} />
-                        <Route path="/settings" element={<SettingsPage />} />
-                        <Route path="/faq" element={<FaqPage />} />
-                        <Route path="/notifications" element={<NotificationsPage />} />
-                        <Route path="/bookings" element={<UserBookingsPage />} />
-                        <Route path="/subscription" element={<SubscriptionPage />} />
-                        <Route path="/subscription/checkout" element={<SubscriptionCheckoutPage />} />
-                        <Route path="/recommendations" element={<RecommendationsPage />} />
-                        <Route path="/invoices" element={<InvoicesPage />} />
-                        <Route path="/quotes" element={<QuotesPage />} />
-                        <Route path="/provider/:slug/projects" element={<ProviderProjectsPage />} />
-                        <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
-                        <Route path="/provider/edit" element={<ProviderProfileEditPage />} />
-                        <Route path="/admin" element={<AdminDashboardPage />} />
-                        <Route path="*" element={<LandingPage />} />
-                      </Routes>
-                    </Layout>
-                  }
-                />
+                <Route path="/" element={<Layout><LandingPage /></Layout>} />
+                <Route path="/search" element={<Layout><SearchPage /></Layout>} />
+                <Route path="/provider/:slug" element={<Layout><ProviderProfilePage /></Layout>} />
+                <Route path="/portfolio/:itemId" element={<Layout><PortfolioItemDetailPage /></Layout>} />
+                <Route path="/provider/:slug/book" element={<Layout><BookingPage /></Layout>} />
+                <Route path="/messages" element={<Layout><MessagesPage /></Layout>} />
+                <Route path="/favorites" element={<Layout><FavoritesPage /></Layout>} />
+                <Route path="/profile" element={<Layout><UserProfilePage /></Layout>} />
+                <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+                <Route path="/faq" element={<Layout><FaqPage /></Layout>} />
+                <Route path="/notifications" element={<Layout><NotificationsPage /></Layout>} />
+                <Route path="/bookings" element={<Layout><UserBookingsPage /></Layout>} />
+                <Route path="/subscription" element={<Layout><SubscriptionPage /></Layout>} />
+                <Route path="/subscription/checkout" element={<Layout><SubscriptionCheckoutPage /></Layout>} />
+                <Route path="/recommendations" element={<Layout><RecommendationsPage /></Layout>} />
+                <Route path="/invoices" element={<Layout><InvoicesPage /></Layout>} />
+                <Route path="/quotes" element={<Layout><QuotesPage /></Layout>} />
+                <Route path="/provider/:slug/projects" element={<Layout><ProviderProjectsPage /></Layout>} />
+                <Route path="/provider/dashboard" element={<Layout><ProviderDashboardPage /></Layout>} />
+                <Route path="/provider/edit" element={<Layout><ProviderProfileEditPage /></Layout>} />
+                <Route path="/admin" element={<Layout><AdminDashboardPage /></Layout>} />
+                <Route path="/admin/escrow" element={<Layout><AdminEscrowDashboard /></Layout>} />
+                <Route path="*" element={<Layout><LandingPage /></Layout>} />
               </Routes>
             </Suspense>
           </BrowserRouter>

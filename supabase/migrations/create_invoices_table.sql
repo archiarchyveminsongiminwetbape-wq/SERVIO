@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   cancel_at_period_end BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  stripe_subscription_id TEXT UNIQUE,
-  stripe_customer_id TEXT
+  flutterwave_subscription_id TEXT UNIQUE,
+  flutterwave_customer_id TEXT
 );
 
 -- Create invoices table for billing system
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   type TEXT,
   status TEXT NOT NULL DEFAULT 'draft',
   amount NUMERIC NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'EUR',
+  currency TEXT NOT NULL DEFAULT 'XAF',
   tax_amount NUMERIC DEFAULT 0,
   total_amount NUMERIC NOT NULL,
   due_date TIMESTAMP WITH TIME ZONE,
