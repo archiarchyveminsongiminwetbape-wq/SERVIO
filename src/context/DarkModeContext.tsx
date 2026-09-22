@@ -17,7 +17,7 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored) {
+    if (stored && ['light', 'dark', 'system'].includes(stored)) {
       setThemeState(stored);
     }
   }, []);

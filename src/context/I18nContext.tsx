@@ -21,30 +21,33 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    // Try to get language from localStorage
-    const saved = localStorage.getItem('language') as Language;
-    if (saved && supportedLanguages.find(l => l.code === saved)) {
-      return saved;
-    }
-    // Try to get language from browser
-    const browserLang = navigator.language.split('-')[0] as Language;
-    if (supportedLanguages.find(l => l.code === browserLang)) {
-      return browserLang;
-    }
-    return defaultLanguage;
-  });
-
-  const [currency, setCurrencyState] = useState<Currency>(() => {
-    const saved = localStorage.getItem('currency') as Currency;
-    if (saved) return saved;
-    return detectCurrency();
-  });
+  const [language, setLanguageState] = useState<Language>(defaultLanguage);
+  const [currency, setCurrencyState] = useState<Currency>('USD');
 
   const [location, setLocation] = useState<LocationData | null>(null);
   const [culturalTheme, setCulturalTheme] = useState(() => getThemeByLanguage(defaultLanguage));
   const [translations, setTranslations] = useState<Translations>(getInitialTranslations(defaultLanguage));
   const [isLoading, setIsLoading] = useState(true);
+
+  // Load saved preferences from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as Language;
+    if (savedLanguage && supportedLanguages.find(l => l.code === savedLanguage)) {
+      setLanguageState(savedLanguage);
+    } else {
+      const browserLang = navigator.language.split('-')[0] as Language;
+      if (supportedLanguages.find(l => l.code === browserLang)) {
+        setLanguageState(browserLang);
+      }
+    }
+
+    const savedCurrency = localStorage.getItem('currency') as Currency;
+    if (savedCurrency) {
+      setCurrencyState(savedCurrency);
+    } else {
+      setCurrencyState(detectCurrency());
+    }
+  }, []);
 
   // Load translations asynchronously
   useEffect(() => {

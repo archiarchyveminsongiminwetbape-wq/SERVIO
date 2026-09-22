@@ -37,8 +37,20 @@ self.addEventListener('activate', (event) => {
 
 // Interception des requêtes
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Ne pas intercepter les requêtes de développement Vite
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
+
   // Ne pas intercepter les requêtes API Supabase
-  if (event.request.url.includes('supabase.co') || event.request.url.includes('api/')) {
+  if (url.hostname.includes('supabase.co') || url.pathname.includes('api/')) {
+    return;
+  }
+
+  // Ne pas intercepter les requêtes de développement (HMR, etc.)
+  if (url.pathname.startsWith('/@vite/') || url.pathname.startsWith('/@react-refresh')) {
     return;
   }
 
