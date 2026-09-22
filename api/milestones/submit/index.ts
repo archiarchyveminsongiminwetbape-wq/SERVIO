@@ -53,7 +53,8 @@ export default async function handler(req: any, res: any) {
       return res.status(404).json({ error: 'Milestone not found' });
     }
 
-    if (milestone.escrow_accounts.bookings.provider_profiles.user_id !== provider_id) {
+    const providerUserId = milestone.escrow_accounts?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
+    if (providerUserId !== provider_id) {
       return res.status(403).json({ error: 'Unauthorized: You do not own this milestone' });
     }
 
@@ -104,9 +105,10 @@ export default async function handler(req: any, res: any) {
     }
 
     // Notifier le client que le milestone a été soumis
-    if (escrowDetails?.escrow_accounts?.bookings?.client_id) {
+    const clientId = milestone.escrow_accounts?.bookings?.[0]?.client_id;
+    if (clientId) {
       await supabase.from('notifications').insert({
-        user_id: escrowDetails.escrow_accounts.bookings.client_id,
+        user_id: clientId,
         type: 'milestone_submitted',
         title: 'Jalon soumis',
         body: `Le jalon "${updatedMilestone.title}" a été soumis pour validation`,

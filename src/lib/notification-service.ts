@@ -63,7 +63,7 @@ export class NotificationService {
         }
       }
 
-      result.success = result.emailSent || result.smsSent;
+      result.success = (result.emailSent || result.smsSent) ?? false;
       return result;
     } catch (error: any) {
       console.error('Notification error:', error);
@@ -240,8 +240,8 @@ export class NotificationService {
     return this.sendNotification({
       type: 'both',
       recipient: {
-        email: providerProfile.profiles?.email,
-        phone: providerProfile.profiles?.phone,
+        email: providerProfile.profiles?.[0]?.email,
+        phone: providerProfile.profiles?.[0]?.phone,
         userId: providerProfile.user_id,
       },
       template: 'milestone_approved',
@@ -276,8 +276,8 @@ export class NotificationService {
     return this.sendNotification({
       type: 'both',
       recipient: {
-        email: providerProfile.profiles?.email,
-        phone: providerProfile.profiles?.phone,
+        email: providerProfile.profiles?.[0]?.email,
+        phone: providerProfile.profiles?.[0]?.phone,
         userId: providerProfile.user_id,
       },
       template: 'transfer_completed',

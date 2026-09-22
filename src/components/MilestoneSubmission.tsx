@@ -16,8 +16,8 @@ const CardTitle = ({ children }: { children: React.ReactNode }) => (
   <h3 className="text-lg font-semibold">{children}</h3>
 );
 
-const CardContent = ({ children }: { children: React.ReactNode }) => (
-  <div className="p-4">{children}</div>
+const CardContent = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`p-4 ${className}`}>{children}</div>
 );
 
 // Simple Button component

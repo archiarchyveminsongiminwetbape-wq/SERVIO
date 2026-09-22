@@ -67,9 +67,10 @@ export default async function handler(req: any, res: any) {
       .eq('id', escrow_id)
       .single();
 
-    if (escrow?.bookings?.provider_profiles?.user_id) {
+    const providerUserId = escrow?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
+    if (providerUserId) {
       await supabase.from('notifications').insert({
-        user_id: escrow.bookings.provider_profiles.user_id,
+        user_id: providerUserId,
         type: 'payment_released',
         title: 'Paiement libéré',
         body: `Un paiement de ${releaseResult.amount_released} a été libéré pour votre projet.`,

@@ -199,7 +199,7 @@ export default function AccountCertificationManager({ userId, isAdmin = false }:
             .from('certifications')
             .getPublicUrl(data.path);
 
-          setEvidenceData(prev => ({
+          setEvidenceData((prev: any) => ({
             ...prev,
             documents: [...(prev.documents || []), publicUrl]
           }));

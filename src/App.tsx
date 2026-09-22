@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CategorySeeder from '@/components/CategorySeeder';
 import AIChatbot from '@/components/AIChatbot';
+import AdminDashboard from '@/components/AdminDashboard';
 
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const SearchPage = lazy(() => import('@/pages/SearchPage'));
@@ -16,7 +17,6 @@ const BookingPage = lazy(() => import('@/pages/BookingPage'));
 const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 const FavoritesPage = lazy(() => import('@/pages/FavoritesPage'));
 const ProviderDashboardPage = lazy(() => import('@/pages/ProviderDashboardPage'));
-const AdminDashboardPage = lazy(() => import('@/pages/AdminDashboardPage'));
 const AdminEscrowDashboard = lazy(() => import('@/pages/AdminEscrowDashboard'));
 const UserProfilePage = lazy(() => import('@/pages/UserProfilePage'));
 const ProviderProfileEditPage = lazy(() => import('@/pages/ProviderProfileEditPage'));
@@ -103,7 +103,7 @@ function App() {
                 <Route path="/provider/:slug/projects" element={<Layout><ProviderProjectsPage /></Layout>} />
                 <Route path="/provider/dashboard" element={<Layout><ProviderDashboardPage /></Layout>} />
                 <Route path="/provider/edit" element={<Layout><ProviderProfileEditPage /></Layout>} />
-                <Route path="/admin" element={<Layout><AdminDashboardPage /></Layout>} />
+                <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/escrow" element={<Layout><AdminEscrowDashboard /></Layout>} />
                 <Route path="/payment/success" element={<Layout><PaymentSuccessPage /></Layout>} />
                 <Route path="/subscription/success" element={<Layout><SubscriptionSuccessPage /></Layout>} />

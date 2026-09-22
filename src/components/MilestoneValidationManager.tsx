@@ -43,6 +43,7 @@ interface Milestone {
   paid_at?: string;
   payment_reference?: string;
   due_date?: string;
+  created_at?: string;
   escrow_accounts?: {
     id: string;
     total_amount: number;
@@ -725,7 +726,7 @@ export default function MilestoneValidationManager({ isAdmin = false }: { isAdmi
                 <div>
                   <p className="text-sm text-gray-600">Date de création</p>
                   <p className="font-semibold">
-                    {new Date(selectedMilestone.created_at).toLocaleString('fr-FR')}
+                    {selectedMilestone.created_at ? new Date(selectedMilestone.created_at).toLocaleString('fr-FR') : 'N/A'}
                   </p>
                 </div>
                 <div>
@@ -812,7 +813,7 @@ export default function MilestoneValidationManager({ isAdmin = false }: { isAdmi
                 <div>
                   <p className="text-gray-600">Créé le</p>
                   <p className="font-semibold">
-                    {new Date(selectedMilestone.created_at).toLocaleDateString('fr-FR')}
+                    {selectedMilestone.created_at ? new Date(selectedMilestone.created_at).toLocaleDateString('fr-FR') : 'N/A'}
                   </p>
                 </div>
                 {selectedMilestone.completed_at && (

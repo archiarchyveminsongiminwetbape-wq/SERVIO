@@ -98,7 +98,7 @@ export function useRealtimeNotifications(userId?: string) {
 
   const showBrowserNotification = (notification: Notification) => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new notification.title, {
+      new Notification(notification.title, {
         body: notification.message,
         icon: '/images/servio-logo.png',
         badge: '/images/servio-logo.png',

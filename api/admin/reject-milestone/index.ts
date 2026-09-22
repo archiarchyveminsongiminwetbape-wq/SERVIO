@@ -99,9 +99,10 @@ export default async function handler(req: any, res: any) {
       .single();
 
     // Notifier le prestataire que le milestone a été rejeté
-    if (escrowDetails?.escrow_accounts?.bookings?.provider_profiles?.user_id) {
+    const providerUserId = escrowDetails?.escrow_accounts?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
+    if (providerUserId) {
       await supabase.from('notifications').insert({
-        user_id: escrowDetails.escrow_accounts.bookings.provider_profiles.user_id,
+        user_id: providerUserId,
         type: 'milestone_rejected',
         title: 'Jalon rejeté',
         body: `Le jalon "${milestone.title}" a été rejeté. Raison: ${rejection_reason}`,
@@ -114,9 +115,10 @@ export default async function handler(req: any, res: any) {
     }
 
     // Notifier le client que le milestone a été rejeté
-    if (escrowDetails?.escrow_accounts?.bookings?.client_id) {
+    const clientId = escrowDetails?.escrow_accounts?.bookings?.[0]?.client_id;
+    if (clientId) {
       await supabase.from('notifications').insert({
-        user_id: escrowDetails.escrow_accounts.bookings.client_id,
+        user_id: clientId,
         type: 'milestone_rejected',
         title: 'Jalon rejeté',
         body: `Le jalon "${milestone.title}" a été rejeté. Raison: ${rejection_reason}`,

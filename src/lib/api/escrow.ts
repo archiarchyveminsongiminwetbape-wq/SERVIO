@@ -1,4 +1,4 @@
-import { supabase, handleApiError, handleApiSuccess, type ApiResponse } from './index';
+import { supabase, handleApiError, handleApiSuccess, handleApiFailure, type ApiResponse } from './index';
 
 /**
  * Escrow API - Gestion des comptes séquestres et des paiements progressifs
@@ -55,7 +55,7 @@ export const escrowApi = {
 
       return handleApiSuccess(data);
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -91,7 +91,7 @@ export const escrowApi = {
 
       return handleApiSuccess(data);
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -127,7 +127,7 @@ export const escrowApi = {
 
       return handleApiSuccess(data);
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -150,10 +150,10 @@ export const escrowApi = {
       if (result.success) {
         return handleApiSuccess(result.data);
       } else {
-        return handleApiError(result.error);
+        return handleApiFailure(result.error);
       }
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -177,10 +177,10 @@ export const escrowApi = {
       if (result.success) {
         return handleApiSuccess(result.data);
       } else {
-        return handleApiError(result.error);
+        return handleApiFailure(result.error);
       }
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -204,10 +204,10 @@ export const escrowApi = {
       if (result.success) {
         return handleApiSuccess(result.data);
       } else {
-        return handleApiError(result.error);
+        return handleApiFailure(result.error);
       }
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -232,10 +232,10 @@ export const escrowApi = {
       if (result.success) {
         return handleApiSuccess(result.data);
       } else {
-        return handleApiError(result.error);
+        return handleApiFailure(result.error);
       }
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   }
 };
@@ -265,10 +265,10 @@ export const certificationsApi = {
       if (result.success) {
         return handleApiSuccess(result.data);
       } else {
-        return handleApiError(result.error);
+        return handleApiFailure(result.error);
       }
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -287,7 +287,7 @@ export const certificationsApi = {
 
       return handleApiSuccess(data);
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -312,7 +312,7 @@ export const certificationsApi = {
 
       return handleApiSuccess(data);
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -336,10 +336,10 @@ export const certificationsApi = {
       if (result.success) {
         return handleApiSuccess(result.data);
       } else {
-        return handleApiError(result.error);
+        return handleApiFailure(result.error);
       }
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -364,10 +364,10 @@ export const certificationsApi = {
       if (result.success) {
         return handleApiSuccess(result.data);
       } else {
-        return handleApiError(result.error);
+        return handleApiFailure(result.error);
       }
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   },
 
@@ -386,7 +386,7 @@ export const certificationsApi = {
 
       return handleApiSuccess(data);
     } catch (error) {
-      return handleApiError(error);
+      return handleApiFailure(error);
     }
   }
 };
