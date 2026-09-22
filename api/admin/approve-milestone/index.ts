@@ -90,7 +90,7 @@ export default async function handler(req: any, res: any) {
       .single();
 
     // Notifier le prestataire que le milestone a été approuvé
-    const providerUserId = escrowDetails?.escrow_accounts?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
+    const providerUserId = escrowDetails?.escrow_accounts?.[0]?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
     if (providerUserId) {
       await supabase.from('notifications').insert({
         user_id: providerUserId,
@@ -106,7 +106,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // Notifier le client que le milestone a été approuvé
-    const clientId = escrowDetails?.escrow_accounts?.bookings?.[0]?.client_id;
+    const clientId = escrowDetails?.escrow_accounts?.[0]?.bookings?.[0]?.client_id;
     if (clientId) {
       await supabase.from('notifications').insert({
         user_id: clientId,

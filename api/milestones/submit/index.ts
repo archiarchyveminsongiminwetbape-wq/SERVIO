@@ -105,7 +105,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // Notifier le client que le milestone a été soumis
-    const clientId = milestone.escrow_accounts?.bookings?.[0]?.client_id;
+    const clientId = milestone.escrow_accounts?.[0]?.bookings?.[0]?.client_id;
     if (clientId) {
       await supabase.from('notifications').insert({
         user_id: clientId,

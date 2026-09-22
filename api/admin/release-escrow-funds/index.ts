@@ -67,7 +67,7 @@ export default async function handler(req: any, res: any) {
       .eq('id', escrow_id)
       .single();
 
-    const providerUserId = escrow?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
+    const providerUserId = (escrow as any)?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
     if (providerUserId) {
       await supabase.from('notifications').insert({
         user_id: providerUserId,
