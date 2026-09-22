@@ -90,7 +90,7 @@ export default async function handler(req: any, res: any) {
       .single();
 
     // Notifier le prestataire que le milestone a été approuvé
-    const providerUserId = escrowDetails?.escrow_accounts?.[0]?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
+    const providerUserId = (escrowDetails as any)?.escrow_accounts?.[0]?.bookings?.[0]?.provider_profiles?.[0]?.user_id;
     if (providerUserId) {
       await supabase.from('notifications').insert({
         user_id: providerUserId,
@@ -99,14 +99,14 @@ export default async function handler(req: any, res: any) {
         body: `Le jalon "${milestone.title}" a été approuvé. Le paiement sera libéré prochainement.`,
         metadata: {
           milestone_id,
-          escrow_id: escrowDetails.escrow_id,
+          escrow_id: (escrowDetails as any).escrow_id,
           amount: milestone.amount
         }
       });
     }
 
     // Notifier le client que le milestone a été approuvé
-    const clientId = escrowDetails?.escrow_accounts?.[0]?.bookings?.[0]?.client_id;
+    const clientId = (escrowDetails as any)?.escrow_accounts?.[0]?.bookings?.[0]?.client_id;
     if (clientId) {
       await supabase.from('notifications').insert({
         user_id: clientId,
@@ -115,7 +115,7 @@ export default async function handler(req: any, res: any) {
         body: `Le jalon "${milestone.title}" a été approuvé. Un paiement de ${milestone.amount} sera libéré au prestataire.`,
         metadata: {
           milestone_id,
-          escrow_id: escrowDetails.escrow_id,
+          escrow_id: (escrowDetails as any).escrow_id,
           amount: milestone.amount
         }
       });
