@@ -35,6 +35,8 @@ const ProviderProjectsPage = lazy(() => import('@/pages/ProviderProjectsPage'));
 const QuotesPage = lazy(() => import('@/pages/QuotesPage'));
 const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
 const SubscriptionSuccessPage = lazy(() => import('@/pages/SubscriptionSuccessPage'));
+const CategorySearchPage = lazy(() => import('@/pages/CategorySearchPage'));
+const ProviderCategoryEditPage = lazy(() => import('@/pages/ProviderCategoryEditPage'));
 
 // Prefetch critical routes
 const prefetchRoutes = () => {
@@ -103,6 +105,8 @@ function App() {
                 <Route path="/provider/:slug/projects" element={<Layout><ProviderProjectsPage /></Layout>} />
                 <Route path="/provider/dashboard" element={<Layout><ProviderDashboardPage /></Layout>} />
                 <Route path="/provider/edit" element={<Layout><ProviderProfileEditPage /></Layout>} />
+                <Route path="/provider/:slug/edit/services" element={<Layout><ProviderCategoryEditPage /></Layout>} />
+                <Route path="/category/:categorySlug/search" element={<Layout><CategorySearchPage /></Layout>} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/escrow" element={<Layout><AdminEscrowDashboard /></Layout>} />
                 <Route path="/payment/success" element={<Layout><PaymentSuccessPage /></Layout>} />

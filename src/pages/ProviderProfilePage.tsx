@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Mail, Phone, Globe, Star, Calendar, Clock, 
   Share2, ChevronLeft, ChevronRight, Briefcase, Award, Languages, Loader2, X, Send, Eye, FolderOpen,
-  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play, Video, Edit3, Quote, BarChart3
+  BadgeCheck, Zap, MessageSquare, Heart, FileText, ExternalLink, Flag, Search, Filter, Plus, Play, Video, Edit3, Quote, BarChart3, Settings
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -738,6 +738,15 @@ export default function ProviderProfilePage() {
                 <Edit3 size={16} />
                 Modifier mon profil
               </button>
+              {provider.category && (
+                <button
+                  onClick={() => navigate(`/provider/${provider.slug}/edit/services`)}
+                  className="btn-secondary text-sm sm:text-base"
+                >
+                  <Settings size={16} />
+                  Services
+                </button>
+              )}
               <button onClick={shareProfile} className="btn-secondary">
                 <Share2 size={16} />
               </button>

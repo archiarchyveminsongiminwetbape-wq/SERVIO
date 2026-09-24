@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, AlertCircle, ChevronDown } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, SlidersHorizontal, X, MapPin, Loader2, Frown, Filter, Globe, AlertCircle, ChevronDown, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getCache, setCache, cacheKeys } from '@/lib/cache';
 import type { Category, ProviderProfile } from '@/types';
@@ -28,6 +28,7 @@ const BLOCKED_PROVIDER_SLUGS = new Set([
 
 export default function SearchPage() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [subCategories, setSubCategories] = useState<typeof categoryTaxonomy[0]['subcategories']>([]);
   const [selectedSubCat, setSelectedSubCat] = useState<string>('');
@@ -434,6 +435,16 @@ export default function SearchPage() {
                       ))}
                     </div>
                   </div>
+                )}
+
+                {categorySlug && (
+                  <button
+                    onClick={() => navigate(`/category/${categorySlug}/search`)}
+                    className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    Advanced search for {getCategoryName(categorySlug)}
+                    <ArrowRight size={16} />
+                  </button>
                 )}
 
                 <div>
