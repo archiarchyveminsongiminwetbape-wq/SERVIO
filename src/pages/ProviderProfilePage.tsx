@@ -12,6 +12,8 @@ import type { ProviderProfile, PortfolioItem, Review, ReviewResponse, Testimonia
 import StarRating from '@/components/StarRating';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import Lightbox from '@/components/Lightbox';
+import CategoryServiceDisplay from '@/components/CategoryServiceDisplay';
+import { getCategoryTemplate } from '@/data/category-templates';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 
 const badgeLabels: Record<string, { label: string; icon: typeof BadgeCheck; color: string }> = {
@@ -1306,24 +1308,42 @@ export default function ProviderProfilePage() {
 
           {activeTab === 'about' && (
             <div className="mx-auto max-w-3xl space-y-6">
-              {provider.description && (
-                <div>
-                  <h3 className="text-lg font-semibold text-neutral-900">{t.provider.presentation}</h3>
-                  <p className="mt-2 leading-relaxed text-neutral-600">{provider.description}</p>
-                </div>
-              )}
+              {/* Affichage adapté par catégorie si un template existe */}
+              {provider.category && getCategoryTemplate(provider.category.slug) ? (
+                <CategoryServiceDisplay
+                  categorySlug={provider.category.slug}
+                  providerData={{
+                    ...provider,
+                    portfolio: portfolio,
+                    reviews: reviews,
+                    certifications: certifications,
+                    portfolio_count: portfolio.length,
+                    rating_avg: provider.rating_avg,
+                    rating_count: provider.rating_count
+                  }}
+                  onContact={() => setShowMessageModal(true)}
+                  onBook={() => navigate(`/booking/${provider.slug}`)}
+                />
+              ) : (
+                <>
+                  {provider.description && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-neutral-900">{t.provider.presentation}</h3>
+                      <p className="mt-2 leading-relaxed text-neutral-600">{provider.description}</p>
+                    </div>
+                  )}
 
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                    <Briefcase size={20} /> {t.provider.fields.skills}
-                  </h3>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {provider.skills.map((skill) => (
-                      <span key={skill} className="badge bg-primary-50 text-primary-700">{skill}</span>
-                    ))}
-                  </div>
-                </div>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                        <Briefcase size={20} /> {t.provider.fields.skills}
+                      </h3>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {provider.skills.map((skill) => (
+                          <span key={skill} className="badge bg-primary-50 text-primary-700">{skill}</span>
+                        ))}
+                      </div>
+                    </div>
 
                 {certifications.length > 0 ? (
                   <div>
@@ -1547,6 +1567,8 @@ export default function ProviderProfilePage() {
                     {t.provider.reportProfile}
                   </button>
                 </div>
+              )}
+                </>
               )}
             </div>
           )}
