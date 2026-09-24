@@ -46,8 +46,10 @@ export interface ProviderProfile {
   owner_avatar_url?: string | null;
   banner_url: string | null;
   category_id: string | null;
+  category?: Category;
   skills: string[];
   experience_years: number | null;
+  category_specific_data?: Record<string, any>;
   languages: string[];
   certifications: string | null;
   city: string | null;
@@ -73,7 +75,6 @@ export interface ProviderProfile {
   is_featured: boolean;
   created_at: string;
   updated_at: string;
-  category?: Category | null;
 }
 
 export interface PortfolioItem {
