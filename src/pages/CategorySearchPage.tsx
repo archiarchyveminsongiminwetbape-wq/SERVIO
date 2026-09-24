@@ -150,19 +150,26 @@ export default function CategorySearchPage() {
                     {/* Category-specific preview */}
                     {provider.category_specific_data && Object.keys(provider.category_specific_data).length > 0 && (
                       <div className="mt-4 pt-4 border-t">
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(provider.category_specific_data)
-                            .slice(0, 3)
-                            .map(([key, value]) => {
-                              if (!value) return null;
-                              const displayValue = Array.isArray(value) ? value.slice(0, 2).join(', ') : String(value);
-                              return (
-                                <Badge key={key} variant="secondary" className="text-xs">
-                                  {displayValue}
-                                </Badge>
-                              );
-                            })}
-                        </div>
+                        {(() => {
+                          const presentation = getServicePresentation(categorySlug);
+                          const highlightFields = presentation?.highlightFields || [];
+                          
+                          return (
+                            <div className="flex flex-wrap gap-2">
+                              {highlightFields.slice(0, 3).map(field => {
+                                const value = provider.category_specific_data[field];
+                                if (!value) return null;
+                                
+                                const displayValue = Array.isArray(value) ? value.slice(0, 2).join(', ') : value;
+                                return (
+                                  <Badge key={field} variant="secondary" className="text-xs">
+                                    {displayValue}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </CardContent>
