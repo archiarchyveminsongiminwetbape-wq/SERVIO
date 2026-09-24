@@ -80,8 +80,8 @@ export class NotificationService {
   private async sendEmail(email: string, template: string, data: Record<string, any>): Promise<NotificationResult> {
     try {
       // Utiliser Supabase Edge Function pour l'envoi d'email
-      const supabaseUrl = process.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Configuration Supabase manquante');
@@ -125,8 +125,8 @@ export class NotificationService {
   private async sendSMS(phone: string, template: string, data: Record<string, any>): Promise<NotificationResult> {
     try {
       // Utiliser Supabase Edge Function pour l'envoi SMS
-      const supabaseUrl = process.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Configuration Supabase manquante');

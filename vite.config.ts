@@ -5,7 +5,14 @@ import { fileURLToPath, URL } from 'node:url';
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/',
-  plugins: [react()],
+  plugins: [
+    react({
+      // Ensure fast refresh works correctly
+      fastRefresh: true,
+      // Exclude certain files from HMR
+      exclude: /\.css$/,
+    }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -15,7 +22,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks - split into smaller chunks for better caching
+          // Vendor chunks - simplified to avoid React issues
           if (id.includes('node_modules')) {
             if (id.includes('react') || id.includes('react-dom')) {
               return 'vendor-react-core';
@@ -38,65 +45,25 @@ export default defineConfig({
             if (id.includes('@huggingface')) {
               return 'vendor-ai';
             }
-            if (id.includes('date-fns') || id.includes('moment')) {
-              return 'vendor-date';
-            }
-            // Split vendor-other into smaller chunks
-            if (id.includes('axios') || id.includes('node-fetch')) {
-              return 'vendor-http';
-            }
-            if (id.includes('dom') || id.includes('dompurify')) {
-              return 'vendor-dom';
-            }
-            // Exclude flutterwave-node-v3 from client bundle
-            if (id.includes('flutterwave-node-v3')) {
-              return 'vendor-server-only';
-            }
-            // Put everything else in vendor-other
             return 'vendor-other';
           }
-          // Page chunks - lazy load by page
-          if (id.includes('src/pages/LandingPage')) {
-            return 'page-landing';
-          }
-          if (id.includes('src/pages/SearchPage')) {
-            return 'page-search';
-          }
-          if (id.includes('src/pages/BookingPage')) {
-            return 'page-booking';
-          }
-          if (id.includes('src/pages/MessagesPage')) {
-            return 'page-messages';
-          }
-          if (id.includes('src/pages/ProfilePage')) {
-            return 'page-profile';
-          }
-          if (id.includes('src/pages/AdminDashboardPage')) {
-            return 'page-admin';
-          }
+          // Page chunks
           if (id.includes('src/pages')) {
             return 'pages';
           }
-          // Component chunks - simplified to avoid circular dependencies
-          if (id.includes('src/components/AIChatbot')) {
-            return 'component-chatbot';
-          }
-          if (id.includes('src/components/Navbar')) {
-            return 'component-navbar';
-          }
+          // Component chunks
           if (id.includes('src/components')) {
             return 'components';
           }
         },
       },
       treeshake: {
-        // Keep dynamically imported React routes and their side effects intact.
         moduleSideEffects: true,
         propertyReadSideEffects: true,
       },
       external: ['flutterwave-node-v3', 'crypto', 'fs', 'https', 'os', 'path', 'querystring'],
     },
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 1000,
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -127,7 +94,7 @@ export default defineConfig({
     target: 'es2020',
   },
   optimizeDeps: {
-    include: ['lucide-react', '@supabase/supabase-js'],
+    include: ['react', 'react-dom', 'lucide-react', '@supabase/supabase-js'],
     exclude: [],
   },
   server: {

@@ -40,7 +40,7 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<number>();
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '');

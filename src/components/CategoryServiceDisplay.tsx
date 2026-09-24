@@ -171,11 +171,11 @@ export default function CategoryServiceDisplay({
 
 // Layout pour affichage en grille
 function CardsLayout({ providerData, template }: { providerData: any; template: any }) {
-  const fields = template.fields.filter(f => providerData[f.id]);
+  const fields = template.fields.filter((f: any) => providerData[f.id]);
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {fields.map(field => (
+      {fields.map((field: any) => (
         <Card key={field.id}>
           <CardHeader>
             <CardTitle className="text-sm">{field.label}</CardTitle>
@@ -214,11 +214,11 @@ function GalleryLayout({ providerData, template }: { providerData: any; template
 
 // Layout pour affichage en liste
 function ListLayout({ providerData, template }: { providerData: any; template: any }) {
-  const fields = template.fields.filter(f => providerData[f.id]);
+  const fields = template.fields.filter((f: any) => providerData[f.id]);
   
   return (
     <div className="space-y-3">
-      {fields.map(field => (
+      {fields.map((field: any) => (
         <div key={field.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
           <span className="font-medium">{field.label}</span>
           <span className="text-sm">

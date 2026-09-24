@@ -37,7 +37,7 @@ export async function getProviderCategoryData(providerId: string): Promise<Categ
       };
     }
 
-    const categorySlug = data.categories?.slug;
+    const categorySlug = Array.isArray(data.categories) ? (data.categories as any)[0]?.slug : (data.categories as any)?.slug;
     const categoryData = data.category_specific_data || {};
 
     return {

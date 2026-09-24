@@ -97,11 +97,11 @@ export default function CategoryStatsDisplay({ categorySlug }: CategoryStatsDisp
                             <div className="flex-1 bg-gray-200 rounded-full h-2">
                               <div 
                                 className="bg-blue-600 h-2 rounded-full" 
-                                style={{ width: `${(count / fieldStat.total) * 100}%` }}
+                                style={{ width: `${((count as number) / fieldStat.total) * 100}%` }}
                               />
                             </div>
                             <span className="text-sm text-gray-600 w-32 text-right">
-                              {option} ({count})
+                              {option} ({count as number})
                             </span>
                           </div>
                         ))}

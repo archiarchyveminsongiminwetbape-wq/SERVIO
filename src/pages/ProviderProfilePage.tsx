@@ -130,7 +130,7 @@ export default function ProviderProfilePage() {
 
       setProvider({
         ...(provData as ProviderProfile),
-        category,
+        category: category || undefined,
         avatar_url: provData.avatar_url || ownerAvatarUrl,
       });
 

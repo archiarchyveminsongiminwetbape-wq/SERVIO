@@ -109,71 +109,73 @@ export default function CategorySearchPage() {
           {!loading && !error && results.length > 0 && (
             <div className="space-y-4">
               {results.map((provider: any) => (
-                <Card 
-                  key={provider.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
+                <div 
+                  key={provider.id}
                   onClick={() => handleProviderClick(provider.slug)}
+                  className="cursor-pointer"
                 >
-                  <CardContent className="pt-6">
-                    <div className="flex gap-4">
-                      {provider.avatar_url && (
-                        <img
-                          src={provider.avatar_url}
-                          alt={provider.business_name}
-                          className="w-16 h-16 rounded-full object-cover"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {provider.business_name}
-                        </h3>
-                        {provider.headline && (
-                          <p className="text-sm text-gray-600 mt-1">{provider.headline}</p>
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
+                      <div className="flex gap-4">
+                        {provider.avatar_url && (
+                          <img
+                            src={provider.avatar_url}
+                            alt={provider.business_name}
+                            className="w-16 h-16 rounded-full object-cover"
+                          />
                         )}
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                          {provider.city && (
-                            <span className="flex items-center gap-1">
-                              <MapPin size={14} />
-                              {provider.city}
-                            </span>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {provider.business_name}
+                          </h3>
+                          {provider.headline && (
+                            <p className="text-sm text-gray-600 mt-1">{provider.headline}</p>
                           )}
-                          {provider.rating_avg > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                              {provider.rating_avg.toFixed(1)} ({provider.rating_count})
-                            </span>
-                          )}
+                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                            {provider.city && (
+                              <span className="flex items-center gap-1">
+                                <MapPin size={14} />
+                                {provider.city}
+                              </span>
+                            )}
+                            {provider.rating_avg > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                                {provider.rating_avg.toFixed(1)} ({provider.rating_count})
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Category-specific preview */}
-                    {provider.category_specific_data && Object.keys(provider.category_specific_data).length > 0 && (
-                      <div className="mt-4 pt-4 border-t">
-                        {(() => {
-                          const presentation = getServicePresentation(categorySlug);
-                          const highlightFields = presentation?.highlightFields || [];
-                          
-                          return (
-                            <div className="flex flex-wrap gap-2">
-                              {highlightFields.slice(0, 3).map(field => {
-                                const value = provider.category_specific_data[field];
-                                if (!value) return null;
-                                
-                                const displayValue = Array.isArray(value) ? value.slice(0, 2).join(', ') : value;
-                                return (
-                                  <Badge key={field} variant="secondary" className="text-xs">
-                                    {displayValue}
-                                  </Badge>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      
+                      {/* Category-specific preview */}
+                      {provider.category_specific_data && Object.keys(provider.category_specific_data).length > 0 && (
+                        <div className="mt-4 pt-4 border-t">
+                          {(() => {
+                            const presentation = getServicePresentation(categorySlug);
+                            const highlightFields = presentation?.highlightFields || [];
+                            
+                            return (
+                              <div className="flex flex-wrap gap-2">
+                                {highlightFields.slice(0, 3).map(field => {
+                                  const value = provider.category_specific_data[field];
+                                  if (!value) return null;
+                                  
+                                  const displayValue = Array.isArray(value) ? value.slice(0, 2).join(', ') : value;
+                                  return (
+                                    <Badge key={field} variant="secondary" className="text-xs">
+                                      {displayValue}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               ))}
             </div>
           )}

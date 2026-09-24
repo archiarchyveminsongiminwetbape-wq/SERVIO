@@ -57,7 +57,7 @@ export function useCategoryData(providerId: string) {
       });
       
       if (response.success) {
-        setCategoryData(response.data);
+        setCategoryData(response.data || null);
         return { success: true };
       } else {
         setError(response.error || 'Failed to update category data');
