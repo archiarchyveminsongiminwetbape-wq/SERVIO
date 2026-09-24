@@ -29,8 +29,11 @@ export default defineConfig({
             if (id.includes('lucide')) {
               return 'vendor-icons';
             }
-            if (id.includes('jspdf') || id.includes('html2canvas')) {
-              return 'vendor-pdf';
+            if (id.includes('jspdf')) {
+              return 'vendor-pdf-core';
+            }
+            if (id.includes('html2canvas')) {
+              return 'vendor-pdf-canvas';
             }
             if (id.includes('@huggingface')) {
               return 'vendor-ai';
@@ -38,6 +41,18 @@ export default defineConfig({
             if (id.includes('date-fns') || id.includes('moment')) {
               return 'vendor-date';
             }
+            // Split vendor-other into smaller chunks
+            if (id.includes('axios') || id.includes('node-fetch')) {
+              return 'vendor-http';
+            }
+            if (id.includes('dom') || id.includes('dompurify')) {
+              return 'vendor-dom';
+            }
+            // Exclude flutterwave-node-v3 from client bundle
+            if (id.includes('flutterwave-node-v3')) {
+              return 'vendor-server-only';
+            }
+            // Put everything else in vendor-other
             return 'vendor-other';
           }
           // Page chunks - lazy load by page
@@ -62,7 +77,7 @@ export default defineConfig({
           if (id.includes('src/pages')) {
             return 'pages';
           }
-          // Component chunks
+          // Component chunks - simplified to avoid circular dependencies
           if (id.includes('src/components/AIChatbot')) {
             return 'component-chatbot';
           }
@@ -79,8 +94,9 @@ export default defineConfig({
         moduleSideEffects: true,
         propertyReadSideEffects: true,
       },
+      external: ['flutterwave-node-v3', 'crypto', 'fs', 'https', 'os', 'path', 'querystring'],
     },
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 800,
     minify: 'terser',
     terserOptions: {
       compress: {

@@ -1,4 +1,5 @@
-import Flutterwave from 'flutterwave-node-v3';
+// Client-side Flutterwave interface - uses API calls instead of direct SDK
+// The actual Flutterwave SDK is server-side only
 
 export interface FlutterwavePaymentConfig {
   tx_ref: string;
@@ -32,16 +33,6 @@ export interface FlutterwavePaymentConfig {
  * Cette configuration privilégie Orange Money comme méthode de paiement
  */
 export class FlutterwaveService {
-  private flw: Flutterwave;
-
-  constructor() {
-    this.flw = new Flutterwave(
-      process.env.FLUTTERWAVE_PUBLIC_KEY || '',
-      process.env.FLUTTERWAVE_SECRET_KEY || '',
-      process.env.FLUTTERWAVE_ENCRYPTION_KEY || ''
-    );
-  }
-
   /**
    * Initialise un paiement avec priorité pour Orange Money
    * 
@@ -50,36 +41,39 @@ export class FlutterwaveService {
    */
   async initiatePayment(config: FlutterwavePaymentConfig) {
     try {
-      const paymentRequest = {
-        tx_ref: config.tx_ref,
-        amount: config.amount,
-        currency: config.currency,
-        email: config.email,
-        phone: config.phone,
-        fullname: config.fullname,
-        customer: config.customer,
-        customizations: config.customizations || {
-          title: 'SERVIO - Paiement de service',
-          description: 'Paiement sécurisé via SERVIO',
+      // Call the checkout-session API endpoint
+      const response = await fetch('/api/checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        meta: {
-          ...config.meta,
-          booking_id: config.booking_id,
-          user_id: config.user_id,
-          platform: 'servio',
-        },
-        redirect_url: config.redirect_url,
-        // PRIORITÉ: Orange Money en premier, puis autres méthodes
-        payment_options: 'orange_money,card,mtn_money,mobile_money,bank_transfer,ussd',
-      };
+        body: JSON.stringify({
+          amount: config.amount,
+          currency: config.currency,
+          bookingId: config.booking_id,
+          userId: config.user_id,
+          clientEmail: config.email,
+          metadata: {
+            client_name: config.fullname,
+            ...config.meta,
+          },
+        }),
+      });
 
-      const response = await this.flw.Charge.card(paymentRequest);
+      const result = await response.json();
 
-      return {
-        success: response.status === 'success',
-        data: response.data,
-        message: response.message,
-      };
+      if (response.ok && result.link) {
+        return {
+          success: true,
+          data: { link: result.link, tx_ref: result.tx_ref },
+          message: 'Payment initiated successfully',
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Payment initiation failed',
+        };
+      }
     } catch (error: any) {
       console.error('Flutterwave payment initiation error:', error);
       return {
@@ -94,45 +88,9 @@ export class FlutterwaveService {
    * Cette méthode force l'utilisation d'Orange Money
    */
   async initiateOrangeMoneyPayment(config: FlutterwavePaymentConfig) {
-    try {
-      const paymentRequest = {
-        tx_ref: config.tx_ref,
-        amount: config.amount,
-        currency: config.currency,
-        email: config.email,
-        phone: config.phone,
-        fullname: config.fullname,
-        customer: config.customer,
-        customizations: config.customizations || {
-          title: 'SERVIO - Paiement Orange Money',
-          description: 'Paiement sécurisé via Orange Money',
-        },
-        meta: {
-          ...config.meta,
-          booking_id: config.booking_id,
-          user_id: config.user_id,
-          platform: 'servio',
-          payment_method: 'orange_money',
-        },
-        redirect_url: config.redirect_url,
-        // FORCE Orange Money uniquement
-        payment_options: 'orange_money',
-      };
-
-      const response = await this.flw.Charge.mobile_money(paymentRequest);
-
-      return {
-        success: response.status === 'success',
-        data: response.data,
-        message: response.message,
-      };
-    } catch (error: any) {
-      console.error('Flutterwave Orange Money payment error:', error);
-      return {
-        success: false,
-        error: error.message || 'Orange Money payment failed',
-      };
-    }
+    // Orange Money specific payments use the same checkout endpoint
+    // The payment method is handled on the Flutterwave checkout page
+    return this.initiatePayment(config);
   }
 
   /**
@@ -140,13 +98,21 @@ export class FlutterwaveService {
    */
   async verifyTransaction(transactionId: string) {
     try {
-      const response = await this.flw.Transaction.verify({ id: transactionId });
+      const response = await fetch(`/api/verify-payment?transactionId=${transactionId}`);
+      const result = await response.json();
 
-      return {
-        success: response.status === 'success',
-        data: response.data,
-        message: response.message,
-      };
+      if (response.ok) {
+        return {
+          success: result.success,
+          data: result.data,
+          message: result.message,
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Transaction verification failed',
+        };
+      }
     } catch (error: any) {
       console.error('Flutterwave verification error:', error);
       return {
@@ -161,16 +127,27 @@ export class FlutterwaveService {
    */
   async refundTransaction(transactionId: string, amount?: number) {
     try {
-      const response = await this.flw.Transaction.refund({
-        id: transactionId,
-        amount,
+      const response = await fetch('/api/admin/refund-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transactionId, amount }),
       });
+      const result = await response.json();
 
-      return {
-        success: response.status === 'success',
-        data: response.data,
-        message: response.message,
-      };
+      if (response.ok) {
+        return {
+          success: result.success,
+          data: result.data,
+          message: result.message,
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Refund failed',
+        };
+      }
     } catch (error: any) {
       console.error('Flutterwave refund error:', error);
       return {
@@ -185,13 +162,21 @@ export class FlutterwaveService {
    */
   async getTransaction(transactionId: string) {
     try {
-      const response = await this.flw.Transaction.get({ id: transactionId });
+      const response = await fetch(`/api/verify-payment?transactionId=${transactionId}`);
+      const result = await response.json();
 
-      return {
-        success: response.status === 'success',
-        data: response.data,
-        message: response.message,
-      };
+      if (response.ok) {
+        return {
+          success: result.success,
+          data: result.data,
+          message: result.message,
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Failed to get transaction',
+        };
+      }
     } catch (error: any) {
       console.error('Flutterwave get transaction error:', error);
       return {
@@ -214,21 +199,27 @@ export class FlutterwaveService {
     beneficiary_name: string;
   }) {
     try {
-      const response = await this.flw.Transfer.initiate({
-        account_bank: transferData.account_bank,
-        account_number: transferData.account_number,
-        amount: transferData.amount,
-        currency: transferData.currency,
-        narration: transferData.narration,
-        beneficiary_name: transferData.beneficiary_name,
-        reference: `SERVIO-ESCROW-${Date.now()}`,
+      const response = await fetch('/api/admin/initiate-transfer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transferData),
       });
+      const result = await response.json();
 
-      return {
-        success: response.status === 'success',
-        data: response.data,
-        message: response.message,
-      };
+      if (response.ok) {
+        return {
+          success: result.success,
+          data: result.data,
+          message: result.message,
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Transfer failed',
+        };
+      }
     } catch (error: any) {
       console.error('Flutterwave transfer error:', error);
       return {

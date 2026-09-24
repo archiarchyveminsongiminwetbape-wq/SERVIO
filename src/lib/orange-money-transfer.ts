@@ -1,9 +1,9 @@
-import Flutterwave from 'flutterwave-node-v3';
 import { supabase } from './supabase';
 
 /**
  * Service de transfert automatique Orange Money
  * Permet d'effectuer des virements automatiques vers les comptes Orange Money des prestataires
+ * Note: This is a client-side wrapper that calls server-side API endpoints
  */
 
 export interface OrangeMoneyTransferConfig {
@@ -27,16 +27,6 @@ export interface TransferResult {
 }
 
 export class OrangeMoneyTransferService {
-  private flw: Flutterwave;
-
-  constructor() {
-    this.flw = new Flutterwave(
-      process.env.FLUTTERWAVE_PUBLIC_KEY || '',
-      process.env.FLUTTERWAVE_SECRET_KEY || '',
-      process.env.FLUTTERWAVE_ENCRYPTION_KEY || ''
-    );
-  }
-
   /**
    * Initie un transfert vers un compte Orange Money
    */
@@ -60,19 +50,27 @@ export class OrangeMoneyTransferService {
         },
       };
 
-      const response = await this.flw.Transfer.initiate(transferRequest);
+      const response = await fetch('/api/admin/initiate-transfer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transferRequest),
+      });
 
-      if (response.status === 'success') {
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         return {
           success: true,
-          data: response.data,
-          transferId: response.data?.id,
-          reference: transferRequest.reference,
+          data: result.data,
+          transferId: result.transferId,
+          reference: result.reference,
         };
       } else {
         return {
           success: false,
-          error: response.message || 'Transfer initiation failed',
+          error: result.error || 'Transfer initiation failed',
         };
       }
     } catch (error: any) {
@@ -89,17 +87,18 @@ export class OrangeMoneyTransferService {
    */
   async getTransferStatus(transferId: string): Promise<TransferResult> {
     try {
-      const response = await this.flw.Transfer.get({ id: transferId });
+      const response = await fetch(`/api/admin/transfer-status?transferId=${transferId}`);
+      const result = await response.json();
 
-      if (response.status === 'success') {
+      if (response.ok) {
         return {
-          success: true,
-          data: response.data,
+          success: result.success,
+          data: result.data,
         };
       } else {
         return {
           success: false,
-          error: response.message || 'Failed to get transfer status',
+          error: result.error || 'Failed to get transfer status',
         };
       }
     } catch (error: any) {
@@ -116,19 +115,18 @@ export class OrangeMoneyTransferService {
    */
   async getBalance(): Promise<TransferResult> {
     try {
-      // Flutterwave balance API - using fallback since API structure might vary
-      // @ts-ignore - Flutterwave types might not be complete
-      const response = await this.flw.Misc?.balances?.get_currency_balances() || { status: 'success', data: [] };
+      const response = await fetch('/api/admin/balance');
+      const result = await response.json();
 
-      if (response.status === 'success') {
+      if (response.ok) {
         return {
-          success: true,
-          data: response.data,
+          success: result.success,
+          data: result.data,
         };
       } else {
         return {
           success: false,
-          error: response.message || 'Failed to get balance',
+          error: result.error || 'Failed to get balance',
         };
       }
     } catch (error: any) {
@@ -296,21 +294,20 @@ export class OrangeMoneyTransferService {
    */
   async cancelTransfer(transferId: string): Promise<TransferResult> {
     try {
-      // Flutterwave API - using get method to fetch transfer status
-      // @ts-ignore - Flutterwave types might not be complete
-      const response = await this.flw.Transfer.get({
-        id: transferId,
+      const response = await fetch(`/api/admin/cancel-transfer?transferId=${transferId}`, {
+        method: 'POST',
       });
+      const result = await response.json();
 
-      if (response.status === 'success') {
+      if (response.ok) {
         return {
-          success: true,
-          data: response.data,
+          success: result.success,
+          data: result.data,
         };
       } else {
         return {
           success: false,
-          error: response.message || 'Failed to cancel transfer',
+          error: result.error || 'Failed to cancel transfer',
         };
       }
     } catch (error: any) {
