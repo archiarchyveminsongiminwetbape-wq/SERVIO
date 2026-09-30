@@ -134,10 +134,15 @@ export default function ProviderProfilePage() {
         avatar_url: provData.avatar_url || ownerAvatarUrl,
       });
 
-      // Increment and display the new profile view count immediately.
+      // Increment and display the new profile view count immediately with anti-spam tracking
       const { data: updatedProfileViews, error: profileViewsError } = await supabase.rpc(
-        'increment_profile_views',
-        { p_profile_id: provData.id },
+        'log_and_increment_profile_view',
+        { 
+          p_provider_id: provData.id,
+          p_viewer_id: user?.id || null,
+          p_viewer_ip: null, // Could be obtained from a service
+          p_user_agent: navigator.userAgent,
+        },
       );
       if (profileViewsError) {
         console.error('Error incrementing profile views:', profileViewsError);
@@ -154,23 +159,28 @@ export default function ProviderProfilePage() {
 
       setPortfolio(portRes.data as PortfolioItem[] ?? []);
 
-      // Increment portfolio item views without blocking the page render.
+      // Increment portfolio item views without blocking the page render with anti-spam tracking
       if (portRes.data && portRes.data.length > 0) {
         void Promise.all(
           portRes.data.map(async (item) => {
             const { data: updatedViews, error: viewsError } = await supabase.rpc(
               'increment_portfolio_views',
-              { p_item_id: item.id },
+              { 
+                item_id: item.id,
+                viewer_id: user?.id || null,
+              },
             );
             if (viewsError) {
               console.error('Error incrementing portfolio views:', viewsError);
               return;
             }
-            setPortfolio((current) => current.map((portfolioItem) =>
-              portfolioItem.id === item.id
-                ? { ...portfolioItem, views: updatedViews }
-                : portfolioItem,
-            ));
+            if (typeof updatedViews === 'number') {
+              setPortfolio((current) => current.map((portfolioItem) =>
+                portfolioItem.id === item.id
+                  ? { ...portfolioItem, views: updatedViews }
+                  : portfolioItem,
+              ));
+            }
           }),
         );
       }
