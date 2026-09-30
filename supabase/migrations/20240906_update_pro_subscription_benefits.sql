@@ -58,7 +58,7 @@ BEGIN
   END IF;
   
   -- Calculer le montant de la commission
-  commission_amount_val := NEW.total_amount * commission_rate_val;
+  commission_amount_val := NEW.price * commission_rate_val;
 
   -- Créer l'enregistrement de commission
   INSERT INTO commissions (
@@ -71,7 +71,7 @@ BEGIN
   ) VALUES (
     NEW.id,
     NEW.provider_id,
-    NEW.total_amount,
+    NEW.price,
     commission_rate_val,
     commission_amount_val,
     'calculated'
