@@ -108,8 +108,14 @@ export default function OrangeMoneyTransferManager() {
     setLoading(true);
     try {
       await Promise.all([
-        loadTransfers(),
-        loadStats()
+        loadTransfers().catch(err => {
+          console.error('Error loading transfers:', err);
+          setTransfers([]);
+        }),
+        loadStats().catch(err => {
+          console.error('Error loading stats:', err);
+          // Keep default stats on error
+        })
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -134,7 +140,15 @@ export default function OrangeMoneyTransferManager() {
 
     if (error) throw error;
     if (data && data.length > 0) {
-      setStats(data[0]);
+      setStats({
+        totalTransfers: data[0].totalTransfers || 0,
+        completedTransfers: data[0].completedTransfers || 0,
+        failedTransfers: data[0].failedTransfers || 0,
+        processingTransfers: data[0].processingTransfers || 0,
+        totalAmount: data[0].totalAmount || 0,
+        completedAmount: data[0].completedAmount || 0,
+        avgTransferAmount: data[0].avgTransferAmount || 0,
+      });
     }
   };
 
@@ -335,7 +349,7 @@ export default function OrangeMoneyTransferManager() {
             <span className="text-xs text-gray-500">Complétés</span>
           </div>
           <div className="text-2xl font-bold">{stats.completedTransfers}</div>
-          <div className="text-sm text-gray-600 mt-1">{stats.completedAmount.toLocaleString()} XAF</div>
+          <div className="text-sm text-gray-600 mt-1">{(stats.completedAmount || 0).toLocaleString()} XAF</div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -407,7 +421,7 @@ export default function OrangeMoneyTransferManager() {
                     )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="font-semibold">{transfer.amount.toLocaleString()} {transfer.currency}</div>
+                    <div className="font-semibold">{(transfer.amount || 0).toLocaleString()} {transfer.currency}</div>
                     {transfer.milestone_percentage && (
                       <div className="text-xs text-gray-500">{transfer.milestone_percentage}% du milestone</div>
                     )}
@@ -503,7 +517,7 @@ export default function OrangeMoneyTransferManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Montant</p>
-                  <p className="font-semibold text-lg">{selectedTransfer.amount.toLocaleString()} {selectedTransfer.currency}</p>
+                  <p className="font-semibold text-lg">{(selectedTransfer.amount || 0).toLocaleString()} {selectedTransfer.currency}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Date création</p>

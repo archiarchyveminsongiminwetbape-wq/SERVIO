@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useI18n } from '@/context/I18nContext';
+import { verifyPayment } from '@/lib/api/payment';
 
 export default function PaymentSuccessPage() {
   const { t } = useI18n();
@@ -24,16 +25,10 @@ export default function PaymentSuccessPage() {
 
       try {
         // Verify the Flutterwave payment
-        const response = await fetch('/api/verify-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tx_ref }),
-        });
+        const result = await verifyPayment({ tx_ref });
 
-        const payload = await response.json();
-
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.error || 'Payment verification failed');
+        if (!result.success) {
+          throw new Error(result.error || 'Payment verification failed');
         }
 
         setStatus('success');

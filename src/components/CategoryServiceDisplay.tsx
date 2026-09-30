@@ -55,6 +55,7 @@ export default function CategoryServiceDisplay({
             </Badge>
           ) : null;
         case 'portfolio':
+        case 'gallery':
           return providerData.portfolio_count > 0 ? (
             <Badge key={index} variant="secondary" className="flex items-center gap-1">
               <Star className="w-3 h-3" />
@@ -101,6 +102,76 @@ export default function CategoryServiceDisplay({
             <Badge key={index} variant="destructive" className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               Urgence
+            </Badge>
+          ) : null;
+        case 'workshop':
+          return providerData.workshop_location ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              Atelier
+            </Badge>
+          ) : null;
+        case 'style':
+          return providerData.style ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              {providerData.style}
+            </Badge>
+          ) : null;
+        case 'equipment':
+          return providerData.equipment ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Équipé
+            </Badge>
+          ) : null;
+        case 'products':
+          return providerData.products_used && providerData.products_used.length > 0 ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Produits pro
+            </Badge>
+          ) : null;
+        case 'booking':
+          return providerData.booking_system ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Réservation en ligne
+            </Badge>
+          ) : null;
+        case 'menu':
+          return providerData.specialties ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Spécialités
+            </Badge>
+          ) : null;
+        case 'photos':
+          return providerData.portfolio_count > 0 ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Photos
+            </Badge>
+          ) : null;
+        case 'case_studies':
+          return providerData.case_studies && providerData.case_studies !== 'Non' ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Études de cas
+            </Badge>
+          ) : null;
+        case 'testimonials':
+          return providerData.testimonials && providerData.testimonials.length > 0 ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Témoignages
+            </Badge>
+          ) : null;
+        case 'methodology':
+          return providerData.methodology ? (
+            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Méthodologie
             </Badge>
           ) : null;
         default:
@@ -299,6 +370,59 @@ function CategorySection({ section, providerData, template }: { section: string;
         </Card>
       ) : null;
     
+    case 'techniques':
+      return providerData.techniques && providerData.techniques.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Techniques
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {providerData.techniques.map((technique: string, index: number) => (
+                <Badge key={index} variant="secondary">{technique}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'materials':
+      return providerData.materials && providerData.materials.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Matériaux
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {providerData.materials.map((material: string, index: number) => (
+                <Badge key={index} variant="secondary">{material}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'workshop':
+      return providerData.workshop_location ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Atelier
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600">{providerData.workshop_location}</p>
+          </CardContent>
+        </Card>
+      ) : null;
+    
     case 'reviews':
       return providerData.reviews?.length > 0 ? (
         <Card>
@@ -335,6 +459,167 @@ function CategorySection({ section, providerData, template }: { section: string;
           </CardHeader>
           <CardContent>
             <GalleryLayout providerData={providerData} template={template} />
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'techniques':
+      return providerData.techniques && providerData.techniques.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Techniques
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {providerData.techniques.map((technique: string, index: number) => (
+                <Badge key={index} variant="secondary">{technique}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'materials':
+      return providerData.materials && providerData.materials.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Matériaux
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {providerData.materials.map((material: string, index: number) => (
+                <Badge key={index} variant="secondary">{material}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'workshop':
+      return providerData.workshop_location ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Atelier
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600">{providerData.workshop_location}</p>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'services':
+      const serviceFields = ['construction_types', 'services_offered', 'photography_types', 'consulting_areas', 'cuisine_type', 'service_type', 'subjects'];
+      const serviceName = serviceFields.find(field => providerData[field] && providerData[field].length > 0);
+      
+      if (serviceName) {
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Services
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {providerData[serviceName]?.map((service: string, index: number) => (
+                  <Badge key={index} variant="secondary">{service}</Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      return null;
+    
+    case 'tech_stack':
+      return providerData.tech_stack && providerData.tech_stack.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Stack Technique
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {providerData.tech_stack.map((tech: string, index: number) => (
+                <Badge key={index} variant="secondary">{tech}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'experience':
+      return providerData.experience_level ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5" />
+              Expérience
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600">{providerData.experience_level}</p>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'methodology':
+      return providerData.methodology ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5" />
+              Méthodologie
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600">{providerData.methodology}</p>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'intervention_area':
+      return providerData.intervention_area ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Zone d'intervention
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600">{providerData.intervention_area}</p>
+          </CardContent>
+        </Card>
+      ) : null;
+    
+    case 'specialties':
+      return providerData.specialties && providerData.specialties.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Spécialités
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {providerData.specialties.map((specialty: string, index: number) => (
+                <Badge key={index} variant="secondary">{specialty}</Badge>
+              ))}
+            </div>
           </CardContent>
         </Card>
       ) : null;

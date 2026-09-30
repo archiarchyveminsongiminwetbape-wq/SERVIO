@@ -5,14 +5,7 @@ import { fileURLToPath, URL } from 'node:url';
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/',
-  plugins: [
-    react({
-      // Ensure fast refresh works correctly
-      fastRefresh: true,
-      // Exclude certain files from HMR
-      exclude: /\.css$/,
-    }),
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -98,8 +91,10 @@ export default defineConfig({
     exclude: [],
   },
   server: {
-    headers: {
-      'Cache-Control': 'public, max-age=31536000, immutable',
+    port: 5173,
+    strictPort: false,
+    hmr: {
+      port: 5173,
     },
   },
 });

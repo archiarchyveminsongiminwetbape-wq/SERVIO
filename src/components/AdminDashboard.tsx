@@ -18,7 +18,19 @@ import {
   Bell,
   LogOut,
   Menu,
-  X
+  X,
+  Calendar,
+  MessageSquare,
+  ThumbsUp,
+  FileText,
+  Search,
+  Edit,
+  Trash2,
+  Ban,
+  UserCheck,
+  Building2,
+  Database,
+  Activity
 } from 'lucide-react';
 import FinancialReports from './FinancialReports';
 import OrangeMoneyTransferManager from './OrangeMoneyTransferManager';
@@ -26,6 +38,12 @@ import ManualPaymentManager from './ManualPaymentManager';
 import MilestoneValidationManager from './MilestoneValidationManager';
 import AccountCertificationManager from './AccountCertificationManager';
 import OrangeMoneyDashboard from './OrangeMoneyDashboard';
+import UserManagement from './UserManagement';
+import ProviderManagement from './ProviderManagement';
+import BookingManagement from './BookingManagement';
+import EscrowManagement from './EscrowManagement';
+import ReviewsManagement from './ReviewsManagement';
+import AdminSettings from './AdminSettings';
 
 interface DashboardStats {
   totalUsers: number;
@@ -120,7 +138,7 @@ export default function AdminDashboard() {
         supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'confirmed'),
         supabase.from('manual_payments').select('amount').eq('status', 'pending'),
         supabase.from('milestones').select('amount').eq('status', 'completed'),
-        supabase.from('certifications').select('*').eq('status', 'pending'),
+        supabase.from('certifications').select('id').eq('verification_status', 'pending'),
         supabase.from('escrow_accounts').select('total_amount').eq('status', 'active'),
         supabase.from('manual_payments').select('*').eq('status', 'confirmed').gte('created_at', new Date().toISOString().split('T')[0])
       ]);
@@ -189,12 +207,18 @@ export default function AdminDashboard() {
 
   const sidebarItems = [
     { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutDashboard },
+    { id: 'users', label: 'Utilisateurs', icon: Users },
+    { id: 'providers', label: 'Prestataires', icon: Building2 },
+    { id: 'bookings', label: 'Réservations', icon: Calendar },
     { id: 'financial', label: 'Rapports Financiers', icon: BarChart3 },
     { id: 'transfers', label: 'Transferts Orange Money', icon: Smartphone },
     { id: 'payments', label: 'Paiements Manuels', icon: CreditCard },
     { id: 'milestones', label: 'Validation Jalons', icon: CheckCircle },
     { id: 'certifications', label: 'Certifications', icon: Shield },
+    { id: 'escrow', label: 'Gestion Escrow', icon: Database },
+    { id: 'reviews', label: 'Avis Clients', icon: ThumbsUp },
     { id: 'orange-dashboard', label: 'Dashboard Orange Money', icon: TrendingUp },
+    { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 
   const getActivityIcon = (type: string) => {
@@ -462,12 +486,18 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {activeTab === 'users' && <UserManagement />}
+          {activeTab === 'providers' && <ProviderManagement />}
+          {activeTab === 'bookings' && <BookingManagement />}
           {activeTab === 'financial' && <FinancialReports />}
           {activeTab === 'transfers' && <OrangeMoneyTransferManager />}
           {activeTab === 'payments' && <ManualPaymentManager isAdmin={true} />}
           {activeTab === 'milestones' && <MilestoneValidationManager isAdmin={true} />}
           {activeTab === 'certifications' && <AccountCertificationManager />}
           {activeTab === 'orange-dashboard' && <OrangeMoneyDashboard />}
+          {activeTab === 'escrow' && <EscrowManagement />}
+          {activeTab === 'reviews' && <ReviewsManagement />}
+          {activeTab === 'settings' && <AdminSettings />}
         </main>
       </div>
     </div>

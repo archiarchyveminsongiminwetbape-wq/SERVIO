@@ -1331,7 +1331,7 @@ export default function ProviderProfilePage() {
                     rating_count: provider.rating_count
                   }}
                   onContact={() => setShowMessageModal(true)}
-                  onBook={() => navigate(`/booking/${provider.slug}`)}
+                  onBook={() => navigate(`/provider/${provider.slug}/book`)}
                 />
               ) : (
                 <>
@@ -1567,7 +1567,16 @@ export default function ProviderProfilePage() {
               </div>
 
               {!isOwnProfile && (
-                <div className="flex justify-end border-t border-neutral-100 pt-4">
+                <div className="flex justify-between items-center border-t border-neutral-100 pt-4">
+                  <button
+                    onClick={() => {
+                      console.log('Navigation to booking:', provider.slug);
+                      navigate(`/provider/${provider.slug}/book`);
+                    }}
+                    className="btn-primary"
+                  >
+                    Réserver
+                  </button>
                   <button
                     onClick={() => setShowReportModal(true)}
                     className="btn-ghost text-neutral-400 hover:text-error-600"
