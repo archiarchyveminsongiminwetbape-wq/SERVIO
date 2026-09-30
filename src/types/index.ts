@@ -268,6 +268,15 @@ export interface Subscription {
   updated_at: string;
   flutterwave_subscription_id: string | null;
   flutterwave_customer_id: string | null;
+  billing_period?: 'monthly' | 'quarterly' | 'yearly';
+  benefits?: {
+    commission_rate: number;
+    featured_listing: boolean;
+    premium_badge: boolean;
+    advanced_analytics: boolean;
+    priority_support: boolean;
+    unlimited_portfolio: boolean;
+  };
 }
 
 export interface Invoice {

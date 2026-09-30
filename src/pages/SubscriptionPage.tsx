@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Loader2, CreditCard, Crown, Star, Zap, ArrowRight } from 'lucide-react';
+import { Check, Loader2, CreditCard, Crown, Star, Zap, ArrowRight, X, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
@@ -9,72 +9,121 @@ import type { Subscription, SubscriptionPlan } from '@/types';
 const plans: Array<{
   id: SubscriptionPlan;
   name: string;
-  price: number;
-  period: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  quarterlyPrice: number;
   features: string[];
+  popularFeatures: string[];
+  limitations: string[];
   icon: typeof Crown;
   color: string;
+  recommended: boolean;
 }> = [
   {
     id: 'free',
     name: 'Gratuit',
-    price: 0,
-    period: 'pour toujours',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    quarterlyPrice: 0,
     features: [
       'Profil de base',
-      'Jusqu\'à 5 réalisations',
+      'Jusqu\'à 5 réalisations dans le portfolio',
       'Messagerie illimitée',
       'Support par email',
+      'Accès aux demandes de service',
+    ],
+    popularFeatures: [],
+    limitations: [
+      'Réservations limitées',
+      'Pas de badge de vérification',
+      'Pas de statistiques',
+      'Support standard',
     ],
     icon: Star,
     color: 'text-neutral-600 bg-neutral-100',
+    recommended: false,
   },
   {
     id: 'basic',
     name: 'Basic',
-    price: 6500,
-    period: 'par mois',
+    monthlyPrice: 6500,
+    yearlyPrice: 65000, // 17% de réduction annuelle
+    quarterlyPrice: 17500, // 10% de réduction trimestrielle
     features: [
       'Tout du plan Gratuit',
       'Réalisations illimitées',
-      'Badge "Vérifié"',
+      'Badge "Vérifié" ✅',
       'Priorité dans les recherches',
       'Support prioritaire',
+      '10% de réduction sur commission',
+    ],
+    popularFeatures: [
+      'Badge de vérification',
+      'Commission réduite',
+    ],
+    limitations: [
+      'Pas de mise en avant',
+      'Statistiques basiques',
     ],
     icon: Star,
     color: 'text-primary-600 bg-primary-100',
+    recommended: false,
   },
   {
     id: 'pro',
     name: 'Pro',
-    price: 19500,
-    period: 'par mois',
+    monthlyPrice: 19500,
+    yearlyPrice: 195000, // 17% de réduction annuelle
+    quarterlyPrice: 52500, // 10% de réduction trimestrielle
     features: [
       'Tout du plan Basic',
-      'Profil en vedette',
+      'Profil en vedette 🌟',
       'Statistiques avancées',
-      'Badge "Réponse rapide"',
+      'Badge "Réponse rapide" ⚡',
       'Support dédié 24/7',
       'Personnalisation du profil',
+      'Commission réduite à 10%',
+      'Analyses de performance',
+    ],
+    popularFeatures: [
+      'Mise en avant dans les résultats',
+      'Commission réduite à 10%',
+      'Support 24/7',
+    ],
+    limitations: [
+      'Sans API d\'accès',
+      'Sans gestion d\'équipe',
     ],
     icon: Zap,
     color: 'text-accent-600 bg-accent-100',
+    recommended: true,
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 65000,
-    period: 'par mois',
+    monthlyPrice: 65000,
+    yearlyPrice: 650000, // 17% de réduction annuelle
+    quarterlyPrice: 175000, // 10% de réduction trimestrielle
     features: [
       'Tout du plan Pro',
-      'API d\'accès',
-      'Gestion d\'équipe',
+      'API d\'accès complet 🔌',
+      'Gestion d\'équipe 👥',
       'Rapports personnalisés',
       'Account manager dédié',
       'Formation incluse',
+      'Commission réduite à 5%',
+      'SLA garanti',
+      'Support prioritaire VIP',
     ],
+    popularFeatures: [
+      'API accès complet',
+      'Commission réduite à 5%',
+      'Account manager dédié',
+    ],
+    limitations: [],
     icon: Crown,
     color: 'text-success-600 bg-success-100',
+    recommended: false,
   },
 ];
 
@@ -98,6 +147,8 @@ export default function SubscriptionPage() {
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -156,15 +207,37 @@ export default function SubscriptionPage() {
       if (existingSubscriptionError) throw existingSubscriptionError;
 
       const periodStart = new Date().toISOString();
-      const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      let periodEnd: Date;
+      
+      switch (billingPeriod) {
+        case 'monthly':
+          periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          break;
+        case 'quarterly':
+          periodEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+          break;
+        case 'yearly':
+          periodEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+          break;
+      }
+
       const subscriptionPayload = {
         provider_id: providerId,
         plan,
+        billing_period: billingPeriod,
         status: 'active',
         current_period_start: periodStart,
-        current_period_end: periodEnd,
+        current_period_end: periodEnd.toISOString(),
         cancel_at_period_end: false,
         updated_at: periodStart,
+        benefits: {
+          commission_rate: plan === 'enterprise' ? 0.05 : plan === 'pro' ? 0.10 : 0.15,
+          featured_listing: plan === 'pro' || plan === 'enterprise',
+          premium_badge: plan !== 'free',
+          advanced_analytics: plan === 'pro' || plan === 'enterprise',
+          priority_support: plan !== 'free',
+          unlimited_portfolio: plan !== 'free',
+        },
       };
 
       if (existingSubscriptions && existingSubscriptions.length > 0) {
@@ -181,17 +254,21 @@ export default function SubscriptionPage() {
       }
 
       await loadSubscription();
-      setSuccess(`Le plan ${plans.find((item) => item.id === plan)?.name ?? plan} a été activé avec succès.`);
+      setSuccess(`Le plan ${plans.find((item) => item.id === plan)?.name ?? plan} (${billingPeriod === 'monthly' ? 'mensuel' : billingPeriod === 'quarterly' ? 'trimestriel' : 'annuel'}) a été activé avec succès.`);
     } catch (error) {
       console.error('Error upgrading subscription:', error);
-      setError(getSupabaseErrorMessage(error, 'Impossible de modifier l’abonnement.'));
+      setError(getSupabaseErrorMessage(error, 'Impossible de modifier l\'abonnement.'));
     } finally {
       setUpgrading(null);
     }
   }
 
   function openCheckout(plan: SubscriptionPlan) {
-    if (plan === 'free') return;
+    if (plan === 'free') {
+      handleUpgrade(plan);
+      return;
+    }
+    setSelectedPlan(plan);
     navigate(`/subscription/checkout?plan=${plan}`);
   }
 
@@ -207,6 +284,17 @@ export default function SubscriptionPage() {
       await loadSubscription();
     } catch (error) {
       console.error('Error cancelling subscription:', error);
+    }
+  }
+
+  function getPriceForPeriod(plan: typeof plans[0]) {
+    switch (billingPeriod) {
+      case 'monthly':
+        return plan.monthlyPrice;
+      case 'quarterly':
+        return plan.quarterlyPrice;
+      case 'yearly':
+        return plan.yearlyPrice;
     }
   }
 
@@ -227,9 +315,44 @@ export default function SubscriptionPage() {
           <h1 className="text-4xl font-bold text-neutral-900 mb-4">
             Choisissez votre plan
           </h1>
-          <p className="text-lg text-neutral-600">
+          <p className="text-lg text-neutral-600 mb-6">
             Débloquez tout le potentiel de votre profil professionnel
           </p>
+          
+          {/* Billing Period Toggle */}
+          <div className="inline-flex items-center gap-2 bg-white rounded-lg border border-neutral-200 p-1">
+            <button
+              onClick={() => setBillingPeriod('monthly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingPeriod === 'monthly'
+                  ? 'bg-primary-600 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              Mensuel
+            </button>
+            <button
+              onClick={() => setBillingPeriod('quarterly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingPeriod === 'quarterly'
+                  ? 'bg-primary-600 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              Trimestriel
+            </button>
+            <button
+              onClick={() => setBillingPeriod('yearly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingPeriod === 'yearly'
+                  ? 'bg-primary-600 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              Annuel
+              <span className="ml-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">-17%</span>
+            </button>
+          </div>
         </div>
 
           {error && (
@@ -257,6 +380,7 @@ export default function SubscriptionPage() {
             const Icon = plan.icon;
             const isCurrent = currentPlan === plan.id;
             const isUpgrade = plans.findIndex(p => p.id === currentPlan) < plans.findIndex(p => p.id === plan.id);
+            const currentPrice = getPriceForPeriod(plan);
 
             return (
               <div
@@ -264,9 +388,19 @@ export default function SubscriptionPage() {
                 className={`relative rounded-2xl p-6 border-2 transition-all ${
                   isCurrent
                     ? 'border-primary-500 bg-primary-50 shadow-lg'
+                    : plan.recommended
+                    ? 'border-accent-500 bg-accent-50 shadow-lg'
                     : 'border-neutral-200 bg-white hover:border-primary-300 hover:shadow-md'
                 }`}
               >
+                {plan.recommended && !isCurrent && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-accent-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      Recommandé
+                    </span>
+                  </div>
+                )}
+
                 {isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="bg-primary-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
@@ -281,16 +415,27 @@ export default function SubscriptionPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-neutral-900">{plan.name}</h3>
-                    <p className="text-sm text-neutral-500">{plan.period}</p>
+                    <p className="text-sm text-neutral-500">{plan.id === 'free' ? 'Pour toujours' : billingPeriod === 'yearly' ? 'Économisez 17%' : ''}</p>
                   </div>
                 </div>
 
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-neutral-900">
-                    {plan.price === 0 ? 'Gratuit' : `${plan.price.toLocaleString('fr-FR')} FCFA`}
+                    {currentPrice === 0 ? 'Gratuit' : `${currentPrice.toLocaleString('fr-FR')} FCFA`}
                   </span>
-                  {plan.price > 0 && <span className="text-neutral-500">/mois</span>}
+                  {currentPrice > 0 && <span className="text-neutral-500">/{billingPeriod === 'monthly' ? 'mois' : billingPeriod === 'quarterly' ? 'trimestre' : 'an'}</span>}
                 </div>
+
+                {plan.popularFeatures.length > 0 && (
+                  <div className="mb-4 p-3 bg-primary-50 rounded-lg">
+                    <p className="text-xs font-semibold text-primary-700 mb-2">Points forts</p>
+                    <ul className="space-y-1">
+                      {plan.popularFeatures.map((feature) => (
+                        <li key={feature} className="text-xs text-primary-600">• {feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature) => (
@@ -301,6 +446,17 @@ export default function SubscriptionPage() {
                   ))}
                 </ul>
 
+                {plan.limitations.length > 0 && (
+                  <div className="mb-6 p-3 bg-neutral-50 rounded-lg">
+                    <p className="text-xs font-semibold text-neutral-700 mb-2">Limitations</p>
+                    <ul className="space-y-1">
+                      {plan.limitations.map((limitation) => (
+                        <li key={limitation} className="text-xs text-neutral-500">• {limitation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {isCurrent ? (
                   <button
                     disabled
@@ -310,7 +466,7 @@ export default function SubscriptionPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => openCheckout(plan.id)}
+                    onClick={() => handleUpgrade(plan.id)}
                     disabled={upgrading === plan.id}
                     className="w-full btn-primary flex items-center justify-center gap-2"
                   >
@@ -343,6 +499,7 @@ export default function SubscriptionPage() {
         <div className="mt-12 text-center text-sm text-neutral-500">
           <p>Tous les prix sont en FCFA. Les paiements sont sécurisés via Flutterwave.</p>
           <p className="mt-2">Vous pouvez annuler votre abonnement à tout moment.</p>
+          <p className="mt-2">Les prix annuels offrent une économie de 17%.</p>
         </div>
       </div>
     </div>
