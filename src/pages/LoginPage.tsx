@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Briefcase, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
+import AuthShell from '@/components/AuthShell';
 
 export default function LoginPage() {
   const { signIn, profile } = useAuth();
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,79 +38,85 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link to="/" className="inline-flex items-center gap-2 text-2xl font-bold">
-            <img 
-              src="/images/servio-logo.png" 
-              alt="SERVIO Logo" 
-              className="h-10 w-10 rounded-lg object-cover shadow-lg"
-            />
-            <span className="text-neutral-900">SERVIO</span>
-          </Link>
-          <h1 className="mt-6 text-2xl font-bold text-neutral-900">{t.auth.login}</h1>
-          <p className="mt-2 text-sm text-neutral-600">{t.auth.hasAccount}</p>
-        </div>
-
-        <div className="card p-6 sm:p-8">
+    <AuthShell
+      title={t.auth.login}
+      subtitle={t.landing.heroDescription}
+      visualTitle={`${t.landing.heroTitle} ${t.landing.heroSubtitle}`}
+      visualSubtitle={t.landing.platformBadge}
+    >
+        <div className="auth-stagger">
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-error-50 px-4 py-3 text-sm text-error-700">
+            <div role="alert" className="auth-error mb-5 flex items-start gap-2.5 rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700">
               <AlertCircle size={18} />
-              {error}
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label">{t.auth.email}</label>
+          <form onSubmit={handleSubmit} className="auth-stagger space-y-5">
+            <div className="auth-field">
+              <label className="label" htmlFor="login-email">{t.auth.email}</label>
               <div className="relative">
                 <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
+                  id="login-email"
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-10"
+                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                  className="input-field pl-10 pr-4"
                   placeholder="vous@exemple.com"
+                  autoComplete="email"
+                  inputMode="email"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="label">{t.auth.password}</label>
+            <div className="auth-field">
+              <label className="label" htmlFor="login-password">{t.auth.password}</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
-                  type="password"
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10"
+                  onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                  className="input-field pl-10 pr-12"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(value => !value)}
+                  className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? <Loader2 size={18} className="animate-spin" /> : t.auth.login}
+            <button type="submit" disabled={loading} className="auth-submit btn-primary mt-2 w-full justify-between px-5" aria-busy={loading}>
+              <span className="mx-auto inline-flex items-center gap-2">
+                {loading ? <><Loader2 size={18} className="animate-spin" /> Connexion...</> : <>{t.auth.login}<ArrowRight size={17} /></>}
+              </span>
             </button>
           </form>
 
-          <div className="mt-4 text-center">
-            <Link to="/reset-password" className="text-sm text-primary-600 hover:text-primary-700">
+          <div className="mt-5 text-center">
+            <Link to="/reset-password" className="inline-flex min-h-10 items-center text-sm font-semibold text-primary-700 transition-colors hover:text-accent-600">
               {t.auth.forgotPassword}
             </Link>
           </div>
-        </div>
 
         <p className="mt-6 text-center text-sm text-neutral-600">
           {t.auth.noAccount}{' '}
-          <Link to="/signup" className="font-semibold text-primary-600 hover:text-primary-700">
+          <Link to="/signup" className="font-bold text-primary-700 transition-colors hover:text-accent-600">
             {t.auth.signup}
           </Link>
         </p>
-      </div>
-    </div>
+        </div>
+    </AuthShell>
   );
 }

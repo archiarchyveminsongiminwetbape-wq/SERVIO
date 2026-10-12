@@ -121,6 +121,7 @@ export interface PortfolioItem {
   category_id: string | null;
   tags: string[]; // Project tags
   technologies_used: string[]; // Tech stack used
+  custom_fields?: Record<string, string> | null;
 }
 
 export interface Review {

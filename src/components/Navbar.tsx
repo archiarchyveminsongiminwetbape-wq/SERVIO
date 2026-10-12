@@ -22,6 +22,7 @@ function Navbar() {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installHelpOpen, setInstallHelpOpen] = useState(false);
+  const [installBannerDismissed, setInstallBannerDismissed] = useState(false);
   const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
   const isInstallSupported = typeof window !== 'undefined' && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const showInstallButton = isInstallSupported && !isStandalone;
@@ -492,16 +493,26 @@ function Navbar() {
       )}
       </nav>
 
-      {showInstallButton && (
-        <div className="sticky top-16 z-40 border-b border-primary-200/80 bg-primary-600 px-4 py-2.5 shadow-lg md:hidden">
+      {showInstallButton && !installBannerDismissed && (
+        <div className="sticky top-16 z-40 border-b border-neutral-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur md:hidden">
+          <div className="mx-auto flex max-w-7xl items-center gap-2">
           <button
             onClick={handleInstallApp}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-primary-700 shadow-md transition-transform active:scale-[0.98]"
+            className="flex min-h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.98]"
             aria-label="Installer SERVIO sur le téléphone"
           >
-            <Download size={19} strokeWidth={2.5} />
-            Installer SERVIO sur le téléphone
+            <Download size={18} />
+            <span className="truncate">Installer SERVIO</span>
           </button>
+          <button
+            onClick={() => setInstallBannerDismissed(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+            aria-label="Fermer le bandeau d’installation"
+            title="Fermer le bandeau d’installation"
+          >
+            <X size={18} />
+          </button>
+          </div>
         </div>
       )}
 

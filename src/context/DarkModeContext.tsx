@@ -11,24 +11,29 @@ interface DarkModeContextType {
 
 const DarkModeContext = createContext<DarkModeContextType | undefined>(undefined);
 
-export function DarkModeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [darkMode, setDarkMode] = useState(false);
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'system';
 
-  useEffect(() => {
-    const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored && ['light', 'dark', 'system'].includes(stored)) {
-      setThemeState(stored);
-    }
-  }, []);
+  const stored = localStorage.getItem('theme') as Theme | null;
+  return stored && ['light', 'dark', 'system'].includes(stored) ? stored : 'system';
+}
+
+function resolveDarkMode(theme: Theme): boolean {
+  return theme === 'dark' || (
+    theme === 'system' &&
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+}
+
+export function DarkModeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [darkMode, setDarkMode] = useState(() => resolveDarkMode(getInitialTheme()));
 
   useEffect(() => {
     const root = window.document.documentElement;
-    
-    const isDark = 
-      theme === 'dark' || 
-      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    
+
+    const isDark = resolveDarkMode(theme);
     setDarkMode(isDark);
     
     if (isDark) {

@@ -223,6 +223,7 @@ export default function SearchPage() {
       if (query) params.q = query;
       if (categorySlug) params.category = categorySlug;
       if (city) params.city = city;
+      if (country) params.country = country;
       if (minRating) params.rating = minRating;
       if (availability) params.availability = availability;
       if (priceRange) params.price = priceRange;
@@ -331,7 +332,53 @@ export default function SearchPage() {
     return topCategorySlugs.includes(providerSlug || '');
   };
 
-  const hasFilters = query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime || skillsFilter.length > 0 || badgesFilter.length > 0;
+  const hasFilters = Boolean(query || categorySlug || selectedSubCat || city || country || minRating || availability || priceRange || minExperience || remoteOnly || language || verifiedOnly || responseTime || skillsFilter.length > 0 || badgesFilter.length > 0);
+  const activeFilters: Array<{ id: string; label: string }> = [];
+  if (query.trim()) activeFilters.push({ id: 'query', label: `Recherche : ${query.trim()}` });
+  if (categorySlug) activeFilters.push({ id: 'category', label: getCategoryName(categorySlug) });
+  if (selectedSubCat) activeFilters.push({ id: 'subcategory', label: getCategoryName(selectedSubCat) });
+  if (city.trim()) activeFilters.push({ id: 'city', label: city.trim() });
+  if (country) activeFilters.push({ id: 'country', label: countries.find(item => item.code === country)?.name ?? country });
+  if (minRating) activeFilters.push({ id: 'rating', label: `${minRating}+ étoiles` });
+  if (availability) activeFilters.push({ id: 'availability', label: availability === 'available' ? 'Disponible' : availability === 'busy' ? 'Sur mission' : 'Indisponible' });
+  if (priceRange) activeFilters.push({ id: 'price', label: priceRange === 'budget' ? 'Budget' : priceRange === 'standard' ? 'Standard' : 'Premium' });
+  if (minExperience) activeFilters.push({ id: 'experience', label: `${minExperience}+ ans d’expérience` });
+  if (remoteOnly) activeFilters.push({ id: 'remote', label: 'À distance' });
+  if (language) activeFilters.push({ id: 'language', label: language });
+  if (verifiedOnly) activeFilters.push({ id: 'verified', label: 'Profils vérifiés' });
+  if (responseTime) activeFilters.push({ id: 'response', label: `Réponse < ${responseTime} h` });
+  skillsFilter.forEach(skill => activeFilters.push({ id: `skill:${skill}`, label: skill }));
+  badgesFilter.forEach(badge => activeFilters.push({ id: `badge:${badge}`, label: badge }));
+
+  const removeActiveFilter = (id: string) => {
+    if (id.startsWith('skill:')) {
+      const skill = id.slice('skill:'.length);
+      setSkillsFilter(current => current.filter(item => item !== skill));
+      return;
+    }
+    if (id.startsWith('badge:')) {
+      const badge = id.slice('badge:'.length);
+      setBadgesFilter(current => current.filter(item => item !== badge));
+      return;
+    }
+
+    const setters: Record<string, () => void> = {
+      query: () => setQuery(''),
+      category: () => { setCategorySlug(''); setSelectedSubCat(''); },
+      subcategory: () => setSelectedSubCat(''),
+      city: () => setCity(''),
+      country: () => setCountry(''),
+      rating: () => setMinRating(''),
+      availability: () => setAvailability(''),
+      price: () => setPriceRange(''),
+      experience: () => setMinExperience(''),
+      remote: () => setRemoteOnly(false),
+      language: () => setLanguage(''),
+      verified: () => setVerifiedOnly(false),
+      response: () => setResponseTime(''),
+    };
+    setters[id]?.();
+  };
 
   // Group providers by category
   const groupedProviders = useMemo(() => {
@@ -351,7 +398,7 @@ export default function SearchPage() {
   }, [providers]);
 
   // Get category name from slug
-  const getCategoryName = (slug: string) => {
+  function getCategoryName(slug: string) {
     // Try to find in main categories
     const mainCat = categoryTaxonomy.find(c => c.slug === slug);
     if (mainCat) return mainCat.name;
@@ -363,7 +410,7 @@ export default function SearchPage() {
     }
     
     return slug;
-  };
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8">
@@ -374,6 +421,28 @@ export default function SearchPage() {
         </p>
       </div>
 
+      {activeFilters.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Critères de recherche actifs">
+          <span className="mr-1 text-xs font-semibold text-neutral-600">Critères actifs</span>
+          {activeFilters.map(filter => (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => removeActiveFilter(filter.id)}
+              className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-800 transition-colors hover:border-accent-300 hover:bg-accent-50 hover:text-accent-800"
+              aria-label={`Retirer le filtre ${filter.label}`}
+              title={`Retirer ${filter.label}`}
+            >
+              <span className="max-w-[15rem] truncate">{filter.label}</span>
+              <X size={13} className="shrink-0" aria-hidden="true" />
+            </button>
+          ))}
+          <button type="button" onClick={clearFilters} className="min-h-8 px-2 text-xs font-semibold text-neutral-600 underline decoration-neutral-300 underline-offset-2 hover:text-primary-800">
+            Tout effacer
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row">
         {/* Filters sidebar */}
         <aside className="lg:w-72 lg:flex-shrink-0">
@@ -382,14 +451,21 @@ export default function SearchPage() {
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="btn-secondary w-full"
+                aria-expanded={showFilters}
+                aria-controls="search-filters-panel"
               >
                 <SlidersHorizontal size={16} className="sm:hidden" />
                 <SlidersHorizontal size={18} className="hidden sm:block" />
                 {t.common.filters}
+                {activeFilters.length > 0 && (
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-700 px-1.5 text-xs font-bold text-white" aria-label={`${activeFilters.length} filtres actifs`}>
+                    {activeFilters.length}
+                  </span>
+                )}
               </button>
             </div>
 
-            <div className={`card p-4 sm:p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+            <div id="search-filters-panel" className={`card p-4 sm:p-5 ${showFilters ? 'block' : 'hidden lg:block'}`}>
               <div className="mb-3 sm:mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-neutral-900">{t.common.filters}</h3>
                 {hasFilters && (

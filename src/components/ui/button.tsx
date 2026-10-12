@@ -14,21 +14,21 @@ export function Button({
   ...props 
 }: ButtonProps) {
   const variantStyles = {
-    default: 'bg-blue-600 text-white hover:bg-blue-700',
-    outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50',
-    ghost: 'text-gray-700 hover:bg-gray-100',
-    destructive: 'bg-red-600 text-white hover:bg-red-700'
+    default: 'bg-primary-700 text-white shadow-sm hover:bg-primary-800',
+    outline: 'border border-neutral-300 bg-white text-neutral-800 hover:border-primary-500 hover:bg-primary-50 hover:text-primary-800',
+    ghost: 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950',
+    destructive: 'bg-error-600 text-white hover:bg-error-700'
   };
 
   const sizeStyles = {
-    default: 'px-4 py-2',
-    sm: 'px-3 py-1.5 text-sm',
-    lg: 'px-6 py-3 text-lg'
+    default: 'min-h-11 px-4 py-2.5',
+    sm: 'min-h-9 px-3 py-1.5 text-sm',
+    lg: 'min-h-12 px-6 py-3 text-base'
   };
 
   return (
     <button
-      className={`rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       {...props}
     >
       {children}

@@ -230,6 +230,330 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+@keyframes statsReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes statsPulseIn {
+  0% { transform: scale(0.92); opacity: 0.35; }
+  65% { transform: scale(1.035); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.stats-section {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.stats-section::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 42px 42px;
+  content: '';
+  mask-image: radial-gradient(ellipse at 50% 45%, black, transparent 78%);
+  pointer-events: none;
+}
+
+.stats-heading {
+  animation: statsReveal 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.stats-card-reveal {
+  animation: statsReveal 680ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.stats-card-reveal:nth-child(1) { animation-delay: 120ms; }
+.stats-card-reveal:nth-child(2) { animation-delay: 260ms; }
+
+.stats-count {
+  display: inline-block;
+  animation: statsPulseIn 440ms ease-out both;
+}
+
+@keyframes authReveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes authImageReveal {
+  from {
+    opacity: 0.6;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.auth-visual {
+  isolation: isolate;
+  animation: authReveal 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.auth-visual-image {
+  animation: authImageReveal 1.2s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.auth-form-wrap {
+  animation: authReveal 560ms 90ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.auth-heading-mark {
+  animation: slideRight 500ms 160ms ease-out both;
+  transform-origin: left center;
+}
+
+.auth-form-card {
+  animation: authReveal 620ms 180ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.auth-rope-stage {
+  position: relative;
+  height: 132px;
+  margin: 0 auto 1.25rem;
+  overflow: visible;
+  --rope-pull: 0px;
+  transition: height 440ms cubic-bezier(0.2, 0.75, 0.25, 1), margin 440ms ease;
+}
+
+.auth-rope-stage.is-pulled {
+  height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.auth-rope-line {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: calc(27px + var(--rope-pull));
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a25a3d, #edbd8b 48%, #a25a3d);
+  box-shadow: 0 1px 4px rgba(49, 35, 25, 0.16);
+  transform: translateX(-50%);
+  transition: height 180ms ease-out;
+}
+
+.auth-rope-handle {
+  position: absolute;
+  z-index: 1;
+  top: calc(22px + var(--rope-pull));
+  left: 50%;
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(16, 86, 77, 0.2);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(23, 49, 43, 0.12);
+  color: #10564d;
+  cursor: grab;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 800;
+  touch-action: none;
+  user-select: none;
+  transform: translateX(-50%);
+  transition: top 160ms ease-out, box-shadow 180ms ease, background-color 180ms ease;
+  white-space: nowrap;
+}
+
+.auth-rope-stage.is-pulled .auth-rope-handle {
+  top: calc(74px + var(--rope-pull));
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px);
+}
+
+.auth-rope-stage.is-pulled .auth-rope-hint {
+  opacity: 0;
+}
+
+.auth-rope-handle:hover,
+.auth-rope-handle:focus-visible {
+  background: #f1f7f3;
+  box-shadow: 0 12px 28px rgba(23, 49, 43, 0.18);
+}
+
+.auth-rope-handle:active,
+.auth-rope-handle.is-dragging {
+  cursor: grabbing;
+}
+
+.auth-rope-handle:focus-visible {
+  outline: 3px solid rgba(23, 107, 95, 0.35);
+  outline-offset: 3px;
+}
+
+.auth-rope-arrow {
+  animation: ropeNudge 1.4s ease-in-out infinite;
+}
+
+.auth-rope-hint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.auth-reveal {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-12px);
+  transition: max-height 720ms cubic-bezier(0.2, 0.75, 0.25, 1), opacity 360ms ease, transform 500ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.auth-reveal.is-revealed {
+  max-height: 1800px;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.auth-reveal-inner {
+  min-height: 0;
+  padding-top: 0.25rem;
+}
+
+.auth-stagger > * {
+  animation: slideUp 420ms ease-out both;
+}
+
+.auth-stagger > *:nth-child(1) { animation-delay: 80ms; }
+.auth-stagger > *:nth-child(2) { animation-delay: 140ms; }
+.auth-stagger > *:nth-child(3) { animation-delay: 200ms; }
+.auth-stagger > *:nth-child(4) { animation-delay: 260ms; }
+.auth-stagger > *:nth-child(5) { animation-delay: 320ms; }
+
+.auth-field input {
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.auth-field:focus-within > svg {
+  color: #176b5f;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.auth-field > svg {
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.auth-role-option {
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.auth-role-option[aria-pressed="true"] {
+  box-shadow: 0 8px 22px rgba(16, 86, 77, 0.12);
+  transform: translateY(-2px);
+}
+
+.auth-error {
+  animation: slideDown 240ms ease-out both;
+}
+
+.auth-submit > span {
+  transition: transform 180ms ease;
+}
+
+.auth-submit:hover:not(:disabled) > span {
+  transform: translateX(2px);
+}
+
+.auth-visual-overlay {
+  background: linear-gradient(155deg, rgba(6, 37, 32, 0.48), rgba(6, 37, 32, 0.78) 66%, rgba(8, 31, 28, 0.9));
+}
+
+.auth-visual-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(to bottom, transparent, black 28%, black 80%, transparent);
+  pointer-events: none;
+}
+
+.dark .auth-page {
+  background: var(--surface-page);
+}
+
+.dark .auth-form-card {
+  border-color: var(--line-soft);
+  background: var(--surface-raised);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.24);
+}
+
+.dark .auth-rope-handle {
+  border-color: var(--line-soft);
+  background: var(--surface-raised);
+  color: var(--brand-primary-strong);
+}
+
+@keyframes ropeNudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-rope-stage {
+    display: none !important;
+  }
+
+  .auth-visual,
+  .auth-visual-image,
+  .auth-form-wrap,
+  .auth-heading-mark,
+  .auth-form-card,
+  .auth-rope-stage,
+  .auth-rope-handle,
+  .auth-rope-line,
+  .auth-rope-hint,
+  .auth-reveal,
+  .auth-rope-arrow,
+  .auth-stagger > *,
+  .auth-error {
+    animation: none !important;
+  }
+
+  .stats-heading,
+  .stats-card-reveal,
+  .stats-count {
+    animation: none !important;
+  }
+
+  .auth-role-option[aria-pressed="true"] {
+    transform: none;
+  }
+
+  .auth-reveal {
+    transition: none;
+  }
+}
+
 /* Smooth transitions for all interactive elements */
 button,
 a,

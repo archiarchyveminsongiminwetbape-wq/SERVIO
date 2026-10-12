@@ -22,6 +22,7 @@ import { BentoGrid, BentoCard } from '@/components/BentoGrid';
 import { BentoStatCard, BentoFeatureCard } from '@/components/BentoCard';
 import { countries } from '@/data/countries';
 import { currencies } from '@/data/currencies';
+import { getPortfolioFieldConfig } from '@/data/portfolio-fields';
 
 type Tab = 'overview' | 'portfolio' | 'profile' | 'reviews' | 'availability' | 'bookings' | 'invoices';
 
@@ -74,8 +75,12 @@ export default function ProviderDashboardPage() {
     objective: '',
     role: '',
     process: '',
-    result: ''
+    result: '',
+    custom_fields: {} as Record<string, string>
   });
+
+  const portfolioFieldConfig = getPortfolioFieldConfig(provider?.category?.slug);
+  const providerCountry = countries.find(country => country.code === form.country);
 
   // Normalize/validate URLs
   function ensureUrl(raw: string): string {
@@ -164,12 +169,23 @@ export default function ProviderDashboardPage() {
 
   async function loadPortfolio() {
     if (!provider) return;
-    const { data } = await supabase
+    const portfolioQuery = await supabase
       .from('portfolio_items')
-      .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, sort_order, created_at')
+      .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, category_id, custom_fields, sort_order, created_at')
       .eq('provider_id', provider.id)
       .order('sort_order');
-    setPortfolio(data as PortfolioItem[] ?? []);
+
+    if (portfolioQuery.error && (portfolioQuery.status === 400 || portfolioQuery.error.message?.includes('custom_fields') || portfolioQuery.error.code === '42703' || portfolioQuery.error.code === 'PGRST204')) {
+      const legacyQuery = await supabase
+        .from('portfolio_items')
+        .select('id, provider_id, title, description, photos, videos, video_thumbnails, tags, project_links, client_name, project_date, budget, location, featured, technologies_used, duration, team_size, context, objective, role, process, result, category_id, sort_order, created_at')
+        .eq('provider_id', provider.id)
+        .order('sort_order');
+      setPortfolio(legacyQuery.data as PortfolioItem[] ?? []);
+      return;
+    }
+
+    setPortfolio(portfolioQuery.data as PortfolioItem[] ?? []);
   }
 
   async function loadReviews() {
@@ -470,6 +486,7 @@ export default function ProviderDashboardPage() {
       technologies_used: technologiesUsed,
       duration: itemForm.duration || null,
       team_size: itemForm.team_size ? parseInt(itemForm.team_size) : null,
+      category_id: provider?.category_id ?? null,
     };
 
     const fullPayload: Record<string, any> = {
@@ -479,6 +496,7 @@ export default function ProviderDashboardPage() {
       role: itemForm.role || null,
       process: itemForm.process || null,
       result: itemForm.result || null,
+      custom_fields: itemForm.custom_fields,
     };
 
     console.log('Payload to save:', fullPayload);
@@ -492,12 +510,18 @@ export default function ProviderDashboardPage() {
         setSaving(false);
         return;
       }
-      let { error } = await supabase
+      let { error, status } = await supabase
         .from('portfolio_items')
         .update(fullPayload)
         .eq('id', editingItem.id);
 
       console.log('Update result:', error || 'Success');
+
+      if (error && (status === 400 || error.message?.includes('custom_fields'))) {
+        setSaveMsg({ type: 'error', text: 'Les champs métier ne peuvent pas encore être enregistrés. Appliquez la migration Supabase portfolio custom fields, puis réessayez.' });
+        setSaving(false);
+        return;
+      }
 
       // Fallback if schema doesn't yet have context/objective/role/process/result columns
       if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
@@ -507,6 +531,7 @@ export default function ProviderDashboardPage() {
           .update(basePayload)
           .eq('id', editingItem.id);
         error = retry.error;
+        status = retry.status;
         console.log('Retry result:', error || 'Success');
       }
 
@@ -519,7 +544,7 @@ export default function ProviderDashboardPage() {
       }
     } else {
       console.log('Creating new item');
-      let { error } = await supabase
+      let { error, status } = await supabase
         .from('portfolio_items')
         .insert({
           provider_id: targetProviderId,
@@ -528,6 +553,12 @@ export default function ProviderDashboardPage() {
         .select();
 
       console.log('Insert result:', error || 'Success');
+
+      if (error && (status === 400 || error.message?.includes('custom_fields'))) {
+        setSaveMsg({ type: 'error', text: 'Les champs métier ne peuvent pas encore être enregistrés. Appliquez la migration Supabase portfolio custom fields, puis réessayez.' });
+        setSaving(false);
+        return;
+      }
 
       // Fallback if schema doesn't yet have context/objective/role/process/result columns
       if (error && (error.message?.includes('schema cache') || error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
@@ -540,6 +571,7 @@ export default function ProviderDashboardPage() {
           })
           .select();
         error = retry.error;
+        status = retry.status;
         console.log('Retry result:', error || 'Success');
       }
 
@@ -574,7 +606,8 @@ export default function ProviderDashboardPage() {
       objective: '',
       role: '',
       process: '',
-      result: ''
+      result: '',
+      custom_fields: {}
     });
     setTimeout(() => setSaveMsg(null), 4000);
   }
@@ -1674,7 +1707,8 @@ export default function ProviderDashboardPage() {
                   objective: '',
                   role: '',
                   process: '',
-                  result: ''
+                  result: '',
+                  custom_fields: {}
                 });
                 setShowItemForm(true);
               }}
@@ -1901,13 +1935,13 @@ export default function ProviderDashboardPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">Technologies utilisées (séparées par des virgules)</label>
+                  <label className="label">{portfolioFieldConfig.technologyLabel} (séparés par des virgules)</label>
                   <input
                     type="text"
                     value={itemForm.technologies_used}
                     onChange={(e) => setItemForm({ ...itemForm, technologies_used: e.target.value })}
                     className="input-field"
-                    placeholder="React, Node.js, PostgreSQL"
+                    placeholder={portfolioFieldConfig.technologyPlaceholder}
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1948,11 +1982,38 @@ export default function ProviderDashboardPage() {
                 {/* ===== PROFESSIONAL PORTFOLIO ELEMENTS ===== */}
                 <div className="border-t-2 border-primary-200 pt-6 mt-6">
                   <h5 className="text-sm font-bold text-primary-700 mb-4 uppercase tracking-wider">
-                    📋 Éléments professionnel du portfolio
+                    {portfolioFieldConfig.sectionTitle}
                   </h5>
                   <p className="text-xs text-neutral-500 mb-4">
-                    Complétez ces informations pour créer un portfolio 100% professionnel qui impressionnera vos clients.
+                    {portfolioFieldConfig.sectionDescription}
                   </p>
+
+                  <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {portfolioFieldConfig.fields.map(field => (
+                      <div key={field.id} className={field.multiline ? 'sm:col-span-2' : ''}>
+                        <label className="label" htmlFor={`portfolio-${field.id}`}>{field.label}</label>
+                        {field.multiline ? (
+                          <textarea
+                            id={`portfolio-${field.id}`}
+                            value={itemForm.custom_fields[field.id] ?? ''}
+                            onChange={(e) => setItemForm({ ...itemForm, custom_fields: { ...itemForm.custom_fields, [field.id]: e.target.value } })}
+                            className="input-field resize-y"
+                            rows={3}
+                            placeholder={field.placeholder}
+                          />
+                        ) : (
+                          <input
+                            id={`portfolio-${field.id}`}
+                            type="text"
+                            value={itemForm.custom_fields[field.id] ?? ''}
+                            onChange={(e) => setItemForm({ ...itemForm, custom_fields: { ...itemForm.custom_fields, [field.id]: e.target.value } })}
+                            className="input-field"
+                            placeholder={field.placeholder}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
 
                   <div>
                     <label className="label">
@@ -2087,7 +2148,8 @@ export default function ProviderDashboardPage() {
                             objective: item.objective ?? '',
                             role: item.role ?? '',
                             process: item.process ?? '',
-                            result: item.result ?? ''
+                            result: item.result ?? '',
+                            custom_fields: item.custom_fields ?? {}
                           });
                           setShowItemForm(true);
                         }}
@@ -3066,8 +3128,14 @@ export default function ProviderDashboardPage() {
                   value={form.phone as string ?? ''}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   className="input-field"
-                  placeholder="+33 6 12 34 56 78"
+                  placeholder={providerCountry ? `${providerCountry.callingCode} …` : 'Numéro avec indicatif pays'}
+                  autoComplete="tel"
+                  inputMode="tel"
+                  aria-describedby="provider-phone-country-hint"
                 />
+                <p id="provider-phone-country-hint" className="mt-1 text-xs text-neutral-500">
+                  {providerCountry ? `Indicatif de ${providerCountry.name} : ${providerCountry.callingCode}. Le numéro ne sera pas reformatté automatiquement.` : 'Sélectionnez un pays pour afficher son indicatif.'}
+                </p>
               </div>
               <div>
                 <label className="label">Site web</label>

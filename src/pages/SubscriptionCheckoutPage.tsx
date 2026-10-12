@@ -191,65 +191,31 @@ export default function SubscriptionCheckoutPage() {
     setSuccess(null);
 
     try {
-      // Simuler le paiement (à remplacer par l'intégration Flutterwave réelle)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Créer l'abonnement
-      const { data: providerData } = await supabase
-        .from('provider_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (!providerData) {
-        throw new Error('Profil prestataire non trouvé');
-      }
-
-      const periodStart = new Date().toISOString();
-      let periodEnd: Date;
-      
-      switch (billingPeriod) {
-        case 'monthly':
-          periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'quarterly':
-          periodEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'yearly':
-          periodEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-          break;
-      }
-
-      const { error: subscriptionError } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: user.id,
-          provider_id: providerData.id,
-          plan: selectedPlan.id,
-          billing_period: billingPeriod,
-          status: 'active',
-          current_period_start: periodStart,
-          current_period_end: periodEnd.toISOString(),
-          cancel_at_period_end: false,
-          benefits: {
-            commission_rate: selectedPlan.id === 'enterprise' ? 0.05 : selectedPlan.id === 'pro' ? 0.10 : 0.15,
-            featured_listing: selectedPlan.id === 'pro' || selectedPlan.id === 'enterprise',
-            premium_badge: selectedPlan.id !== 'free',
-            advanced_analytics: selectedPlan.id === 'pro' || selectedPlan.id === 'enterprise',
-            priority_support: selectedPlan.id !== 'free',
-            unlimited_portfolio: selectedPlan.id !== 'free',
+      const response = await fetch('/api/subscription-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: currentPrice,
+          currency: 'XAF',
+          planId: selectedPlan.id,
+          userId: user.id,
+          clientEmail: user.email,
+          metadata: {
+            client_name: profile?.full_name,
+            billing_period: billingPeriod,
           },
-        });
+        }),
+      });
+      const checkout = await response.json().catch(() => null);
 
-      if (subscriptionError) throw subscriptionError;
+      if (!response.ok || !checkout.link) {
+        throw new Error(checkout?.error || 'Le paiement en ligne est indisponible. Veuillez réessayer plus tard.');
+      }
 
-      setSuccess('Abonnement activé avec succès ! Redirection...');
-      setTimeout(() => navigate('/subscription/success'), 2000);
+      window.location.assign(checkout.link);
     } catch (error) {
       console.error('Payment error:', error);
-      setError('Erreur lors du paiement. Veuillez réessayer.');
+      setError(error instanceof Error ? error.message : 'Erreur lors du paiement. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }

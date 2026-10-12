@@ -10,6 +10,7 @@ import { useI18n } from '@/context/I18nContext';
 import type { PortfolioItem, ProviderProfile } from '@/types';
 import Lightbox from '@/components/Lightbox';
 import { formatDate } from '@/lib/utils';
+import { getPortfolioFieldConfig } from '@/data/portfolio-fields';
 
 export default function PortfolioItemDetailPage() {
   const { itemId } = useParams();
@@ -104,6 +105,11 @@ export default function PortfolioItemDetailPage() {
       </div>
     );
   }
+
+  const portfolioFieldConfig = getPortfolioFieldConfig(provider?.category?.slug);
+  const portfolioDetails = portfolioFieldConfig.fields
+    .map(field => ({ ...field, value: item.custom_fields?.[field.id]?.trim() ?? '' }))
+    .filter(field => field.value);
 
   return (
     <div className="min-h-screen bg-neutral-50" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -331,6 +337,25 @@ export default function PortfolioItemDetailPage() {
                 )}
               </div>
             </div>
+
+            {portfolioDetails.length > 0 && (
+              <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm" aria-labelledby="portfolio-details-heading">
+                <div className="mb-5">
+                  <h2 id="portfolio-details-heading" className="text-lg font-semibold text-neutral-900">
+                    {portfolioFieldConfig.sectionTitle}
+                  </h2>
+                  <p className="mt-1 text-sm text-neutral-600">{portfolioFieldConfig.sectionDescription}</p>
+                </div>
+                <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  {portfolioDetails.map(field => (
+                    <div key={field.id} className={field.multiline ? 'sm:col-span-2' : ''}>
+                      <dt className="text-xs font-bold uppercase text-primary-700">{field.label}</dt>
+                      <dd className="mt-1 whitespace-pre-line text-sm leading-relaxed text-neutral-700">{field.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
 
             {/* Project details */}
             <div className="bg-white rounded-2xl shadow-sm p-6">

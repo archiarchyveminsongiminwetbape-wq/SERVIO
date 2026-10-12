@@ -463,60 +463,8 @@ function CategorySection({ section, providerData, template }: { section: string;
         </Card>
       ) : null;
     
-    case 'techniques':
-      return providerData.techniques && providerData.techniques.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Techniques
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {providerData.techniques.map((technique: string, index: number) => (
-                <Badge key={index} variant="secondary">{technique}</Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null;
-    
-    case 'materials':
-      return providerData.materials && providerData.materials.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Matériaux
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {providerData.materials.map((material: string, index: number) => (
-                <Badge key={index} variant="secondary">{material}</Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null;
-    
-    case 'workshop':
-      return providerData.workshop_location ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              Atelier
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-neutral-600">{providerData.workshop_location}</p>
-          </CardContent>
-        </Card>
-      ) : null;
-    
     case 'services':
+      {
       const serviceFields = ['construction_types', 'services_offered', 'photography_types', 'consulting_areas', 'cuisine_type', 'service_type', 'subjects'];
       const serviceName = serviceFields.find(field => providerData[field] && providerData[field].length > 0);
       
@@ -540,6 +488,7 @@ function CategorySection({ section, providerData, template }: { section: string;
         );
       }
       return null;
+      }
     
     case 'tech_stack':
       return providerData.tech_stack && providerData.tech_stack.length > 0 ? (

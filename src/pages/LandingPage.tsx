@@ -1,13 +1,61 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ArrowRight, Sparkles, ShieldCheck, MessageSquare, Star, Users, Award, Clock, Quote, Check, ChevronRight } from 'lucide-react';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useI18n } from '@/context/I18nContext';
+import { hasSupabaseConfig, supabase } from '@/lib/supabase';
 import CategoryIcon from '@/components/CategoryIcon';
 import { BentoGrid, BentoCard, BentoSection } from '@/components/BentoGrid';
 import { BentoStatCard, BentoFeatureCard, BentoActionCard } from '@/components/BentoCard';
 import { GlassCard, GlassInput } from '@/components/GlassCard';
 import { categoryTaxonomy } from '@/data/categories';
+
+type LandingTestimonial = {
+  id: string;
+  client_name: string;
+  client_avatar_url: string | null;
+  rating: number;
+  testimonial: string;
+  project_title: string | null;
+};
+
+function AnimatedStatValue({ value }: { value: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      document.hidden ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      setDisplayValue(value);
+      return;
+    }
+
+    let frame = 0;
+    const duration = 1050;
+    let startedAt: number | null = null;
+
+    const animate = (time: number) => {
+      if (startedAt === null) startedAt = time;
+      const progress = Math.min((time - startedAt) / duration, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 4);
+      setDisplayValue(Math.round(value * easedProgress));
+
+      if (progress < 1) frame = window.requestAnimationFrame(animate);
+    };
+
+    setDisplayValue(0);
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [value]);
+
+  return (
+    <span className="stats-count" aria-label={value.toLocaleString()}>
+      <span aria-hidden="true">{displayValue.toLocaleString()}</span>
+    </span>
+  );
+}
 
 export default function LandingPage() {
   const { t } = useI18n();
@@ -15,12 +63,59 @@ export default function LandingPage() {
   const { darkMode } = useDarkMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [liveStats, setLiveStats] = useState<{ providers: number; projects: number } | null>(null);
+  const [verifiedTestimonials, setVerifiedTestimonials] = useState<LandingTestimonial[]>([]);
 
   const displayedCategories = showAllCategories 
     ? categoryTaxonomy 
     : categoryTaxonomy.slice(0, 12);
 
-  const trustItems = ['Startups', 'PMEs', 'Agences', 'Indépendants', 'Boutiques', 'Équipes'];
+  useEffect(() => {
+    if (!hasSupabaseConfig) return;
+
+    let isActive = true;
+
+    const loadPublicContent = async () => {
+      try {
+        const [providersResult, projectsResult, testimonialsResult] = await Promise.all([
+          supabase
+            .from('provider_profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('validation_status', 'approved'),
+          supabase
+            .from('portfolio_items')
+            .select('id, provider:provider_profiles!inner(validation_status)', { count: 'exact', head: true })
+            .eq('provider.validation_status', 'approved'),
+          supabase
+            .from('testimonials')
+            .select('id, client_name, client_avatar_url, rating, testimonial, project_title')
+            .eq('is_verified', true)
+            .order('created_at', { ascending: false })
+            .limit(3),
+        ]);
+
+        if (!isActive) return;
+
+        if (!providersResult.error && !projectsResult.error) {
+          setLiveStats({
+            providers: providersResult.count ?? 0,
+            projects: projectsResult.count ?? 0,
+          });
+        }
+
+        if (!testimonialsResult.error) {
+          setVerifiedTestimonials((testimonialsResult.data ?? []) as LandingTestimonial[]);
+        }
+      } catch (error) {
+        console.error('Could not load public landing data:', error);
+      }
+    };
+
+    void loadPublicContent();
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,59 +187,30 @@ export default function LandingPage() {
                 <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm"><Star size={14} className="sm:hidden" /><Star size={18} className="hidden sm:inline" /> {t.landing.realReviews}</span>
               </div>
 
-              <div className="mt-6 sm:mt-8 animate-slide-up lg:mx-0" style={{ animationDelay: '0.35s' }}>
-                <div className="trust-strip mx-auto max-w-2xl lg:mx-0">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-200/90">Trusted by</span>
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-                    {trustItems.map((item) => (
-                      <span key={item} className="mini-metric">{item}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="hidden lg:block">
-              <div className="floating-panel delay-1 relative mx-auto flex w-[92%] max-w-md flex-col gap-4 rounded-[2rem] border border-white/20 bg-white/10 p-4 text-white shadow-2xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.22em] text-primary-100">Prestation populaire</p>
-                    <h3 className="mt-2 text-2xl font-bold">Service digital</h3>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-success-400/20 text-success-300">
-                    <ShieldCheck size={24} />
-                  </div>
+              <div className="floating-panel delay-1 relative mx-auto w-[92%] max-w-md rounded-3xl border border-white/20 bg-white/10 p-5 text-white shadow-2xl backdrop-blur-md">
+                <h2 className="text-sm font-semibold text-primary-100">{t.landing.exploreBySector}</h2>
+                <div className="mt-4 divide-y divide-white/15">
+                  {categoryTaxonomy.slice(0, 3).map((category) => (
+                    <Link
+                      key={category.slug}
+                      to={`/search?category=${category.slug}`}
+                      className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:text-primary-100"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-primary-100">
+                        <CategoryIcon name={category.icon ?? ''} size={21} />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-semibold">{category.name}</span>
+                      <ArrowRight size={17} className="shrink-0 text-primary-200" />
+                    </Link>
+                  ))}
                 </div>
-
-                <div className="rounded-2xl bg-slate-950/35 p-4 ring-1 ring-white/10">
-                  <div className="flex items-center justify-between text-sm text-primary-100">
-                    <span>Prestataires vérifiés</span>
-                    <span className="font-semibold text-white">Disponible</span>
-                  </div>
-                  <div className="mt-3 h-2.5 rounded-full bg-white/10">
-                    <div className="h-2.5 w-[82%] rounded-full bg-gradient-to-r from-primary-300 via-primary-400 to-cyan-300" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-white/10 p-3">
-                    <p className="text-xs text-primary-100">Réponse moyenne</p>
-                    <p className="mt-2 text-xl font-bold">&lt; 24h</p>
-                  </div>
-                  <div className="rounded-2xl bg-white/10 p-3">
-                    <p className="text-xs text-primary-100">Qualité</p>
-                    <p className="mt-2 text-xl font-bold">Élevée</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="floating-panel delay-2 relative mx-auto mt-6 flex w-[72%] -translate-x-10 flex-col gap-2 rounded-[1.6rem] border border-primary-100/20 bg-slate-950/35 p-4 text-white shadow-lg">
-                <div className="flex items-center justify-between text-sm text-primary-100">
-                  <span>Nouvelle demande</span>
-                  <span className="rounded-full bg-success-500/20 px-2 py-1 text-xs text-success-300">Live</span>
-                </div>
-                <p className="text-lg font-semibold">Service sur mesure</p>
-                <p className="text-sm text-primary-100">Distance • Réponse rapide • Sélection simple</p>
+                <Link to="/search" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white hover:text-primary-100">
+                  {t.landing.seeAllSectors.replace('{count}', categoryTaxonomy.length.toString())}
+                  <ArrowRight size={16} />
+                </Link>
               </div>
             </div>
           </div>
@@ -196,45 +262,41 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats - Bento Grid */}
-      <BentoSection className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 py-16 sm:py-20 lg:py-24">
+      {liveStats && (
+      <BentoSection className="stats-section bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 py-16 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-8 sm:mb-12">
-          <div className="text-center">
+          <div className="stats-heading text-center">
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase text-primary-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent-400" />
+              SERVIO · En chiffres
+            </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-white">Nos statistiques</h2>
-            <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-300">Des chiffres qui parlent d'eux-mêmes</p>
+            <p className="mt-2 text-sm sm:text-base lg:text-lg text-neutral-300">Données issues des profils et portfolios publiés</p>
           </div>
         </div>
-        <BentoGrid>
-          <BentoStatCard 
-            icon={Users} 
-            value="10K+" 
-            label={t.landing.statsProviders} 
-            trend="+15%" 
-            variant="dark"
-          />
-          <BentoStatCard 
-            icon={Award} 
-            value="50K+" 
-            label={t.landing.statsProjects} 
-            trend="+23%" 
-            variant="dark"
-          />
-          <BentoStatCard 
-            icon={Star} 
-            value="4.8" 
-            label={t.landing.statsRating} 
-            variant="dark"
-          />
-          <BentoStatCard 
-            icon={Clock} 
-            value="24h" 
-            label={t.landing.statsResponseTime} 
-            variant="dark"
-          />
+        <BentoGrid className="stats-grid mx-auto max-w-4xl">
+          <div className="stats-card-reveal">
+            <BentoStatCard
+              icon={Users}
+              value={<AnimatedStatValue value={liveStats.providers} />}
+              label={t.landing.statsProviders}
+              variant="dark"
+            />
+          </div>
+          <div className="stats-card-reveal">
+            <BentoStatCard
+              icon={Award}
+              value={<AnimatedStatValue value={liveStats.projects} />}
+              label={t.landing.statsProjects}
+              variant="dark"
+            />
+          </div>
         </BentoGrid>
       </BentoSection>
+      )}
 
       {/* Testimonials */}
+      {verifiedTestimonials.length > 0 && (
       <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-white to-neutral-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-12">
@@ -245,71 +307,34 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            <div className="card p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-center gap-1 mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
-                ))}
-              </div>
-              <Quote className="text-primary-300 mb-4" size={32} />
-              <p className="text-base text-neutral-700 mb-4">
-                {t.landing.testimonial1}
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold">
-                  ML
+            {verifiedTestimonials.map((item) => (
+              <article key={item.id} className="card p-6">
+                <div className="flex items-center gap-1 mb-4" aria-label={`${item.rating} sur 5`}>
+                  {Array.from({ length: item.rating }, (_, index) => (
+                    <Star key={index} size={16} className="fill-warning-400 text-warning-400" />
+                  ))}
                 </div>
-                <div>
-                  <p className="font-semibold text-neutral-900 text-base">{t.landing.testimonial1Name}</p>
-                  <p className="text-sm text-neutral-500">{t.landing.testimonial1Role}</p>
+                <Quote className="text-primary-300 mb-4" size={32} />
+                <p className="text-base text-neutral-700">{item.testimonial}</p>
+                <div className="mt-5 flex items-center gap-3">
+                  {item.client_avatar_url ? (
+                    <img src={item.client_avatar_url} alt="" loading="lazy" className="h-10 w-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                      {item.client_name.trim().charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-neutral-900">{item.client_name}</p>
+                    {item.project_title && <p className="truncate text-sm text-neutral-500">{item.project_title}</p>}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="card p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-center gap-1 mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
-                ))}
-              </div>
-              <Quote className="text-primary-300 mb-4" size={32} />
-              <p className="text-base text-neutral-700 mb-4">
-                {t.landing.testimonial2}
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-sm font-semibold">
-                  TD
-                </div>
-                <div>
-                  <p className="font-semibold text-neutral-900 text-base">{t.landing.testimonial2Name}</p>
-                  <p className="text-sm text-neutral-500">{t.landing.testimonial2Role}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="card p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-center gap-1 mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={16} className="fill-warning-400 text-warning-400" />
-                ))}
-              </div>
-              <Quote className="text-primary-300 mb-4" size={32} />
-              <p className="text-base text-neutral-700 mb-4">
-                {t.landing.testimonial3}
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center text-white text-sm font-semibold">
-                  SM
-                </div>
-                <div>
-                  <p className="font-semibold text-neutral-900 text-base">{t.landing.testimonial3Name}</p>
-                  <p className="text-sm text-neutral-500">{t.landing.testimonial3Role}</p>
-                </div>
-              </div>
-            </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
+      )}
 
       {/* Benefits Section */}
       <section className="py-16 sm:py-20 lg:py-24">

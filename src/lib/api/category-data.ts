@@ -73,7 +73,8 @@ export async function updateProviderCategoryData(updateData: CategoryDataUpdate)
     // Valider les champs requis
     const errors: string[] = [];
     template.fields.forEach(field => {
-      if (field.required && !updateData.category_data[field.id]) {
+      const value = updateData.category_data[field.id];
+      if (field.required && (!value || (Array.isArray(value) && value.length === 0))) {
         errors.push(`${field.label} est requis`);
       }
       

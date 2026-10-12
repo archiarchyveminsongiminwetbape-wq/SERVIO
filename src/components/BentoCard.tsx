@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface BentoStatCardProps {
   icon: LucideIcon;
-  value: string | number;
+  value: ReactNode;
   label: string;
   trend?: string;
   variant?: 'default' | 'primary' | 'gradient' | 'dark';

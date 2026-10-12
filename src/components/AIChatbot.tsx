@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageCircle, X, Send, Loader2, Bot, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { HfInference } from '@huggingface/inference';
 import { supabase } from '@/lib/supabase';
@@ -76,7 +77,9 @@ const wordsMatch = (queryWord: string, keyword: string) => {
 };
 
 export default function AIChatbot() {
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isHeroSearchVisible, setIsHeroSearchVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const savedMessages = localStorage.getItem(CHAT_HISTORY_KEY);
@@ -91,6 +94,28 @@ export default function AIChatbot() {
   const [feedback, setFeedback] = useState<Record<number, 'up' | 'down'>>({});
   const [remoteKnowledge, setRemoteKnowledge] = useState<ChatbotKnowledgeEntry[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      setIsHeroSearchVisible(false);
+      return;
+    }
+
+    const heroSearch = document.querySelector('.hero-3d-card');
+    if (!heroSearch || !('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsHeroSearchVisible(
+        entry.isIntersecting && window.matchMedia('(max-width: 767px)').matches,
+      );
+    }, { threshold: 0.1 });
+
+    observer.observe(heroSearch);
+    return () => {
+      observer.disconnect();
+      setIsHeroSearchVisible(false);
+    };
+  }, [location.pathname]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -312,10 +337,13 @@ export default function AIChatbot() {
   };
 
   if (!isOpen) {
+    if (isHeroSearchVisible) return null;
+
     return (
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-colors z-50"
+        aria-label="Ouvrir l’assistant SERVIO"
         title="Assistant virtuel"
       >
         <MessageCircle size={24} />
@@ -324,7 +352,7 @@ export default function AIChatbot() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl z-50 flex flex-col max-h-[600px]">
+    <div className="fixed bottom-4 right-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-sm flex-col rounded-2xl bg-white shadow-2xl sm:bottom-6 sm:right-6 sm:max-h-[600px] sm:w-96 sm:max-w-none">
       {/* Header */}
       <div className="bg-primary-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -337,6 +365,7 @@ export default function AIChatbot() {
         <button
           onClick={() => setIsOpen(false)}
           className="text-white hover:bg-primary-700 rounded-lg p-1 transition-colors"
+          aria-label="Fermer l’assistant SERVIO"
         >
           <X size={20} />
         </button>

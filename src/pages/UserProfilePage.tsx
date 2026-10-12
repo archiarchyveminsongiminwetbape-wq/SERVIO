@@ -401,13 +401,21 @@ export default function UserProfilePage() {
                 <div className="flex-1">
                   <p className="text-sm text-neutral-500">{t.provider.fields.phone}</p>
                   {editing ? (
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                      placeholder="+33 6 12 34 56 78"
-                    />
+                    <div>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder={selectedCountry ? `${selectedCountry.callingCode} …` : 'Numéro avec indicatif pays'}
+                        autoComplete="tel"
+                        inputMode="tel"
+                        aria-describedby="profile-phone-country-hint"
+                      />
+                      <p id="profile-phone-country-hint" className="mt-1 text-xs text-neutral-500">
+                        {selectedCountry ? `Indicatif de ${selectedCountry.name} : ${selectedCountry.callingCode}. Le numéro enregistré ne sera pas modifié automatiquement.` : 'Choisissez un pays pour afficher son indicatif.'}
+                      </p>
+                    </div>
                   ) : (
                     <p className="text-sm font-medium text-neutral-900">{profile.phone || 'Non renseigné'}</p>
                   )}

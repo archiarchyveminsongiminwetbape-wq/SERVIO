@@ -67,7 +67,8 @@ export default function CategoryServiceForm({
     const newErrors: Record<string, string> = {};
     
     fields.forEach(field => {
-      if (field.required && !formData[field.id]) {
+      const value = formData[field.id];
+      if (field.required && (!value || (Array.isArray(value) && value.length === 0))) {
         newErrors[field.id] = `${field.label} est requis`;
       }
       
